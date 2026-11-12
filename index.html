@@ -65,6 +65,10 @@
   .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
   .loginlogo{display:block; max-width:220px; width:70%; margin:0 auto 10px;}
   .loginsub{text-align:center; font-size:18px; font-weight:700; margin-bottom:16px;}
+  .badge.stp{background:#5a3b12; color:var(--yellow);}
+  .badge.stprod{background:#14424f; color:var(--cyan);}
+  .badge.stent{background:#14532d; color:var(--ok);}
+  .badge.stcanc{background:#3a3a4d; color:var(--mut);}
 </style>
 </head>
 <body>
@@ -99,6 +103,8 @@
       <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')">Materiais</button>
       <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')">Calculadora</button>
       <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')">Produtos</button>
+      <button class="tabbtn" data-tab="lojas" onclick="showTab('lojas')">Lojas</button>
+      <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')">Pedidos</button>
     </nav>
 
     <!-- INÍCIO -->
@@ -303,6 +309,96 @@
         <div id="prod-arch"></div>
       </div>
     </div>
+
+    <!-- LOJAS -->
+    <div id="tab-lojas" class="tabpage hidden">
+      <div id="lojas-list-wrap">
+        <div class="card hidden" id="lojas-restock-card">
+          <h2>Reposições pedidas pelas lojas</h2>
+          <div id="lojas-restock"></div>
+        </div>
+        <div class="card">
+          <h2 id="store-form-title">Nova loja</h2>
+          <label>Nome da loja</label>
+          <input id="st-name" type="text" placeholder="Ex.: Pure Pilates Cerejeiras">
+          <div class="cols">
+            <div><label>Responsável</label><input id="st-contact" type="text" placeholder="Nome de quem recebe"></div>
+            <div><label>WhatsApp</label><input id="st-whats" type="text" placeholder="Ex.: (11) 91293-4440"></div>
+          </div>
+          <label>Endereço</label>
+          <input id="st-address" type="text" placeholder="Rua, número, bairro, cidade">
+          <div class="cols">
+            <div><label>Comissão da loja (%)</label><input id="st-commission" type="text" inputmode="decimal" placeholder="Ex.: 15"></div>
+            <div><label>Frequência do acerto</label>
+              <select id="st-cycle" onchange="toggleCycleFields()">
+                <option value="mensal">Mensal</option>
+                <option value="quinzenal">Quinzenal</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          </div>
+          <div id="st-day-wrap">
+            <label>Dia do acerto</label>
+            <input id="st-day" type="text" inputmode="numeric" placeholder="Ex.: 5">
+            <p class="mut">No acerto mensal, é o dia do mês. No quinzenal, vale esse dia e ele mais 15.</p>
+          </div>
+          <div id="st-other-wrap" class="hidden">
+            <label>Combinado do acerto (texto livre)</label>
+            <input id="st-other" type="text" placeholder="Ex.: toda sexta-feira">
+          </div>
+          <label>E-mail de acesso da loja</label>
+          <input id="st-email" type="email" disabled placeholder="Criado na próxima etapa">
+          <p class="mut">Os logins das lojas serão criados dentro do próprio app na Etapa C. Por enquanto este campo fica só de referência e não é salvo.</p>
+          <label>Contrato (caminho do arquivo)</label>
+          <input id="st-contract" type="text" placeholder="Opcional. O envio de arquivos entra numa etapa seguinte">
+          <label>Observações</label>
+          <input id="st-notes" type="text" placeholder="Opcional">
+          <label class="check"><input type="checkbox" id="st-restock" checked> A loja pode pedir reposição</label>
+          <div class="btnrow">
+            <button onclick="saveStore()">Salvar loja</button>
+            <button class="ghost hidden" id="st-cancel" onclick="storeFormReset(true)">Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Lojas parceiras</h2>
+          <input id="store-search" type="text" placeholder="Buscar loja (pode digitar sem acento)" oninput="S.storeSearch = this.value; renderStoreList();">
+          <div id="store-list"></div>
+        </div>
+      </div>
+      <div id="lojas-detail-wrap" class="hidden">
+        <div class="btnrow" style="margin:0 0 12px;">
+          <button class="ghost btn-sm" onclick="closeStore()">&#8592; Voltar para a lista de lojas</button>
+        </div>
+        <div id="store-detail"></div>
+      </div>
+    </div>
+
+    <!-- PEDIDOS -->
+    <div id="tab-pedidos" class="tabpage hidden">
+      <div class="card">
+        <h2>Pra fazer agora</h2>
+        <div id="todo-now"></div>
+      </div>
+      <div class="card">
+        <h2>Reposições pedidas pelas lojas</h2>
+        <div id="ped-restock"></div>
+      </div>
+      <div class="card">
+        <h2>Novo pedido avulso</h2>
+        <label>Nome do cliente</label>
+        <input id="ord-client" type="text" placeholder="Ex.: Maria Silva">
+        <h3>Itens do pedido</h3>
+        <div id="ord-lines"></div>
+        <button class="ghost btn-sm" onclick="addOrderLine()">+ Produto</button>
+        <div class="btnrow">
+          <button onclick="saveOrder()">Salvar pedido</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Pedidos</h2>
+        <div id="ord-list"></div>
+      </div>
+    </div>
   </section>
 
   <!-- LOJA -->
@@ -419,7 +515,11 @@ const S = {
   finMonth: ymNow(), editingTx: null,
   matType: 'filament', editingMat: null,
   calc: { fils: [], sups: [] },
-  histOpen: {}
+  histOpen: {},
+  stores: [], storeStock: [], sales: [], settlements: [],
+  orders: [], orderItems: [], restocks: [],
+  storeSearch: '', currentStore: null, displaySearch: '', editingStore: null,
+  orderLines: []
 };
 let P = null; // estado da produção em edição no modal
 
@@ -506,7 +606,7 @@ function initMasterForms(){
 
 /* ---------------- carga de dados ---------------- */
 async function fetchAll(){
-  const [f, s, p, pf, ps, pd, gs, tx] = await Promise.all([
+  const [f, s, p, pf, ps, pd, gs, tx, st, ss, sl, sm, od, oi, rr] = await Promise.all([
     sb.from('filaments').select('*').order('name'),
     sb.from('supplies').select('*').order('name'),
     sb.from('products').select('*').order('name'),
@@ -514,13 +614,24 @@ async function fetchAll(){
     sb.from('product_supplies').select('*'),
     sb.from('productions').select('*').order('created_at', { ascending: false }),
     sb.from('general_stock').select('*'),
-    sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })
+    sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false }),
+    sb.from('stores').select('*').order('name'),
+    sb.from('store_stock').select('*'),
+    sb.from('sales').select('*').order('sold_at', { ascending: false }),
+    sb.from('settlements').select('*').order('settled_at', { ascending: false }),
+    sb.from('orders').select('*').order('created_at', { ascending: false }),
+    sb.from('order_items').select('*'),
+    sb.from('restock_requests').select('*').order('created_at', { ascending: false })
   ]);
-  const firstErr = [f,s,p,pf,ps,pd,gs,tx].map(r => r.error).find(Boolean);
+  const firstErr = [f,s,p,pf,ps,pd,gs,tx,st,ss,sl,sm,od,oi,rr].map(r => r.error).find(Boolean);
   if(firstErr) toastErr(firstErr);
   S.filaments = f.data || []; S.supplies = s.data || []; S.products = p.data || [];
   S.pf = pf.data || []; S.ps = ps.data || []; S.prods = pd.data || [];
   S.txs = tx.data || [];
+  S.stores = st.data || []; S.storeStock = ss.data || []; S.sales = sl.data || [];
+  S.settlements = sm.data || []; S.orders = od.data || []; S.orderItems = oi.data || [];
+  S.restocks = rr.data || [];
+  if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
   S.recipes = {};
@@ -536,6 +647,8 @@ function renderAll(){
   renderCalcLines();
   recomputeCalc();
   renderProdutos();
+  renderLojas();
+  renderPedidos();
 }
 
 /* ---------------- Início ---------------- */
@@ -1192,6 +1305,663 @@ async function confirmProduction(){
   closeModal();
   await fetchAll(); renderAll();
   toast('Produção registrada: ' + qtyDone + ' peças.' + (ended.length ? ' Atenção, acabou o estoque de: ' + ended.join(', ') + '.' : ''));
+}
+
+/* ---------------- Lojas e Pedidos (Etapa B) ---------------- */
+const storeById = id => S.stores.find(x => x.id === id);
+const orderById = id => S.orders.find(x => x.id === id);
+const stockRowOf = (storeId, productId) => S.storeStock.find(r => r.store_id === storeId && r.product_id === productId);
+const homeAvail = pid => { const st = S.stock[pid]; return st ? Number(st.available) || 0 : 0; };
+let RGROUPS = [];
+let RS = null; // estado do popup Repor estoque
+let ST = null; // estado do popup de acerto
+let DL = null; // estado do popup de entrega de pedido
+let CT = null; // estado do popup Corrigir total
+
+function openBox(html){ $('modal-box').innerHTML = html; $('modal').classList.remove('hidden'); }
+function closeBox(){ $('modal').classList.add('hidden'); RS = null; ST = null; DL = null; CT = null; }
+
+function cycleText(st){
+  if(st.settlement_cycle === 'quinzenal') return 'Quinzenal' + (st.settlement_day ? ', dias ' + st.settlement_day + ' e ' + (Number(st.settlement_day) + 15) : '');
+  if(st.settlement_cycle === 'outro') return st.settlement_other ? 'Outro: ' + st.settlement_other : 'Outro';
+  return 'Mensal' + (st.settlement_day ? ', dia ' + st.settlement_day : '');
+}
+
+/* ---------------- Lojas: lista e cadastro ---------------- */
+function renderLojas(){
+  const hasPending = restockGroups().length > 0;
+  $('lojas-restock-card').classList.toggle('hidden', !hasPending);
+  if(hasPending) $('lojas-restock').innerHTML = restockHtml();
+  const inDetail = !!(S.currentStore && storeById(S.currentStore));
+  $('lojas-list-wrap').classList.toggle('hidden', inDetail);
+  $('lojas-detail-wrap').classList.toggle('hidden', !inDetail);
+  if(inDetail) renderStoreDetail(); else renderStoreList();
+}
+function renderStoreList(){
+  const q = norm(S.storeSearch);
+  const list = S.stores.filter(st => !q || norm(st.name + ' ' + (st.contact_name || '')).indexOf(q) >= 0);
+  $('store-list').innerHTML = list.map(st => {
+    const rows = S.storeStock.filter(r => r.store_id === st.id);
+    const inDisplay = rows.reduce((a, r) => a + (r.delivered_qty - r.sold_in_cycle), 0);
+    const sold = rows.reduce((a, r) => a + r.sold_in_cycle, 0);
+    return `<div class="row"><span style="flex:1;">${esc(st.name)}
+      <div class="mut">${esc(st.contact_name || '')}${st.whatsapp ? ' · ' + esc(st.whatsapp) : ''}</div>
+      <div class="mut">Comissão: ${fmtN(st.commission_percent)}% · Acerto: ${esc(cycleText(st))} · No expositor: ${inDisplay} itens · Vendidos no ciclo: ${sold}</div></span>
+      <span class="btnrow" style="margin-top:0;">
+        <button class="btn-sm" onclick="openStore(${st.id})">Abrir</button>
+        <button class="ghost btn-sm" onclick="editStore(${st.id})">Editar</button>
+      </span></div>`;
+  }).join('') || '<p class="mut">Nenhuma loja encontrada.</p>';
+}
+function openStore(id){
+  S.currentStore = id;
+  S.displaySearch = '';
+  renderLojas();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function closeStore(){
+  S.currentStore = null;
+  renderLojas();
+}
+function toggleCycleFields(){
+  const c = $('st-cycle').value;
+  $('st-day-wrap').classList.toggle('hidden', c === 'outro');
+  $('st-other-wrap').classList.toggle('hidden', c !== 'outro');
+}
+function storeFormReset(scroll){
+  S.editingStore = null;
+  $('store-form-title').textContent = 'Nova loja';
+  $('st-cancel').classList.add('hidden');
+  ['st-name','st-contact','st-whats','st-address','st-day','st-other','st-contract','st-notes','st-commission'].forEach(id => { $(id).value = ''; });
+  $('st-cycle').value = 'mensal';
+  $('st-restock').checked = true;
+  toggleCycleFields();
+  if(scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function editStore(id){
+  const st = storeById(id);
+  if(!st) return;
+  S.currentStore = null;
+  S.editingStore = id;
+  $('store-form-title').textContent = 'Editar loja';
+  $('st-cancel').classList.remove('hidden');
+  $('st-name').value = st.name || '';
+  $('st-contact').value = st.contact_name || '';
+  $('st-whats').value = st.whatsapp || '';
+  $('st-address').value = st.address || '';
+  $('st-commission').value = numStr(st.commission_percent || 0);
+  $('st-cycle').value = st.settlement_cycle || 'mensal';
+  $('st-day').value = st.settlement_day || '';
+  $('st-other').value = st.settlement_other || '';
+  $('st-contract').value = st.contract_file_path || '';
+  $('st-notes').value = st.notes || '';
+  $('st-restock').checked = !!st.restock_requests_enabled;
+  toggleCycleFields();
+  renderLojas();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+async function saveStore(){
+  const name = $('st-name').value.trim();
+  if(!name){ toast('Dê um nome à loja.', true); return; }
+  const cycle = $('st-cycle').value;
+  const day = parseInt($('st-day').value, 10);
+  const payload = {
+    name: name,
+    contact_name: $('st-contact').value.trim(),
+    whatsapp: $('st-whats').value.trim(),
+    address: $('st-address').value.trim(),
+    notes: $('st-notes').value.trim(),
+    commission_percent: parseNum($('st-commission').value) || 0,
+    settlement_cycle: cycle,
+    settlement_day: cycle === 'outro' || isNaN(day) ? null : day,
+    settlement_other: cycle === 'outro' ? $('st-other').value.trim() : '',
+    restock_requests_enabled: $('st-restock').checked,
+    contract_file_path: $('st-contract').value.trim() || null
+  };
+  let error;
+  if(S.editingStore){
+    ({ error } = await sb.from('stores').update(payload).eq('id', S.editingStore));
+  } else {
+    ({ error } = await sb.from('stores').insert(payload));
+  }
+  if(error) return toastErr(error);
+  storeFormReset(false);
+  await fetchAll(); renderAll();
+  toast('Loja salva: ' + name + '.');
+}
+
+/* ---------------- Lojas: detalhe, expositor, acerto ---------------- */
+function cycleInfo(store){
+  const settles = S.settlements.filter(x => x.store_id === store.id);
+  const last = settles.length ? settles[0] : null;
+  const rows = S.sales.filter(x => x.store_id === store.id && (!last || String(x.sold_at) > String(last.settled_at)));
+  const byProd = {};
+  rows.forEach(x => {
+    const sgn = x.kind === 'correction' ? -1 : 1;
+    const b = byProd[x.product_id] || (byProd[x.product_id] = { qty: 0, gross: 0 });
+    b.qty += sgn;
+    b.gross += sgn * (x.unit_price_cents || 0);
+  });
+  let gross = 0, items = 0;
+  Object.values(byProd).forEach(b => { gross += b.gross; items += b.qty; });
+  const commission = Math.round(gross * (Number(store.commission_percent) || 0) / 100);
+  const carriedIn = S.storeStock.filter(r => r.store_id === store.id).reduce((a, r) => a + (r.carried_balance_cents || 0), 0);
+  const net = gross - commission;
+  return { last: last, byProd: byProd, gross: gross, items: items, commission: commission, net: net, carriedIn: carriedIn, due: net + carriedIn };
+}
+function activeProductOptions(){
+  const act = S.products.filter(p => !p.archived);
+  if(!act.length) return '<option value="">Nenhum produto ativo</option>';
+  return act.map(p => `<option value="${p.id}">${esc(p.name)} (em casa: ${homeAvail(p.id)})</option>`).join('');
+}
+function updateDispHint(){
+  const sel = $('disp-product');
+  const hint = $('disp-hint');
+  if(!sel || !hint) return;
+  const pid = parseInt(sel.value, 10);
+  hint.textContent = pid ? ('Em casa agora: ' + homeAvail(pid) + ' peças. Mandar além disso é recusado.') : '';
+}
+function renderStoreDetail(){
+  const st = storeById(S.currentStore);
+  if(!st){ S.currentStore = null; renderLojas(); return; }
+  const cyc = cycleInfo(st);
+  $('store-detail').innerHTML = `
+    <div class="card">
+      <h2>${esc(st.name)}</h2>
+      <div class="mut">${esc(st.contact_name || '')}${st.whatsapp ? ' · WhatsApp ' + esc(st.whatsapp) : ''}</div>
+      ${st.address ? `<div class="mut">${esc(st.address)}</div>` : ''}
+      <div class="mut">Comissão: ${fmtN(st.commission_percent)}% · Acerto: ${esc(cycleText(st))} · Pedir reposição: ${st.restock_requests_enabled ? 'permitido' : 'desligado'}</div>
+      ${st.contract_file_path ? `<div class="mut">Contrato: ${esc(st.contract_file_path)}</div>` : ''}
+      ${st.notes ? `<div class="mut">${esc(st.notes)}</div>` : ''}
+      <div class="btnrow">
+        <button class="pinkbtn" onclick="openRestock(${st.id})">Repor estoque</button>
+        <button onclick="openSettlement(${st.id})">Fazer acerto</button>
+        <button class="ghost" onclick="editStore(${st.id})">Editar cadastro</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ciclo atual</h2>
+      <div class="row"><span>Itens vendidos no ciclo</span><b>${cyc.items}</b></div>
+      <div class="row"><span>Vendido (bruto)</span><b>${BRL(cyc.gross)}</b></div>
+      <div class="row"><span>Comissão da loja (${fmtN(st.commission_percent)}%)</span><b>${BRL(cyc.commission)}</b></div>
+      <div class="row"><span>Líquido para a J2L</span><b>${BRL(cyc.net)}</b></div>
+      <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>
+      <div class="row"><span><b>Total do acerto</b></span><span class="big">${BRL(cyc.due)}</span></div>
+      <p class="mut">${cyc.last ? 'Último acerto em ' + fmtDateTime(cyc.last.settled_at) + '.' : 'Ainda não houve acerto nesta loja.'} Acerto antecipado é permitido, não precisa esperar a data combinada.</p>
+    </div>
+    <div class="card">
+      <h2>Expositor</h2>
+      <input type="text" placeholder="Buscar produto no expositor (pode digitar sem acento)" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();">
+      <div class="linebox">
+        <label>Adicionar produto ao expositor</label>
+        <select id="disp-product" onchange="updateDispHint()">${activeProductOptions()}</select>
+        <label>Quantidade</label>
+        <input id="disp-qty" type="text" inputmode="numeric" value="1">
+        <div class="mut" id="disp-hint"></div>
+        <div class="btnrow"><button class="btn-sm" onclick="mountDisplay()">Adicionar ao expositor</button></div>
+      </div>
+      <div id="display-list"></div>
+    </div>
+    <div class="card">
+      <h2>Vendas da loja</h2>
+      <div id="sales-list">${salesHistoryHtml(st.id)}</div>
+    </div>
+    <div class="card">
+      <h2>Acertos</h2>
+      <div id="settle-list">${settlementHistoryHtml(st.id)}</div>
+      <h3>Vendas e acertos por mês</h3>
+      ${storeChartHtml(st.id)}
+    </div>`;
+  renderDisplayList();
+  updateDispHint();
+}
+function renderDisplayList(){
+  const el = $('display-list');
+  if(!el) return;
+  const st = storeById(S.currentStore);
+  if(!st){ el.innerHTML = ''; return; }
+  const q = norm(S.displaySearch);
+  const rows = S.storeStock.filter(r => r.store_id === st.id)
+    .map(r => ({ row: r, prod: prodById(r.product_id) }))
+    .filter(x => x.prod)
+    .filter(x => !q || norm(x.prod.name).indexOf(q) >= 0)
+    .sort((a, b) => a.prod.name.localeCompare(b.prod.name));
+  el.innerHTML = rows.map(x => {
+    const r = x.row, p = x.prod;
+    const inDisplay = r.delivered_qty - r.sold_in_cycle;
+    return `<div class="row" style="align-items:flex-start;">
+      <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
+        <div class="mut">Preço na loja: ${BRL(p.sale_price_cents)}</div>
+        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle} (só leitura aqui, quem muda é a loja vendendo)</div>
+        ${r.carried_balance_cents ? `<div class="mut">Saldo carregado neste produto: ${BRL(r.carried_balance_cents)}</div>` : ''}
+      </span></span>
+      <span><button class="ghost btn-sm" onclick="openCorrectTotal(${r.id})">Corrigir total</button></span>
+    </div>`;
+  }).join('') || '<p class="mut">Nenhum produto neste expositor.</p>';
+}
+async function addToDisplay(storeId, productId, qty){
+  const row = stockRowOf(storeId, productId);
+  if(row){
+    const { error } = await sb.from('store_stock').update({ delivered_qty: row.delivered_qty + qty }).eq('id', row.id);
+    if(error) throw error;
+  } else {
+    const { error } = await sb.from('store_stock').insert({ store_id: storeId, product_id: productId, delivered_qty: qty, sold_in_cycle: 0, settled_in_cycle_cents: 0, carried_balance_cents: 0 });
+    if(error) throw error;
+  }
+}
+async function mountDisplay(){
+  const st = storeById(S.currentStore);
+  if(!st) return;
+  const pid = parseInt($('disp-product').value, 10);
+  const qty = Math.round(parseNum($('disp-qty').value) || 0);
+  const p = prodById(pid);
+  if(!p){ toast('Escolha um produto.', true); return; }
+  if(qty <= 0){ toast('Informe uma quantidade maior que zero.', true); return; }
+  const avail = homeAvail(pid);
+  if(qty > avail){ toast('Não dá para mandar ' + qty + ' de "' + p.name + '": só há ' + avail + ' em casa. Nada foi enviado.', true); return; }
+  try { await addToDisplay(st.id, pid, qty); } catch(e){ return toastErr(e); }
+  await fetchAll(); renderAll();
+  toast(qty + ' peças de "' + p.name + '" foram para o expositor da ' + st.name + '.');
+}
+function openCorrectTotal(rowId){
+  const r = S.storeStock.find(x => x.id === rowId);
+  if(!r) return;
+  const p = prodById(r.product_id);
+  CT = { rowId: rowId };
+  openBox(`
+    <h2>Corrigir total do expositor</h2>
+    <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(p ? p.name : '')}</b>. Hoje constam ${r.delivered_qty} entregues e ${r.sold_in_cycle} vendidos no ciclo, ou seja, ${r.delivered_qty - r.sold_in_cycle} no expositor. A correção muda o total de entregues; os vendidos não mudam.</p>
+    <label>Novo total de peças entregues</label>
+    <input id="ct-total" type="text" inputmode="numeric" value="${r.delivered_qty}">
+    <div class="btnrow">
+      <button onclick="saveCorrectTotal()">Salvar correção</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function saveCorrectTotal(){
+  if(!CT) return;
+  const r = S.storeStock.find(x => x.id === CT.rowId);
+  if(!r) return;
+  const total = Math.round(parseNum($('ct-total').value) || 0);
+  if(total < 0){ toast('O total não pode ser negativo.', true); return; }
+  if(!confirm('Confirmar a correção do total para ' + total + ' peças entregues?')) return;
+  const { error } = await sb.from('store_stock').update({ delivered_qty: total }).eq('id', r.id);
+  if(error) return toastErr(error);
+  closeBox();
+  await fetchAll(); renderAll();
+  toast('Total corrigido.');
+}
+function openRestock(storeId){
+  const st = storeById(storeId);
+  if(!st) return;
+  const prods = S.products.filter(p => !p.archived && homeAvail(p.id) > 0).sort((a, b) => a.name.localeCompare(b.name));
+  RS = { storeId: storeId };
+  openBox(`
+    <h2>Repor estoque: ${esc(st.name)}</h2>
+    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto para mandar ao expositor. Tudo é conferido contra o estoque em casa antes de aplicar: se algo passar do disponível, nada é reposto.</p>
+    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Em casa: ${homeAvail(p.id)}</div></span>
+      <input type="text" inputmode="numeric" id="rs-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')
+      : '<p class="mut">Nenhum produto com estoque em casa agora.</p>'}
+    <div class="btnrow">
+      <button class="pinkbtn" onclick="applyRestock()">Repor estoque</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function applyRestock(){
+  if(!RS) return;
+  const st = storeById(RS.storeId);
+  if(!st) return;
+  const lines = [];
+  S.products.forEach(p => {
+    const inp = $('rs-qty-' + p.id);
+    if(!inp) return;
+    const qty = Math.round(parseNum(inp.value) || 0);
+    if(qty > 0) lines.push({ product: p, qty: qty });
+  });
+  if(!lines.length){ toast('Digite a quantidade de pelo menos um produto.', true); return; }
+  for(const l of lines){
+    const avail = homeAvail(l.product.id);
+    if(l.qty > avail){ toast('Não dá para repor ' + l.qty + ' de "' + l.product.name + '": só há ' + avail + ' em casa. Nada foi reposto.', true); return; }
+  }
+  try { for(const l of lines) await addToDisplay(st.id, l.product.id, l.qty); } catch(e){ return toastErr(e); }
+  const total = lines.reduce((a, l) => a + l.qty, 0);
+  closeBox();
+  await fetchAll(); renderAll();
+  toast('Reposição feita: ' + total + ' itens para o expositor da ' + st.name + '.');
+}
+function openSettlement(storeId){
+  const st = storeById(storeId);
+  if(!st) return;
+  const cyc = cycleInfo(st);
+  if(cyc.items <= 0 && cyc.carriedIn <= 0){ toast('Nada para acertar nesta loja neste ciclo.', true); return; }
+  ST = { storeId: storeId, due: cyc.due };
+  const lines = Object.keys(cyc.byProd).map(pid => {
+    const b = cyc.byProd[pid];
+    const p = prodById(Number(pid));
+    return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${b.qty} vendidos · ${BRL(b.gross)}</span></div>`;
+  }).join('');
+  openBox(`
+    <h2>Fazer acerto: ${esc(st.name)}</h2>
+    ${lines || '<p class="mut">Sem vendas no ciclo.</p>'}
+    <div class="row"><span>Vendido (bruto)</span><b>${BRL(cyc.gross)}</b></div>
+    <div class="row"><span>Comissão da loja (${fmtN(st.commission_percent)}%)</span><b>${BRL(cyc.commission)}</b></div>
+    <div class="row"><span>Líquido para a J2L</span><b>${BRL(cyc.net)}</b></div>
+    <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>
+    <div class="row"><span><b>Total do acerto</b></span><b>${BRL(cyc.due)}</b></div>
+    <label>Valor acertado com a loja (R$)</label>
+    <input id="settle-paid" type="text" inputmode="decimal" value="${moneyStr(Math.max(0, cyc.due))}">
+    <p class="mut">Se o valor acertado for menor que o total, o restante vira saldo do próximo ciclo. Ao confirmar, os vendidos zeram e o que sobrou no expositor vira o estoque inicial do novo ciclo.</p>
+    <div class="btnrow">
+      <button onclick="confirmSettlement()">Confirmar acerto</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function confirmSettlement(){
+  if(!ST) return;
+  const st = storeById(ST.storeId);
+  if(!st) return;
+  const paid = parseMoney($('settle-paid').value);
+  if(paid < 0){ toast('O valor acertado não pode ser negativo.', true); return; }
+  const cyc = cycleInfo(st);
+  const remainder = Math.max(0, ST.due - paid);
+  const { error } = await sb.from('settlements').insert({ store_id: st.id, amount_cents: paid });
+  if(error) return toastErr(error);
+  const rows = S.storeStock.filter(r => r.store_id === st.id);
+  const weights = rows.map(r => Math.max(0, cyc.byProd[r.product_id] ? cyc.byProd[r.product_id].gross : 0) + (r.carried_balance_cents || 0));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  let shares = rows.map(() => 0);
+  if(remainder > 0 && rows.length){
+    if(totalW > 0){
+      let assigned = 0;
+      shares = weights.map(w => { const s = Math.floor(remainder * w / totalW); assigned += s; return s; });
+      let left = remainder - assigned;
+      let idx = weights.indexOf(Math.max.apply(null, weights));
+      while(left > 0){ shares[idx] += 1; left -= 1; }
+    } else {
+      shares[0] = remainder;
+    }
+  }
+  for(let i = 0; i < rows.length; i++){
+    const r = rows[i];
+    const { error: e2 } = await sb.from('store_stock').update({
+      delivered_qty: Math.max(0, r.delivered_qty - r.sold_in_cycle),
+      sold_in_cycle: 0,
+      settled_in_cycle_cents: 0,
+      carried_balance_cents: shares[i]
+    }).eq('id', r.id);
+    if(e2) return toastErr(e2);
+  }
+  closeBox();
+  await fetchAll(); renderAll();
+  toast('Acerto registrado para ' + st.name + ': ' + BRL(paid) + '.' + (remainder > 0 ? ' Saldo de ' + BRL(remainder) + ' carregado para o próximo ciclo.' : ''));
+}
+function salesHistoryHtml(storeId){
+  const rows = S.sales.filter(x => x.store_id === storeId);
+  if(!rows.length) return '<p class="mut">Nenhuma venda registrada ainda.</p>';
+  const groups = {};
+  rows.forEach(x => {
+    const day = String(x.sold_at).slice(0, 10);
+    const key = x.product_id + '|' + x.unit_price_cents + '|' + day;
+    const g = groups[key] || (groups[key] = { pid: x.product_id, price: x.unit_price_cents, day: day, qty: 0, total: 0, latest: x.sold_at });
+    const sgn = x.kind === 'correction' ? -1 : 1;
+    g.qty += sgn;
+    g.total += sgn * (x.unit_price_cents || 0);
+    if(String(x.sold_at) > String(g.latest)) g.latest = x.sold_at;
+  });
+  const list = Object.values(groups).sort((a, b) => String(b.latest).localeCompare(String(a.latest))).slice(0, 60);
+  return list.map(g => {
+    const p = prodById(g.pid);
+    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${fmtDate(g.day)} · ${g.qty} un × ${BRL(g.price)}</div></span><b>${BRL(g.total)}</b></div>`;
+  }).join('');
+}
+function settlementHistoryHtml(storeId){
+  const rows = S.settlements.filter(x => x.store_id === storeId);
+  if(!rows.length) return '<p class="mut">Nenhum acerto registrado ainda.</p>';
+  return rows.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
+}
+function storeChartHtml(storeId){
+  const byMonth = {};
+  const touch = m => byMonth[m] || (byMonth[m] = { v: 0, a: 0 });
+  S.sales.filter(x => x.store_id === storeId).forEach(x => {
+    const b = touch(String(x.sold_at).slice(0, 7));
+    b.v += x.kind === 'correction' ? -(x.unit_price_cents || 0) : (x.unit_price_cents || 0);
+  });
+  S.settlements.filter(x => x.store_id === storeId).forEach(x => { touch(String(x.settled_at).slice(0, 7)).a += x.amount_cents || 0; });
+  const keys = Object.keys(byMonth).sort().slice(-8);
+  if(!keys.length) return '<p class="mut">Sem dados ainda.</p>';
+  const max = Math.max(1, ...keys.map(k => Math.max(byMonth[k].v, byMonth[k].a)));
+  const bars = keys.map(k => {
+    const v = byMonth[k];
+    const hv = Math.max(2, Math.round(Math.max(0, v.v) / max * 100));
+    const ha = Math.max(2, Math.round(Math.max(0, v.a) / max * 100));
+    return `<div class="cmonth"><div class="cbars">
+      <div class="cbar" style="height:${hv}px; background:var(--cyan);" title="Vendas ${ymLabel(k)}: ${BRL(v.v)}"></div>
+      <div class="cbar" style="height:${ha}px; background:var(--pink);" title="Acertos ${ymLabel(k)}: ${BRL(v.a)}"></div>
+    </div><div class="mut">${ymLabel(k)}</div></div>`;
+  }).join('');
+  return `<div class="chart">${bars}</div><p class="mut"><span style="color:var(--cyan)">&#9632;</span> Vendas &nbsp; <span style="color:var(--pink)">&#9632;</span> Acertos</p>`;
+}
+
+/* ---------------- Reposições pedidas pelas lojas ---------------- */
+function restockGroups(){
+  const pend = S.restocks.filter(r => r.status === 'pendente');
+  const map = {};
+  const groups = [];
+  pend.forEach(r => {
+    const key = r.group_id ? 'g:' + r.group_id : 's:' + r.store_id + ':' + String(r.created_at).slice(0, 10);
+    let g = map[key];
+    if(!g){ g = { key: key, storeId: r.store_id, createdAt: r.created_at, message: '', rows: [] }; map[key] = g; groups.push(g); }
+    if(r.message && !g.message) g.message = r.message;
+    if(String(r.created_at) < String(g.createdAt)) g.createdAt = r.created_at;
+    g.rows.push(r);
+  });
+  groups.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  RGROUPS = groups;
+  return groups;
+}
+function restockHtml(){
+  const groups = restockGroups();
+  if(!groups.length) return '<p class="mut">Nenhum pedido de reposição pendente.</p>';
+  return groups.map((g, i) => {
+    const st = storeById(g.storeId);
+    const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
+    const lines = g.rows.map(r => {
+      const p = prodById(r.product_id);
+      return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · em casa: ${homeAvail(r.product_id)}</span></div>`;
+    }).join('');
+    return `<div class="linebox">
+      <div><b>${esc(st ? st.name : 'Loja')}</b> <span class="mut">· ${fmtDateTime(g.createdAt)} · ${totalQty} itens pedidos</span></div>
+      ${g.message ? `<div class="mut" style="margin-top:4px;">${esc(g.message)}</div>` : ''}
+      ${lines}
+      <div class="btnrow">
+        <button class="btn-sm" onclick="attendRestock(${i})">Atender</button>
+        <button class="ghost btn-sm" onclick="ignoreRestock(${i})">Ignorar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function attendRestock(i){
+  const g = RGROUPS[i];
+  if(!g) return;
+  const st = storeById(g.storeId);
+  const perProd = {};
+  g.rows.forEach(r => { perProd[r.product_id] = (perProd[r.product_id] || 0) + r.qty; });
+  for(const pid of Object.keys(perProd)){
+    const avail = homeAvail(Number(pid));
+    if(perProd[pid] > avail){
+      const p = prodById(Number(pid));
+      toast('Não dá para atender tudo: "' + (p ? p.name : 'Produto') + '" pede ' + perProd[pid] + ' e só há ' + avail + ' em casa. O pedido continua pendente.', true);
+      return;
+    }
+  }
+  try { for(const pid of Object.keys(perProd)) await addToDisplay(g.storeId, Number(pid), perProd[pid]); } catch(e){ return toastErr(e); }
+  const ids = g.rows.map(r => r.id);
+  const { error } = await sb.from('restock_requests').update({ status: 'atendida' }).in('id', ids);
+  if(error) return toastErr(error);
+  await fetchAll(); renderAll();
+  toast('Reposição atendida para ' + (st ? st.name : 'a loja') + '.');
+}
+async function ignoreRestock(i){
+  const g = RGROUPS[i];
+  if(!g) return;
+  const st = storeById(g.storeId);
+  if(!confirm('Ignorar este pedido de reposição de ' + (st ? st.name : 'loja') + '? Ele sai da lista de pendentes.')) return;
+  const ids = g.rows.map(r => r.id);
+  const { error } = await sb.from('restock_requests').update({ status: 'ignorada' }).in('id', ids);
+  if(error) return toastErr(error);
+  await fetchAll(); renderAll();
+  toast('Pedido de reposição ignorado.');
+}
+
+/* ---------------- Pedidos ---------------- */
+function orderItemsOf(oid){ return S.orderItems.filter(i => i.order_id === oid); }
+function orderTotal(oid){ return orderItemsOf(oid).reduce((a, i) => a + i.qty * i.unit_price_cents, 0); }
+function orderCost(oid){ return orderItemsOf(oid).reduce((a, i) => a + i.qty * (i.unit_cost_cents || 0), 0); }
+function statusBadge(st){
+  const map = { pendente: ['stp', 'Pendente'], em_producao: ['stprod', 'Em produção'], entregue: ['stent', 'Entregue'], cancelado: ['stcanc', 'Cancelado'] };
+  const m = map[st] || ['stcanc', st];
+  return `<span class="badge ${m[0]}">${m[1]}</span>`;
+}
+function renderPedidos(){
+  renderPraFazer();
+  $('ped-restock').innerHTML = restockHtml();
+  renderOrderLines();
+  renderOrders();
+}
+function renderPraFazer(){
+  const prod = S.orders.filter(o => o.status === 'em_producao');
+  const groups = restockGroups();
+  let html = '';
+  html += prod.map(o => {
+    const items = orderItemsOf(o.id).map(i => esc(i.description) + ' ×' + i.qty).join(', ');
+    return `<div class="row"><span style="flex:1;"><b>${esc(o.client_name)}</b><div class="mut">${items || 'Sem itens'} · ${BRL(orderTotal(o.id))}</div></span>${statusBadge(o.status)}</div>`;
+  }).join('');
+  html += groups.map(g => {
+    const st = storeById(g.storeId);
+    const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
+    return `<div class="row"><span style="flex:1;"><b>Reposição: ${esc(st ? st.name : 'Loja')}</b><div class="mut">${totalQty} itens pedidos · atenda na seção de reposições aqui embaixo ou na aba Lojas</div></span><span class="badge stp">Pendente</span></div>`;
+  }).join('');
+  $('todo-now').innerHTML = html || '<p class="mut">Nada pendente para fazer agora.</p>';
+}
+function orderProductOptions(selId){
+  const act = S.products.filter(p => !p.archived);
+  const opts = act.map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${esc(p.name)} (${BRL(p.sale_price_cents)})</option>`).join('');
+  return `<option value="" ${selId ? '' : 'selected'}>Escolher produto...</option>` + opts;
+}
+function renderOrderLines(){
+  if(!S.orderLines.length) S.orderLines = [{ productId: null, qtyStr: '1' }];
+  $('ord-lines').innerHTML = S.orderLines.map((l, i) => {
+    const p = l.productId ? prodById(l.productId) : null;
+    return `<div class="linebox">
+      <label>Produto</label>
+      <select onchange="orderLineProduct(${i}, this.value)">${orderProductOptions(l.productId)}</select>
+      <label>Quantidade</label>
+      <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="S.orderLines[${i}].qtyStr = this.value">
+      <div class="mut">${p ? 'Preço: ' + BRL(p.sale_price_cents) + ' cada · em casa: ' + homeAvail(p.id) : ''}</div>
+      <div class="btnrow"><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
+    </div>`;
+  }).join('');
+}
+function orderLineProduct(i, v){ S.orderLines[i].productId = v ? parseInt(v, 10) : null; renderOrderLines(); }
+function addOrderLine(){ S.orderLines.push({ productId: null, qtyStr: '1' }); renderOrderLines(); }
+function removeOrderLine(i){ S.orderLines.splice(i, 1); renderOrderLines(); }
+async function saveOrder(){
+  const client = $('ord-client').value.trim();
+  if(!client){ toast('Escreva o nome do cliente do pedido.', true); return; }
+  const lines = [];
+  for(const l of S.orderLines){
+    if(!l.productId) continue;
+    const qty = Math.round(parseNum(l.qtyStr) || 0);
+    if(qty <= 0) continue;
+    const p = prodById(l.productId);
+    if(p) lines.push({ product: p, qty: qty });
+  }
+  if(!lines.length){ toast('Adicione pelo menos um produto com quantidade ao pedido.', true); return; }
+  const warnings = [];
+  lines.forEach(l => {
+    const avail = homeAvail(l.product.id);
+    if(l.qty > avail) warnings.push('Faltam ' + (l.qty - avail) + ' peças de "' + l.product.name + '" (pedido de ' + l.qty + ', em casa ' + avail + ').');
+  });
+  if(warnings.length && !confirm(warnings.join('\n') + '\n\nSalvar o pedido mesmo assim?')) return;
+  const { data: ord, error } = await sb.from('orders').insert({ client_name: client, status: 'pendente', post_to_finance: false }).select().single();
+  if(error) return toastErr(error);
+  const rows = lines.map(l => ({ order_id: ord.id, product_id: l.product.id, description: l.product.name, qty: l.qty, unit_price_cents: l.product.sale_price_cents, unit_cost_cents: Math.round(unitCostCents(l.product)) }));
+  const { error: e2 } = await sb.from('order_items').insert(rows);
+  if(e2) return toastErr(e2);
+  $('ord-client').value = '';
+  S.orderLines = [{ productId: null, qtyStr: '1' }];
+  await fetchAll(); renderAll();
+  toast('Pedido de ' + client + ' salvo como pendente.' + (warnings.length ? ' ' + warnings.join(' ') : ''));
+}
+function renderOrders(){
+  $('ord-list').innerHTML = S.orders.map(o => {
+    const items = orderItemsOf(o.id);
+    const total = orderTotal(o.id);
+    const cost = orderCost(o.id);
+    const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} × ${BRL(i.unit_price_cents)} = ${BRL(i.qty * i.unit_price_cents)}</div>`).join('');
+    const btns = [];
+    if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
+    if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
+    if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
+    if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
+    return `<div class="row" style="align-items:flex-start;">
+      <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
+        <div class="mut">${fmtDateTime(o.created_at)}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
+        ${itemsHtml || '<div class="mut">Sem itens.</div>'}
+        <div class="mut">Total: <b style="color:var(--txt);">${BRL(total)}</b>${cost > 0 ? ' · Custo: ' + BRL(cost) + ' · Lucro: ' + BRL(total - cost) : ''}${o.finance_transaction_id ? ' · <span class="badge link">lançado nas Finanças</span>' : ''}</div>
+      </span>
+      <span class="btnrow" style="margin-top:0;">${btns.join('')}</span>
+    </div>`;
+  }).join('') || '<p class="mut">Nenhum pedido ainda.</p>';
+}
+function setOrderStatus(id, st){
+  const o = orderById(id);
+  if(!o) return;
+  if(st === 'cancelado' && !confirm('Cancelar o pedido de ' + o.client_name + '?')) return;
+  if(st === 'entregue' && !o.finance_transaction_id){ openDeliverModal(id); return; }
+  doSetOrderStatus(id, st, false);
+}
+function openDeliverModal(id){
+  const o = orderById(id);
+  if(!o) return;
+  DL = { orderId: id };
+  openBox(`
+    <h2>Entregar pedido</h2>
+    <p class="mut" style="margin-bottom:8px;">Pedido de <b style="color:var(--txt);">${esc(o.client_name)}</b>, total de ${BRL(orderTotal(id))}. Ao confirmar, o pedido fica como entregue.</p>
+    <label class="check"><input type="checkbox" id="dl-finance" checked> Lançar o valor nas Finanças como ganho</label>
+    <div class="btnrow">
+      <button onclick="confirmDeliver()">Confirmar entrega</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function confirmDeliver(){
+  if(!DL) return;
+  const post = $('dl-finance').checked;
+  const id = DL.orderId;
+  closeBox();
+  await doSetOrderStatus(id, 'entregue', post);
+}
+async function doSetOrderStatus(id, st, post){
+  const o = orderById(id);
+  if(!o) return;
+  const patch = { status: st, delivered_at: st === 'entregue' ? new Date().toISOString() : null };
+  if(st === 'entregue' && post && !o.finance_transaction_id){
+    const total = orderTotal(id);
+    if(total > 0){
+      const { data: tx, error } = await sb.from('transactions').insert({
+        kind: 'income', category: 'Pedidos', description: 'Pedido: ' + o.client_name,
+        amount_cents: total, date: todayStr(), notes: 'Entrega do pedido ' + id
+      }).select().single();
+      if(error) return toastErr(error);
+      patch.post_to_finance = true;
+      patch.finance_transaction_id = tx.id;
+    }
+  }
+  if(st === 'entregue' && !post && !o.finance_transaction_id) patch.post_to_finance = false;
+  const { error } = await sb.from('orders').update(patch).eq('id', id);
+  if(error) return toastErr(error);
+  await fetchAll(); renderAll();
+  toast('Pedido de ' + o.client_name + ' agora está: ' + st.replace('_', ' ') + '.');
 }
 
 /* Renderiza as linhas iniciais da Calculadora */
