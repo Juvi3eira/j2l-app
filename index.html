@@ -12,8 +12,17 @@
   }
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
   body{background:var(--bg); color:var(--txt); min-height:100vh;}
-  header{background:var(--navy); padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--line);}
-  header img.logoimg{height:34px; width:auto; display:block;}
+  header{background:var(--navy); padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--line); position:relative; z-index:60;}
+  header img.logoimg{height:34px; width:auto; display:block; flex:0 0 auto;}
+  .header-actions{margin-left:auto; display:flex; gap:8px; align-items:center; min-width:0;}
+  #who{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .mobile-menu-wrap{display:none; position:relative; flex:0 0 auto;}
+  .menu-btn{display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 13px; background:transparent; color:var(--txt); border:1px solid var(--line); font-weight:700;}
+  .menu-btn .burger{font-size:20px; line-height:1;}
+  .mobile-menu{position:absolute; top:calc(100% + 10px); left:0; width:min(270px, calc(100vw - 24px)); background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px; box-shadow:0 16px 36px rgba(0,0,0,.48);}
+  .mobile-menu-item{display:flex; align-items:center; width:100%; min-height:48px; padding:12px 13px; background:transparent; color:var(--txt); border:0; border-bottom:1px solid var(--line); border-radius:9px; text-align:left; font-weight:650;}
+  .mobile-menu-item:last-child{border-bottom:0;}
+  .mobile-menu-item.on{background:var(--cyan); color:#0b0a18;}
   main{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
   h2{font-size:17px; margin-bottom:10px;}
@@ -41,6 +50,13 @@
   .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:600;}
   .tabbtn.on{background:var(--cyan); color:#0b0a18; border-color:var(--cyan);}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media(max-width:720px){
+    header{padding:10px 12px; gap:8px;}
+    .tabs{display:none;}
+    .mobile-menu-wrap{display:block;}
+    #who{max-width:29vw; font-size:10px; padding:3px 7px;}
+    #btn-out{padding:8px 9px !important;}
+  }
   @media(max-width:560px){ .cols{grid-template-columns:1fr;} }
   .badge{font-size:11px; padding:2px 8px; border-radius:99px; font-weight:700; white-space:nowrap;}
   .badge.low{background:#5a3b12; color:var(--yellow);}
@@ -74,7 +90,19 @@
 <body>
 <header>
   <img class="logoimg" src="logo-j2l.png" alt="J2L Impressão 3D">
-  <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+  <div id="mobile-menu-wrap" class="mobile-menu-wrap hidden">
+    <button id="menu-btn" class="menu-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="mobile-menu" onclick="toggleMobileMenu(event)"><span class="burger" aria-hidden="true">&#9776;</span><span>Menu</span></button>
+    <nav id="mobile-menu" class="mobile-menu hidden" aria-label="Navegação principal" onclick="event.stopPropagation()">
+      <button class="mobile-menu-item on" type="button" data-menu-tab="inicio" onclick="menuGo('inicio')">Início</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="financas" onclick="menuGo('financas')">Finanças</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="materiais" onclick="menuGo('materiais')">Materiais</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="calculadora" onclick="menuGo('calculadora')">Calculadora</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="produtos" onclick="menuGo('produtos')">Produtos</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="lojas" onclick="menuGo('lojas')">Lojas</button>
+      <button class="mobile-menu-item" type="button" data-menu-tab="pedidos" onclick="menuGo('pedidos')">Pedidos</button>
+    </nav>
+  </div>
+  <div class="header-actions">
     <span id="who" class="pill hidden"></span>
     <button id="btn-out" class="ghost hidden" style="padding:8px 12px;">Sair</button>
   </div>
@@ -170,6 +198,10 @@
         <p class="mut"><span style="color:var(--ok)">&#9632;</span> Ganhos &nbsp; <span style="color:var(--bad)">&#9632;</span> Despesas</p>
       </div>
       <div class="card">
+        <h2>Resumo por categoria do mês</h2>
+        <div id="fin-cat-summary"></div>
+      </div>
+      <div class="card">
         <h2 id="tx-form-title">Novo lançamento</h2>
         <label>Tipo</label>
         <select id="tx-kind">
@@ -179,7 +211,7 @@
         <label>Descrição</label>
         <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
         <label>Categoria</label>
-        <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Materiais">
+        <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Filamento, Insumos, Equipamentos">
         <datalist id="cat-list"></datalist>
         <div class="cols">
           <div><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
@@ -223,13 +255,26 @@
         <div id="mat-form-sup" class="hidden">
           <label>Nome do insumo</label>
           <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
-          <div class="cols">
-            <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
-            <div><label>Unidade</label><input id="ms-unit" type="text" value="un"></div>
+          <label>Como você sabe o custo?</label>
+          <select id="ms-mode" onchange="setSupplyMode(this.value)">
+            <option value="package">Pelo pacote: quantidade e preço total</option>
+            <option value="unit">Pelo custo de cada unidade</option>
+          </select>
+          <div id="ms-package">
+            <div class="cols">
+              <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+              <div><label>Preço total pago (R$)</label><input id="ms-price" type="text" inputmode="decimal" placeholder="0,00"></div>
+            </div>
+            <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
           </div>
-          <label>Preço total pago (R$)</label>
-          <input id="ms-price" type="text" inputmode="decimal" placeholder="0,00">
-          <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
+          <div id="ms-unitmode" class="hidden">
+            <div class="cols">
+              <div><label>Quantidade em estoque</label><input id="ms-uqty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+              <div><label>Custo por unidade (R$)</label><input id="ms-unitcost" type="text" inputmode="decimal" placeholder="Ex.: 0,32"></div>
+            </div>
+          </div>
+          <label>Unidade</label>
+          <input id="ms-unit" type="text" value="un">
         </div>
         <label>Data da compra</label>
         <input id="mat-date" type="date">
@@ -258,11 +303,30 @@
     <!-- CALCULADORA -->
     <div id="tab-calculadora" class="tabpage hidden">
       <div class="card">
-        <h2>Calculadora de produto</h2>
+        <h2 id="calc-form-title">Calculadora de produto</h2>
+        <div class="linebox">
+          <label>Anexar print do fatiador</label>
+          <input id="calc-slicer" type="file" accept="image/*" onchange="onSlicerFile(this)">
+          <p class="mut">O print é lido aqui mesmo, no seu aparelho: a imagem não é enviada para nenhum servidor e não fica salva. A leitura liga o modo lote e preenche gramas e tempo para você conferir antes de salvar.</p>
+          <div id="slicer-status" class="mut"></div>
+          <div id="slicer-summary" class="hidden" style="margin-top:8px;"></div>
+        </div>
         <label>Nome do produto</label>
         <input id="calc-name" type="text" placeholder="Ex.: Chaveiro logo redondo">
-        <label>Foto (URL ou caminho, opcional)</label>
-        <input id="calc-photo" type="text" placeholder="Opcional">
+        <label>Descrição</label>
+        <textarea id="calc-desc" rows="2" placeholder="Opcional. Ex.: Chaveiro redondo 4x4 cm com a logo do cliente"></textarea>
+        <label>Enviar foto do produto</label>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span id="calc-photo-preview"></span>
+          <span style="flex:1;">
+            <input id="calc-photo-file" type="file" accept="image/*" onchange="onCalcPhotoFile(this)">
+            <div class="mut" id="calc-photo-info">A foto é comprimida aqui no aparelho antes de enviar (máximo de 1200 px, JPEG), para não pesar no app.</div>
+            <div class="btnrow">
+              <button type="button" class="ghost btn-sm" onclick="document.getElementById('calc-photo-file').click()">Trocar foto</button>
+              <button type="button" class="danger btn-sm" onclick="removeCalcPhoto()">Remover foto</button>
+            </div>
+          </span>
+        </div>
         <div class="cols">
           <div><label>Preço de venda (R$, opcional)</label><input id="calc-price" type="text" inputmode="decimal" placeholder="Vazio: usa o sugerido" oninput="recomputeCalc()"></div>
           <div><label>Tempo de impressão (formato do fatiador)</label><input id="calc-time" type="text" placeholder="Ex.: 20h1m, 45m ou 2h" oninput="recomputeCalc()"></div>
@@ -270,6 +334,11 @@
         <label class="check"><input type="checkbox" id="calc-lotmode" onchange="recomputeCalc()"> Modo lote: os valores abaixo são os totais do fatiador para o lote todo</label>
         <label>Peças no lote</label>
         <input id="calc-lotqty" type="text" inputmode="numeric" value="10" oninput="recomputeCalc()">
+        <h3>Custos a mais por peça</h3>
+        <div class="cols">
+          <div><label>Mão de obra por peça (R$)</label><input id="calc-labor" type="text" inputmode="decimal" placeholder="Ex.: 0,50" oninput="recomputeCalc()"></div>
+          <div><label>Custos extras por peça (R$)</label><input id="calc-extra" type="text" inputmode="decimal" placeholder="Ex.: 0,20" oninput="recomputeCalc()"></div>
+        </div>
         <h3>Filamentos</h3>
         <p class="mut" id="calc-fil-hint">Gramas por peça (ou o total do lote, com o modo lote ligado).</p>
         <div id="calc-fils"></div>
@@ -279,6 +348,7 @@
         <div id="calc-sups"></div>
         <button class="ghost btn-sm" onclick="addCalcSup()">+ Insumo</button>
         <h3>Energia e desgaste</h3>
+        <p class="mut">Estes valores ficam salvos neste produto. Num produto novo, eles começam com os últimos valores usados.</p>
         <div class="cols">
           <div><label>Potência da impressora (W)</label><input id="calc-watts" type="text" inputmode="decimal" value="200" oninput="recomputeCalc()"></div>
           <div><label>Preço do kWh (R$)</label><input id="calc-kwh" type="text" inputmode="decimal" value="1,00" oninput="recomputeCalc()"></div>
@@ -296,10 +366,18 @@
           <div class="cols">
             <div><label>Nome do cliente</label><input id="calc-client" type="text" placeholder="Ex.: Pure Pilates Cerejeiras"></div>
             <div><label>Quantidade do pedido</label><input id="calc-orderqty" type="text" inputmode="numeric" value="1"></div>
+            <div><label>Preço unitário do pedido (R$, opcional)</label><input id="calc-orderprice" type="text" inputmode="decimal" placeholder="Vazio: usa o preço do produto"></div>
           </div>
+          <div class="cols">
+            <div><label>Data do pedido</label><input id="calc-orderdate" type="date"></div>
+            <div><label>Contato do cliente</label><input id="calc-ordercontact" type="text" placeholder="Ex.: WhatsApp (11) 90000-0000"></div>
+          </div>
+          <label>Observações do pedido</label>
+          <input id="calc-ordernotes" type="text" placeholder="Opcional">
         </div>
         <div class="btnrow">
-          <button onclick="saveProductCalc()">Salvar produto</button>
+          <button id="calc-save-btn" onclick="saveProductCalc()">Salvar produto</button>
+          <button class="ghost hidden" id="calc-cancel-edit" onclick="cancelProductEdit()">Cancelar edição</button>
         </div>
       </div>
       <div class="card">
@@ -317,6 +395,7 @@
     <div id="tab-produtos" class="tabpage hidden">
       <div class="card">
         <h2>Produtos</h2>
+        <div class="btnrow" style="margin:0 0 10px;"><button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button></div>
         <div id="prod-list"></div>
       </div>
       <div class="card">
@@ -413,14 +492,21 @@
         <div id="ped-restock"></div>
       </div>
       <div class="card">
-        <h2>Novo pedido avulso</h2>
+        <h2 id="ord-form-title">Novo pedido avulso</h2>
         <label>Nome do cliente</label>
         <input id="ord-client" type="text" placeholder="Ex.: Maria Silva">
+        <div class="cols">
+          <div><label>Data do pedido</label><input id="ord-date" type="date"></div>
+          <div><label>Contato do cliente</label><input id="ord-contact" type="text" placeholder="Ex.: WhatsApp (11) 90000-0000"></div>
+        </div>
+        <label>Observações</label>
+        <input id="ord-notes" type="text" placeholder="Opcional">
         <h3>Itens do pedido</h3>
         <div id="ord-lines"></div>
-        <button class="ghost btn-sm" onclick="addOrderLine()">+ Produto</button>
+        <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
         <div class="btnrow">
-          <button onclick="saveOrder()">Salvar pedido</button>
+          <button id="ord-save-btn" onclick="saveOrder()">Salvar pedido</button>
+          <button class="ghost hidden" id="ord-cancel-edit" onclick="cancelOrderEdit()">Cancelar edição</button>
         </div>
       </div>
       <div class="card">
@@ -496,6 +582,7 @@
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 "use strict";
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.J2L_CONFIG;
@@ -592,7 +679,8 @@ const S = {
   finMonth: ymNow(), editingTx: null,
   matType: 'filament', editingMat: null,
   calc: { fils: [], sups: [] },
-  histOpen: {},
+  calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
+  histOpen: {}, editingProduct: null, editingOrder: null, mountSearch: '',
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
   storeSearch: '', currentStore: null, displaySearch: '', editingStore: null,
@@ -612,9 +700,17 @@ function lowBadge(rem, total){
   if(total > 0 && rem <= total*0.10) return '<span class="badge low">acabando</span>';
   return '';
 }
-function energyCostCents(minutes){
+function timeCostCents(minutes, watts, kwhCents, wearCents){
   const hours = (minutes || 0)/60;
-  return hours * (S.settings.watts/1000) * S.settings.kwh + hours * S.settings.wear;
+  return hours * ((watts || 0)/1000) * (kwhCents || 0) + hours * (wearCents || 0);
+}
+function energyCostCents(minutes){ return timeCostCents(minutes, S.settings.watts, S.settings.kwh, S.settings.wear); }
+function productParams(p){
+  return {
+    watts: p && p.machine_power_watts != null ? Number(p.machine_power_watts) : S.settings.watts,
+    kwh: p && p.energy_rate_cents_per_kwh != null ? Number(p.energy_rate_cents_per_kwh) : S.settings.kwh,
+    wear: p && p.machine_rate_cents_per_hour != null ? Number(p.machine_rate_cents_per_hour) : S.settings.wear
+  };
 }
 function recipeOf(pid){ return S.recipes[pid] || { fils: [], sups: [] }; }
 function unitCostCents(product){
@@ -622,13 +718,20 @@ function unitCostCents(product){
   let c = 0;
   rec.fils.forEach(r => { const f = filById(r.filament_id); if(f) c += r.grams * filCostPerGram(f); });
   rec.sups.forEach(r => { const s = supById(r.supply_id); if(s) c += r.qty_per_piece * s.unit_cost_cents; });
-  c += energyCostCents(product.print_time_minutes);
+  const prm = productParams(product);
+  c += timeCostCents(product.print_time_minutes, prm.watts, prm.kwh, prm.wear);
+  c += (product.labor_cents || 0) + (product.extra_cents || 0);
   return c;
 }
 
 /* ---------------- autenticação e rotas ---------------- */
 function show(id){
   ['view-login','view-setpass','view-master','view-store'].forEach(v => $(v).classList.toggle('hidden', v !== id));
+  const wrap = $('mobile-menu-wrap');
+  if(wrap){
+    wrap.classList.toggle('hidden', id !== 'view-master');
+    if(id !== 'view-master') closeMobileMenu();
+  }
 }
 async function route(){
   const { data:{ session } } = await sb.auth.getSession();
@@ -668,9 +771,49 @@ $('btn-login').addEventListener('click', async () => {
 $('btn-out').addEventListener('click', async () => { await sb.auth.signOut(); route(); });
 sb.auth.onAuthStateChange((event) => { if(event === 'PASSWORD_RECOVERY') S.setPassMode = true; route(); });
 
+let currentMasterTab = 'inicio';
+function syncMobileMenu(){
+  document.querySelectorAll('.mobile-menu-item').forEach(b => {
+    const on = b.dataset.menuTab === currentMasterTab;
+    b.classList.toggle('on', on);
+    if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+}
+function setMobileMenu(open){
+  const panel = $('mobile-menu');
+  const btn = $('menu-btn');
+  if(!panel || !btn) return;
+  panel.classList.toggle('hidden', !open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if(open) syncMobileMenu();
+}
+function toggleMobileMenu(event){
+  if(event) event.stopPropagation();
+  const panel = $('mobile-menu');
+  if(panel) setMobileMenu(panel.classList.contains('hidden'));
+}
+function closeMobileMenu(){ setMobileMenu(false); }
+function menuGo(name){
+  showTab(name);
+  closeMobileMenu();
+}
+document.addEventListener('click', event => {
+  const wrap = $('mobile-menu-wrap');
+  if(wrap && !wrap.contains(event.target)) closeMobileMenu();
+});
+document.addEventListener('keydown', event => {
+  if(event.key !== 'Escape') return;
+  const panel = $('mobile-menu');
+  const wasOpen = panel && !panel.classList.contains('hidden');
+  closeMobileMenu();
+  if(wasOpen && $('menu-btn')) $('menu-btn').focus();
+});
+window.addEventListener('resize', () => { if(window.innerWidth > 720) closeMobileMenu(); });
 function showTab(name){
+  currentMasterTab = name;
   document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+  syncMobileMenu();
 }
 function initMasterForms(){
   if($('fin-month') && !$('fin-month').value) $('fin-month').value = S.finMonth;
@@ -734,6 +877,7 @@ function renderAll(){
   renderProdutos();
   renderLojas();
   renderPedidos();
+  hydrateProductPhotos(document);
 }
 
 /* ---------------- Início ---------------- */
@@ -794,6 +938,15 @@ function renderFinancas(){
   const cats = Array.from(new Set(S.txs.map(t => t.category).filter(Boolean)));
   $('cat-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
   const monthTxs = S.txs.filter(t => t.date.slice(0,7) === ym);
+  const byCategory = {};
+  monthTxs.forEach(t => {
+    const name = t.category || 'Sem categoria';
+    const c = byCategory[name] || (byCategory[name] = { inc: 0, exp: 0 });
+    if(t.kind === 'income') c.inc += t.amount_cents; else c.exp += t.amount_cents;
+  });
+  const catRows = Object.keys(byCategory).map(name => ({ name: name, inc: byCategory[name].inc, exp: byCategory[name].exp, net: byCategory[name].inc - byCategory[name].exp }))
+    .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.name.localeCompare(b.name));
+  $('fin-cat-summary').innerHTML = catRows.map(c => `<div class="row"><span style="flex:1;">${esc(c.name)}<div class="mut">Ganhos: ${BRL(c.inc)} · Despesas: ${BRL(c.exp)}</div></span><b class="${c.net < 0 ? 'neg' : 'pos'}">${BRL(c.net)}</b></div>`).join('') || '<p class="mut">Nenhuma categoria movimentada neste mês.</p>';
   $('fin-list').innerHTML = monthTxs.map(t => {
     const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
     const notes = t.notes ? `<div class="mut">${esc(t.notes)}</div>` : '';
@@ -913,6 +1066,10 @@ function renderMateriais(){
       </div></span></div>`;
   }).join('') || '<p class="mut">Nenhum insumo.</p>';
 }
+function setSupplyMode(v){
+  $('ms-package').classList.toggle('hidden', v === 'unit');
+  $('ms-unitmode').classList.toggle('hidden', v !== 'unit');
+}
 async function savePurchase(){
   const toFinance = $('mat-fin').checked;
   const date = $('mat-date').value || todayStr();
@@ -931,12 +1088,21 @@ async function savePurchase(){
     matId = data.id; desc = 'Filamento: ' + name; table = 'filaments'; linkedType = 'filament';
   } else {
     name = $('ms-name').value.trim();
-    price = parseMoney($('ms-price').value);
-    const qty = parseNum($('ms-qty').value);
-    if(!name){ toast('Dê um nome ao insumo.', true); return; }
-    if(qty <= 0){ toast('Informe a quantidade comprada.', true); return; }
-    if(price <= 0){ toast('Informe o preço total pago.', true); return; }
-    const unitCost = Math.round(price / qty);
+    let qty = 0, unitCost = 0;
+    if($('ms-mode') && $('ms-mode').value === 'unit'){
+      qty = parseNum($('ms-uqty').value);
+      unitCost = parseMoney($('ms-unitcost').value);
+      if(!name){ toast('Dê um nome ao insumo.', true); return; }
+      if(qty <= 0){ toast('Informe a quantidade em estoque.', true); return; }
+      price = Math.round(qty * unitCost);
+    } else {
+      price = parseMoney($('ms-price').value);
+      qty = parseNum($('ms-qty').value);
+      if(!name){ toast('Dê um nome ao insumo.', true); return; }
+      if(qty <= 0){ toast('Informe a quantidade comprada.', true); return; }
+      if(price <= 0){ toast('Informe o preço total pago.', true); return; }
+      unitCost = Math.round(price / qty);
+    }
     const { data, error } = await sb.from('supplies').insert({
       name: name, unit: $('ms-unit').value.trim() || 'un',
       stock_qty: qty, used_qty: 0, unit_cost_cents: unitCost
@@ -946,7 +1112,7 @@ async function savePurchase(){
   }
   if(toFinance){
     const { data: tx, error } = await sb.from('transactions').insert({
-      kind: 'expense', category: 'Materiais', description: desc,
+      kind: 'expense', category: linkedType === 'filament' ? 'Filamento' : 'Insumos', description: desc,
       amount_cents: price, date: date, linked_type: linkedType, linked_id: matId
     }).select().single();
     if(error) return toastErr(error);
@@ -954,7 +1120,7 @@ async function savePurchase(){
     if(e2) return toastErr(e2);
   }
   $('mf-name').value = ''; $('mf-brand').value = ''; $('mf-color').value = ''; $('mf-price').value = '';
-  $('ms-name').value = ''; $('ms-qty').value = ''; $('ms-price').value = '';
+  $('ms-name').value = ''; $('ms-qty').value = ''; $('ms-price').value = ''; $('ms-uqty').value = ''; $('ms-unitcost').value = '';
   await fetchAll(); renderAll();
   toast('Compra salva: ' + name + (toFinance ? ', com a despesa lançada nas Finanças.' : '.'));
 }
@@ -968,12 +1134,20 @@ function editMat(type, id){
         <div><label>Marca</label><input id="me-brand" type="text" value="${esc(f.brand || '')}"></div>
         <div><label>Material</label><input id="me-material" type="text" value="${esc(f.material || 'PLA')}"></div>
       </div>
-      <label>Cor</label><input id="me-color" type="text" value="${esc(f.color || '')}">`;
+      <label>Cor</label><input id="me-color" type="text" value="${esc(f.color || '')}">
+      <div class="cols">
+        <div><label>Preço pago (R$)</label><input id="me-price" type="text" inputmode="decimal" value="${moneyStr(f.price_cents)}"></div>
+        <div><label>Peso do rolo (g)</label><input id="me-weight" type="text" inputmode="decimal" value="${numStr(f.weight_grams)}"></div>
+      </div>`;
   } else {
     const s = supById(id); if(!s) return;
     $('mat-edit-fields').innerHTML = `
       <label>Nome</label><input id="me-name" type="text" value="${esc(s.name)}">
-      <label>Unidade</label><input id="me-unit" type="text" value="${esc(s.unit || 'un')}">`;
+      <label>Unidade</label><input id="me-unit" type="text" value="${esc(s.unit || 'un')}">
+      <div class="cols">
+        <div><label>Quantidade comprada</label><input id="me-stockqty" type="text" inputmode="decimal" value="${numStr(s.stock_qty)}"></div>
+        <div><label>Custo por unidade (R$)</label><input id="me-unitcost" type="text" inputmode="decimal" value="${moneyStr(s.unit_cost_cents)}"></div>
+      </div>`;
   }
   $('mat-edit-card').classList.remove('hidden');
   $('mat-edit-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -990,13 +1164,21 @@ async function saveMatEdit(){
   if(!name){ toast('O nome não pode ficar vazio.', true); return; }
   let error;
   if(type === 'filament'){
+    const weight = parseNum($('me-weight').value);
+    if(weight <= 0){ toast('O peso do rolo precisa ser maior que zero.', true); return; }
     ({ error } = await sb.from('filaments').update({
       name: name, brand: $('me-brand').value.trim(),
-      material: $('me-material').value.trim() || 'PLA', color: $('me-color').value.trim()
+      material: $('me-material').value.trim() || 'PLA', color: $('me-color').value.trim(),
+      price_cents: Math.max(0, parseMoney($('me-price').value)), weight_grams: weight
     }).eq('id', id));
   } else {
+    const s = supById(id);
+    const stockQty = parseNum($('me-stockqty').value);
+    if(stockQty < 0){ toast('A quantidade comprada não pode ser negativa.', true); return; }
+    if(s && stockQty < s.used_qty){ toast('A quantidade comprada não pode ficar menor que a já usada em produção (' + fmtN(s.used_qty) + ').', true); return; }
     ({ error } = await sb.from('supplies').update({
-      name: name, unit: $('me-unit').value.trim() || 'un'
+      name: name, unit: $('me-unit').value.trim() || 'un',
+      stock_qty: stockQty, unit_cost_cents: Math.max(0, parseMoney($('me-unitcost').value))
     }).eq('id', id));
   }
   if(error) return toastErr(error);
@@ -1118,25 +1300,85 @@ function recomputeCalc(){
     if(info) info.textContent = s ? ('Por peça: ' + BRL(Math.round(c))) : '';
   });
   const energy = energyCostCents(timePP);
-  const cost = filCost + supCost + energy;
+  const labor = Math.max(0, parseMoney($('calc-labor').value));
+  const extraC = Math.max(0, parseMoney($('calc-extra').value));
+  const cost = filCost + supCost + energy + labor + extraC;
   const margin = S.settings.margin;
   const suggested = margin >= 100 ? cost : cost / (1 - margin/100);
   const typedPrice = parseMoney($('calc-price').value);
   const priceUsed = typedPrice > 0 ? typedPrice : suggested;
   const profit = priceUsed - cost;
   S.calcResult = {
-    cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP),
+    cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP), labor: labor, extra: extraC,
     lotQty: lotQty, filDetail: filDetail, supDetail: supDetail
   };
   $('calc-out').innerHTML = `
     <div class="row"><span>Filamentos por peça</span><b>${BRL(Math.round(filCost))}</b></div>
     <div class="row"><span>Insumos por peça</span><b>${BRL(Math.round(supCost))}</b></div>
     <div class="row"><span>Energia e desgaste por peça <span class="mut">(${fmtTime(timePP)} de impressão)</span></span><b>${BRL(Math.round(energy))}</b></div>
+    ${labor ? `<div class="row"><span>Mão de obra por peça</span><b>${BRL(Math.round(labor))}</b></div>` : ''}
+    ${extraC ? `<div class="row"><span>Custos extras por peça</span><b>${BRL(Math.round(extraC))}</b></div>` : ''}
     <div class="row"><span><b>Custo por peça</b></span><span class="big">${BRL(Math.round(cost))}</span></div>
     <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>
     <div class="row"><span>Preço usado no cálculo ${typedPrice > 0 ? '(o digitado)' : '(o sugerido)'}</span><b>${BRL(Math.round(priceUsed))}</b></div>
     <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>
     <div class="row"><span>Lucro no lote de ${lotQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * lotQty))}</b></div>`;
+}
+function resetCalcForm(){
+  S.editingProduct = null;
+  $('calc-form-title').textContent = 'Calculadora de produto';
+  $('calc-save-btn').textContent = 'Salvar produto';
+  $('calc-cancel-edit').classList.add('hidden');
+  ['calc-name','calc-desc','calc-price','calc-time','calc-labor','calc-extra','calc-client','calc-orderprice','calc-ordercontact','calc-ordernotes'].forEach(id => { if($(id)) $(id).value = ''; });
+  $('calc-orderqty').value = '1';
+  if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
+  $('calc-asorder').checked = false;
+  toggleOrderFields();
+  if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
+  S.calcPhoto = { blob: null, removed: false, sizes: '' };
+  renderCalcPhotoPreview('');
+  const sf = $('calc-slicer'); if(sf) sf.value = '';
+  const ss = $('slicer-status'); if(ss) ss.textContent = '';
+  const sm = $('slicer-summary'); if(sm){ sm.classList.add('hidden'); sm.innerHTML = ''; }
+}
+function loadProductIntoCalc(id){
+  const p = prodById(id);
+  if(!p) return;
+  const rec = recipeOf(id);
+  S.editingProduct = id;
+  $('calc-form-title').textContent = 'Editar produto';
+  $('calc-save-btn').textContent = 'Salvar alterações do produto';
+  $('calc-cancel-edit').classList.remove('hidden');
+  $('calc-name').value = p.name || '';
+  $('calc-desc').value = p.description || '';
+  if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
+  S.calcPhoto = { blob: null, removed: false, sizes: '' };
+  renderCalcPhotoPreview(p.photo_path || '');
+  $('calc-price').value = p.sale_price_cents ? moneyStr(p.sale_price_cents) : '';
+  $('calc-labor').value = p.labor_cents ? moneyStr(p.labor_cents) : '';
+  $('calc-extra').value = p.extra_cents ? moneyStr(p.extra_cents) : '';
+  const prm = productParams(p);
+  $('calc-watts').value = numStr(prm.watts);
+  $('calc-kwh').value = moneyStr(Math.round(prm.kwh));
+  $('calc-wear').value = moneyStr(Math.round(prm.wear));
+  $('calc-time').value = p.print_time_minutes ? fmtTime(p.print_time_minutes) : '';
+  $('calc-lotmode').checked = false;
+  S.calc.fils = rec.fils.length ? rec.fils.map(r => ({ filamentId: r.filament_id, gramsStr: numStr(r.grams) })) : [{ filamentId: null, gramsStr: '' }];
+  S.calc.sups = rec.sups.length ? rec.sups.map(r => ({ supplyId: r.supply_id, qtyStr: numStr(r.qty_per_piece) })) : [{ supplyId: null, qtyStr: '' }];
+  $('calc-asorder').checked = false;
+  toggleOrderFields();
+  renderCalcLines();
+  recomputeCalc();
+  showTab('calculadora');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast('Produto carregado na Calculadora para edição. Nada muda até salvar.');
+}
+function cancelProductEdit(){
+  resetCalcForm();
+  S.calc.fils = [{ filamentId: null, gramsStr: '' }];
+  S.calc.sups = [{ supplyId: null, qtyStr: '' }];
+  renderCalcLines();
+  recomputeCalc();
 }
 async function saveProductCalc(){
   recomputeCalc();
@@ -1145,12 +1387,41 @@ async function saveProductCalc(){
   const R = S.calcResult;
   const typedPrice = parseMoney($('calc-price').value);
   const salePrice = typedPrice > 0 ? typedPrice : Math.round(R.suggested);
-  const photo = $('calc-photo').value.trim();
-  const { data: prod, error } = await sb.from('products').insert({
-    name: name, photo_path: photo || null, sale_price_cents: salePrice,
-    print_time_minutes: R.timePP, archived: false
-  }).select().single();
-  if(error) return toastErr(error);
+  const oldProduct = S.editingProduct ? prodById(S.editingProduct) : null;
+  const oldPhoto = oldProduct ? oldProduct.photo_path : null;
+  let finalPhoto = oldPhoto;
+  let uploadedPath = null;
+  if(S.calcPhoto.removed) finalPhoto = null;
+  else if(S.calcPhoto.blob){
+    const ext = S.calcPhoto.blob.type === 'image/png' ? 'png' : (S.calcPhoto.blob.type === 'image/webp' ? 'webp' : 'jpg');
+    uploadedPath = 'produtos/' + newUuid() + '.' + ext;
+    const up = await sb.storage.from('product-photos').upload(uploadedPath, S.calcPhoto.blob, { contentType: S.calcPhoto.blob.type || 'image/jpeg', upsert: false });
+    if(up.error){ toast('Não consegui enviar a foto do produto: ' + up.error.message, true); return; }
+    finalPhoto = uploadedPath;
+  }
+  const payload = {
+    name: name, photo_path: finalPhoto, sale_price_cents: salePrice,
+    print_time_minutes: R.timePP, archived: false,
+    description: $('calc-desc').value.trim(),
+    labor_cents: Math.max(0, parseMoney($('calc-labor').value)),
+    extra_cents: Math.max(0, parseMoney($('calc-extra').value)),
+    machine_power_watts: parseNum($('calc-watts').value) || 0,
+    energy_rate_cents_per_kwh: parseMoney($('calc-kwh').value),
+    machine_rate_cents_per_hour: parseMoney($('calc-wear').value)
+  };
+  let prod = null;
+  if(S.editingProduct){
+    const editingId = S.editingProduct;
+    const { error } = await sb.from('products').update(payload).eq('id', editingId);
+    if(error){ if(uploadedPath) await sb.storage.from('product-photos').remove([uploadedPath]); return toastErr(error); }
+    prod = Object.assign({}, prodById(editingId), { id: editingId, name: name });
+    await sb.from('product_filaments').delete().eq('product_id', editingId);
+    await sb.from('product_supplies').delete().eq('product_id', editingId);
+  } else {
+    const { data, error } = await sb.from('products').insert(payload).select().single();
+    if(error){ if(uploadedPath) await sb.storage.from('product-photos').remove([uploadedPath]); return toastErr(error); }
+    prod = data;
+  }
   if(R.filDetail.length){
     const { error: e1 } = await sb.from('product_filaments').insert(R.filDetail.map(d => ({ product_id: prod.id, filament_id: d.filamentId, grams: d.grams })));
     if(e1) return toastErr(e1);
@@ -1159,28 +1430,33 @@ async function saveProductCalc(){
     const { error: e2 } = await sb.from('product_supplies').insert(R.supDetail.map(d => ({ product_id: prod.id, supply_id: d.supplyId, qty_per_piece: d.qty })));
     if(e2) return toastErr(e2);
   }
+  if(isStoragePath(oldPhoto) && oldPhoto !== finalPhoto){ try { await sb.storage.from('product-photos').remove([oldPhoto]); } catch(e) {} }
   let extra = '';
   if($('calc-asorder').checked){
     const client = $('calc-client').value.trim();
     const oqty = Math.max(1, Math.round(parseNum($('calc-orderqty').value) || 1));
     if(!client){ toast('Produto salvo, mas o pedido não: falta o nome do cliente.', true); await fetchAll(); renderAll(); return; }
     const { data: ord, error: e3 } = await sb.from('orders').insert({
-      client_name: client, status: 'pendente', post_to_finance: false
+      client_name: client, status: 'pendente', post_to_finance: false,
+      order_date: $('calc-orderdate').value || todayStr(),
+      customer_contact: $('calc-ordercontact').value.trim(),
+      notes: $('calc-ordernotes').value.trim()
     }).select().single();
     if(e3) return toastErr(e3);
+    const orderPrice = parseMoney($('calc-orderprice').value);
     const { error: e4 } = await sb.from('order_items').insert({
       order_id: ord.id, product_id: prod.id, description: name, qty: oqty,
-      unit_price_cents: salePrice, unit_cost_cents: Math.round(R.cost)
+      unit_price_cents: orderPrice > 0 ? orderPrice : salePrice, unit_cost_cents: Math.round(R.cost)
     });
     if(e4) return toastErr(e4);
     extra = ' Pedido de ' + oqty + ' peças para ' + client + ' criado como pendente.';
   }
-  $('calc-name').value = ''; $('calc-photo').value = ''; $('calc-price').value = ''; $('calc-time').value = '';
-  $('calc-asorder').checked = false; toggleOrderFields();
+  const wasEditing = !!S.editingProduct;
+  resetCalcForm();
   S.calc.fils = [{ filamentId: null, gramsStr: '' }];
   S.calc.sups = [{ supplyId: null, qtyStr: '' }];
   await fetchAll(); renderAll();
-  toast('Produto "' + name + '" salvo.' + extra);
+  toast((wasEditing ? 'Produto "' + name + '" atualizado.' : 'Produto "' + name + '" salvo.') + extra);
 }
 function renderCalcProductOptions(){
   const active = S.products.filter(p => !p.archived);
@@ -1195,10 +1471,392 @@ function openProductionFromCalc(){
   openProduction(pid);
 }
 
+/* ---------------- Foto do produto (upload com compressão) ---------------- */
+function fmtBytes(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1024 * 1024) return fmtN(Math.round(b / 102.4) / 10) + ' KB';
+  return fmtN(Math.round(b / 104857.6) / 10) + ' MB';
+}
+function compressImageBlob(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const maxDim = 1200;
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h);
+        cx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        cv.toBlob(b => { if(b) resolve(b); else reject(new Error('compressão falhou')); }, 'image/jpeg', 0.82);
+      } catch(e){ URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem inválida')); };
+    img.src = url;
+  });
+}
+async function onCalcPhotoFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const info = $('calc-photo-info');
+  if(info) info.textContent = 'Comprimindo a foto...';
+  if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
+  try {
+    const blob = await compressImageBlob(file);
+    S.calcPhoto = { blob: blob, removed: false, previewUrl: URL.createObjectURL(blob),
+      sizes: 'Foto escolhida: ' + fmtBytes(file.size) + ' · comprimida: ' + fmtBytes(blob.size) + ' (JPEG, até 1200 px). Ela só é enviada quando você salvar o produto.' };
+  } catch(e){
+    S.calcPhoto = { blob: file, removed: false, previewUrl: URL.createObjectURL(file),
+      sizes: 'Não consegui comprimir esta imagem neste aparelho; ela será enviada como está (' + fmtBytes(file.size) + ') quando você salvar.' };
+  }
+  renderCalcPhotoPreview('');
+}
+function removeCalcPhoto(){
+  if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
+  S.calcPhoto = { blob: null, removed: true, sizes: '' };
+  const fi = $('calc-photo-file'); if(fi) fi.value = '';
+  renderCalcPhotoPreview('');
+}
+function renderCalcPhotoPreview(currentPath){
+  const box = $('calc-photo-preview');
+  if(!box) return;
+  const info = $('calc-photo-info');
+  const initial = (($('calc-name') && $('calc-name').value) || '?').slice(0, 1).toUpperCase();
+  if(S.calcPhoto.blob){
+    box.innerHTML = `<img class="thumb" src="${S.calcPhoto.previewUrl || ''}" alt="">`;
+    if(info) info.textContent = S.calcPhoto.sizes || 'Foto nova pronta para enviar ao salvar.';
+    return;
+  }
+  if(S.calcPhoto.removed){
+    box.innerHTML = photoPlaceholderHtml(initial);
+    if(info) info.textContent = 'A foto atual será removida quando você salvar.';
+    return;
+  }
+  const p = currentPath || (S.editingProduct ? (prodById(S.editingProduct) || {}).photo_path : '') || '';
+  if(p && /^https?:\/\//i.test(p)){
+    box.innerHTML = `<img class="thumb" src="${esc(p)}" alt="">`;
+    if(info) info.textContent = 'Foto atual do produto. Escolha um arquivo para trocar.';
+    return;
+  }
+  if(isStoragePath(p)){
+    box.innerHTML = `<img class="thumb" data-photo-path="${esc(p)}" data-initial="${esc(initial)}" alt="">`;
+    hydrateProductPhotos(box);
+    if(info) info.textContent = 'Foto atual do produto. Escolha um arquivo para trocar.';
+    return;
+  }
+  box.innerHTML = photoPlaceholderHtml(initial);
+  if(info) info.textContent = 'A foto é comprimida aqui no aparelho antes de enviar (máximo de 1200 px, JPEG), para não pesar no app.';
+}
+
+/* ---------------- Print do fatiador: leitura no aparelho (OCR) ---------------- */
+let slicerBusy = false;
+function gramCandidates(raw){
+  const t = String(raw || '').replace(/[^0-9.,]/g, '');
+  const out = [];
+  const push = v => { if(v != null && isFinite(v) && v >= 0 && !out.some(x => Math.abs(x - v) < 0.001)) out.push(r2(v)); };
+  if(!t) return out;
+  if(/[.,]/.test(t)){
+    const parts = t.split(/[.,]/);
+    const frac = parts.pop();
+    const intp = parts.join('') || '0';
+    if(frac.length <= 2) push(parseFloat(intp + '.' + (frac + '0').slice(0, 2)));
+    else push(parseFloat(intp + '.' + frac.slice(0, 2)));
+    return out;
+  }
+  if(t.length >= 3){
+    push(parseFloat(t.slice(0, -2) + '.' + t.slice(-2)));
+    if(/[90]$/.test(t) && t.length >= 4){ const d = t.slice(0, -1); if(d.length >= 3) push(parseFloat(d.slice(0, -2) + '.' + d.slice(-2))); }
+    if(/[90]$/.test(t) && t.length >= 6){ const d2 = t.slice(0, -2); if(d2.length >= 3) push(parseFloat(d2.slice(0, -2) + '.' + d2.slice(-2))); }
+    if(t.length >= 5) push(parseFloat(t.slice(0, -3) + '.' + t.slice(-3).slice(0, 2)));
+  } else if(t.length) push(parseFloat(t));
+  return out;
+}
+function pickByRatio(cands, meters){
+  if(!cands.length) return null;
+  if(meters && meters > 0){
+    const expected = meters * 2.98;
+    let best = cands[0], bd = Infinity;
+    cands.forEach(v => { const d = Math.abs(v - expected); if(d < bd){ bd = d; best = v; } });
+    if(bd <= Math.max(6, expected * 0.45)) return best;
+  }
+  return cands[0];
+}
+function metersValue(raw){
+  const t = String(raw || '').replace(/[^0-9.,]/g, '');
+  if(!t) return 0;
+  if(/[.,]/.test(t)){ const v = parseFloat(t.replace(',', '.')); return isFinite(v) ? v : 0; }
+  if(t.length >= 3) return parseFloat(t.slice(0, -2) + '.' + t.slice(-2)) || 0;
+  return parseFloat(t) || 0;
+}
+function slicerMinutes(text){
+  const s = String(text || '').replace(/[Oo]/g, '0');
+  const findIn = str => {
+    let m = str.match(/(\d{1,3})\s*h\s*([0-9ilI|]{1,2})\s*m/);
+    if(m) return (+m[1]) * 60 + (+String(m[2]).replace(/[ilI|]/g, '1'));
+    m = str.match(/(\d{1,3})\s*h[ilI|]\s*m/);
+    if(m) return (+m[1]) * 60 + 1;
+    m = str.match(/(\d{1,3}):(\d{2})/);
+    if(m) return (+m[1]) * 60 + (+m[2]);
+    m = str.match(/(\d{3,4})\s*min/);
+    if(m) return +m[1];
+    m = str.match(/(\d{1,3})\s*h\b/);
+    if(m) return (+m[1]) * 60;
+    m = str.match(/(\d{1,3})\s*min/);
+    if(m) return +m[1];
+    return null;
+  };
+  let model = null, total = null;
+  s.split(/\n/).forEach(l => {
+    const low = norm(l);
+    if(low.indexOf('tempo total') >= 0) total = findIn(l) || total;
+    else if(low.indexOf('tempo de impress') >= 0) model = findIn(l) || model;
+  });
+  if(total) return total;
+  if(model) return model;
+  return findIn(s);
+}
+function parseSlicerText(text){
+  const res = { rows: [], total: null, minutes: slicerMinutes(text), changes: null };
+  let seenTotal = false;
+  String(text || '').split(/\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
+    const low = norm(line);
+    if(low.indexOf('troca') >= 0){
+      const mm = line.replace(/[Oo]/g, '0').match(/(\d{1,5})\s*$/);
+      if(mm) res.changes = parseInt(mm[1], 10);
+      return;
+    }
+    if(low.indexOf('tempo') >= 0 || low.indexOf('custo') >= 0 || low.indexOf('estimativa') >= 0) return;
+    const toks = [];
+    const re = /(\d{1,6}(?:[.,]\d{1,4})?)\s*([gm])?/gi;
+    let m;
+    while((m = re.exec(line)) !== null) toks.push({ raw: m[1], unit: (m[2] || '').toLowerCase() });
+    if(!toks.length) return;
+    let gramTok = null, meterTok = null;
+    toks.forEach(tk => { if(tk.unit === 'g') gramTok = tk; if(tk.unit === 'm') meterTok = tk; });
+    if(!meterTok && toks.length >= 2) meterTok = toks[0];
+    if(!gramTok && toks.length >= 2) gramTok = toks[toks.length - 1];
+    if(!gramTok) return;
+    const meters = meterTok && meterTok !== gramTok ? metersValue(meterTok.raw) : 0;
+    const grams = pickByRatio(gramCandidates(gramTok.raw), meters);
+    if(grams == null) return;
+    if(/\btotal\b/i.test(low)){ res.total = grams; seenTotal = true; return; }
+    if(seenTotal) return;
+    let idx = null;
+    const lm = low.match(/filament\w*\s*(\d{1,2})/);
+    if(lm) idx = parseInt(lm[1], 10);
+    if(idx == null){
+      const lead = line.match(/^\s*[^0-9a-z]*?(\d{1,2})\s+\d/);
+      if(lead){ const v = parseInt(lead[1], 10); if(v >= 1 && v <= 12) idx = v; }
+    }
+    if(idx == null || idx < 1 || idx > 12) idx = res.rows.length + 1;
+    while(res.rows.some(r => r.index === idx)) idx++;
+    res.rows.push({ index: idx, grams: grams, meters: meters });
+  });
+  res.rows.sort((a, b) => a.index - b.index);
+  return res;
+}
+function mergeSlicerResults(a, b){
+  const out = { rows: a.rows.slice(), total: a.total != null ? a.total : b.total, minutes: a.minutes || b.minutes, changes: a.changes || b.changes };
+  b.rows.forEach(r => { if(!out.rows.some(x => x.index === r.index)) out.rows.push(r); });
+  out.rows.sort((x, y) => x.index - y.index);
+  if(out.total != null && out.rows.length >= 2){
+    const sum = out.rows.reduce((s, r) => s + r.grams, 0);
+    if(Math.abs(sum - out.total) > 0.06){
+      const second = out.rows.filter(r => r.fromSecond);
+      if(second.length === 1){
+        const r = second[0];
+        const derived = r2(out.total - (sum - r.grams));
+        if(derived > 0){ r.grams = derived; r.derived = true; }
+      }
+    }
+  }
+  return out;
+}
+function sampleRowColors(canvas, ocrData, rows){
+  const words = (ocrData && ocrData.words) || [];
+  if(!words.length || !rows.length) return;
+  const tol = Math.max(12, canvas.height * 0.011);
+  const groups = [];
+  words.forEach(w => {
+    if(!w.bbox) return;
+    const yc = (w.bbox.y0 + w.bbox.y1) / 2;
+    let g = groups.find(gr => Math.abs(gr.yc - yc) < tol);
+    if(!g){ g = { yc: yc, x0: w.bbox.x0, words: [] }; groups.push(g); }
+    g.words.push(w); g.x0 = Math.min(g.x0, w.bbox.x0);
+  });
+  const tableGroups = groups.filter(g => g.words.filter(w => /\d/.test(w.text)).length >= 2);
+  if(!tableGroups.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const bw = Math.max(6, Math.min(26, Math.round(W * 0.014)));
+  const pixelAvg = (x, y) => {
+    const d = ctx.getImageData(Math.max(0, Math.min(W - bw, x)), Math.max(0, Math.min(H - bw, y)), bw, bw).data;
+    let r = 0, g = 0, bl = 0, n = 0;
+    for(let i = 0; i < d.length; i += 4){ r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++; }
+    return n ? [r / n, g / n, bl / n] : [0, 0, 0];
+  };
+  rows.forEach(row => {
+    const g = tableGroups.find(gr => gr.words.some(w => gramCandidates(w.text).some(v => Math.abs(v - row.grams) < 0.011)))
+      || tableGroups.find(gr => row.meters && gr.words.some(w => Math.abs(metersValue(w.text) - row.meters) < 0.011));
+    if(!g) return;
+    const bg = pixelAvg(Math.round(g.x0 + W * 0.30), Math.round(g.yc - bw / 2));
+    let best = null, bestScore = -1;
+    for(let x = Math.max(0, g.x0 - 4); x < Math.min(W - bw, g.x0 + W * 0.16); x += Math.max(3, bw / 2)){
+      for(let y = Math.max(0, g.yc - bw); y < Math.min(H - bw, g.yc + bw); y += Math.max(3, bw / 2)){
+        const avg = pixelAvg(Math.round(x), Math.round(y));
+        const d = Math.sqrt(Math.pow(avg[0] - bg[0], 2) + Math.pow(avg[1] - bg[1], 2) + Math.pow(avg[2] - bg[2], 2));
+        if(d > bestScore){ bestScore = d; best = avg; }
+      }
+    }
+    if(best && bestScore > 30) row.rgb = best;
+  });
+}
+function hexRgb(hex){ const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function colorSat(c){ const mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]); return mx ? (mx - mn) / mx : 0; }
+function colorDist(a, b){
+  const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+  let d = Math.sqrt(0.30 * dr * dr + 0.59 * dg * dg + 0.11 * db * db);
+  if(Math.abs(colorSat(a) - colorSat(b)) > 0.30) d += 45;
+  return d;
+}
+const SKIN_HEXES = ['#f1c27d', '#fa8072', '#8b5a2b', '#d7c39a', '#e8dcc8', '#f2ead8'];
+function isSkinTone(c){
+  const mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]);
+  if(mx < 180) return false;
+  const sat = mx ? (mx - mn) / mx : 0;
+  if(sat < 0.12 || sat > 0.5) return false;
+  return c[0] > c[1] && c[1] > c[2] && (c[0] - c[2]) > 25;
+}
+function matchSlicerRows(rows){
+  const used = new Set();
+  rows.filter(r => r.rgb).forEach(r => {
+    let best = null, bd = Infinity;
+    let pool = S.filaments;
+    if(isSkinTone(r.rgb)){
+      const skinPool = S.filaments.filter(f => SKIN_HEXES.indexOf(swatch(f.color + ' ' + f.name)) >= 0);
+      if(skinPool.length) pool = skinPool;
+    }
+    pool.forEach(f => {
+      if(used.has(f.id)) return;
+      const d = colorDist(r.rgb, hexRgb(swatch(f.color + ' ' + f.name)));
+      if(d < bd){ bd = d; best = f; }
+    });
+    if(best && bd < 95){ r.filamentId = best.id; r.matchBy = 'cor'; used.add(best.id); }
+  });
+  rows.forEach(r => {
+    if(r.filamentId) return;
+    const f = S.filaments.find(x => !used.has(x.id));
+    if(f){ r.filamentId = f.id; r.matchBy = 'ordem'; used.add(f.id); }
+  });
+}
+function dismissSlicerSummary(){ $('slicer-summary').classList.add('hidden'); }
+function applySlicerResult(res){
+  matchSlicerRows(res.rows);
+  S.calc.fils = res.rows.map(r => ({ filamentId: r.filamentId || null, gramsStr: numStr(r.grams) }));
+  $('calc-lotmode').checked = true;
+  if(res.minutes) $('calc-time').value = fmtTime(res.minutes);
+  renderCalcLines();
+  recomputeCalc();
+  const lines = res.rows.map(r => {
+    const f = r.filamentId ? filById(r.filamentId) : null;
+    return `<div class="row"><span>Filamento ${r.index}: ${fmtN(r.grams)} g</span><b>${f ? esc(f.name) : 'sem rolo correspondente'}</b></div>
+      <div class="mut">${f ? (r.matchBy === 'cor' ? 'Combinado pela cor do print. ' : 'Combinado pela ordem dos rolos cadastrados. ') : 'Escolha o rolo no seletor da linha. '}${r.derived ? 'Valor completado pelo total do print. ' : ''}Confira antes de salvar.</div>`;
+  }).join('');
+  const sum = res.rows.reduce((s, r) => s + r.grams, 0);
+  const sumTxt = res.total != null ? `Total lido: ${fmtN(res.total)} g${Math.abs(sum - res.total) > 0.06 ? ' (a soma das linhas deu ' + fmtN(r2(sum)) + ' g, confira os valores)' : ''}. ` : '';
+  $('slicer-summary').innerHTML = `<h3>Leitura do print</h3>${lines}
+    <p class="mut">${sumTxt}Tempo total: ${fmtTime(res.minutes)}.${res.changes ? ' Trocas de filamento: ' + res.changes + '.' : ''} O modo lote foi ligado: confira a quantidade de peças no lote e o rolo de cada linha antes de salvar. Nada foi salvo ainda.</p>
+    <div class="btnrow"><button class="ghost btn-sm" onclick="dismissSlicerSummary()">Fechar aviso</button></div>`;
+  $('slicer-summary').classList.remove('hidden');
+  $('slicer-status').textContent = 'Print lido. Confira os valores abaixo antes de salvar.';
+}
+async function onSlicerFile(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file || slicerBusy) return;
+  const status = $('slicer-status');
+  const summary = $('slicer-summary');
+  summary.classList.add('hidden'); summary.innerHTML = '';
+  if(!window.Tesseract){ status.textContent = 'Não consegui carregar o leitor de texto neste aparelho. Preencha o modo lote manualmente.'; return; }
+  slicerBusy = true;
+  status.textContent = 'Lendo o print...';
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error('imagem')); i.src = url; });
+    const md = Math.max(img.naturalWidth, img.naturalHeight);
+    const scale = md > 2000 ? 2000 / md : Math.min(4, 1400 / Math.max(1, md));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const mk = threshold => {
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d');
+      cx.drawImage(img, 0, 0, w, h);
+      if(threshold){
+        const id = cx.getImageData(0, 0, w, h); const d = id.data;
+        for(let i = 0; i < d.length; i += 4){ const g = 0.30 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; const v = g < 150 ? 0 : 255; d[i] = v; d[i + 1] = v; d[i + 2] = v; }
+        cx.putImageData(id, 0, 0);
+      }
+      return cv;
+    };
+    const canvasA = mk(false), canvasB = mk(true);
+    const logger = mm => { if(mm && mm.status === 'recognizing text') status.textContent = 'Lendo o print... ' + Math.round((mm.progress || 0) * 100) + '%'; };
+    const dataA = (await Tesseract.recognize(canvasA, 'por+eng', { logger: logger })).data;
+    const resA = parseSlicerText(dataA.text);
+    resA.rows.forEach(r => { r.fromSecond = false; });
+    sampleRowColors(canvasA, dataA, resA.rows);
+    status.textContent = 'Lendo o print... conferindo os números mais uma vez';
+    const dataB = (await Tesseract.recognize(canvasB, 'por+eng', { logger: logger })).data;
+    const resB = parseSlicerText(dataB.text);
+    resB.rows.forEach(r => { r.fromSecond = true; });
+    sampleRowColors(canvasA, dataB, resB.rows);
+    const res = mergeSlicerResults(resA, resB);
+    if(res.total == null && resB.total != null) res.total = resB.total;
+    if(!res.minutes) res.minutes = resB.minutes;
+    if(!res.rows.length || !res.minutes) throw new Error('leitura incompleta');
+    applySlicerResult(res);
+  } catch(e){
+    status.textContent = 'Não consegui ler esse print. Confira se a foto mostra o painel de filamentos e o tempo de impressão, ou preencha o modo lote manualmente. Nada foi alterado.';
+  } finally {
+    URL.revokeObjectURL(url);
+    slicerBusy = false;
+  }
+}
+
 /* ---------------- Produtos ---------------- */
+function isStoragePath(v){ return !!v && !/^https?:\/\//i.test(v); }
+function photoPlaceholderHtml(initial){
+  return `<div class="thumb" style="display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--mut);">${esc(initial || '?')}</div>`;
+}
 function photoHtml(p){
   if(p.photo_path && /^https?:\/\//i.test(p.photo_path)) return `<img class="thumb" src="${esc(p.photo_path)}" alt="">`;
-  return `<div class="thumb" style="display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--mut);">${esc((p.name || '?').slice(0,1).toUpperCase())}</div>`;
+  if(isStoragePath(p.photo_path)) return `<img class="thumb" data-photo-path="${esc(p.photo_path)}" data-initial="${esc((p.name || '?').slice(0,1).toUpperCase())}" alt="">`;
+  return photoPlaceholderHtml((p.name || '?').slice(0,1).toUpperCase());
+}
+async function hydrateProductPhotos(root){
+  const scope = root || document;
+  if(!scope.querySelectorAll) return;
+  const imgs = scope.querySelectorAll('img[data-photo-path]');
+  for(const img of imgs){
+    const pth = img.getAttribute('data-photo-path');
+    if(!pth || img.getAttribute('src')) continue;
+    const initial = img.getAttribute('data-initial') || '?';
+    try {
+      let hit = S.photoUrlCache[pth];
+      if(!hit || hit.exp < Date.now()){
+        const { data, error } = await sb.storage.from('product-photos').createSignedUrl(pth, 3600);
+        if(error || !data || !data.signedUrl) throw (error || new Error('sem URL'));
+        hit = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+        S.photoUrlCache[pth] = hit;
+      }
+      img.onerror = () => { img.outerHTML = photoPlaceholderHtml(initial); };
+      img.src = hit.url;
+    } catch(e){
+      img.outerHTML = photoPlaceholderHtml(initial);
+    }
+  }
 }
 function renderProdutos(){
   const active = S.products.filter(p => !p.archived);
@@ -1206,15 +1864,17 @@ function renderProdutos(){
     const st = S.stock[p.id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
     const hist = S.prods.filter(x => x.product_id === p.id);
     const histHtml = S.histOpen[p.id] ? `<div style="margin:8px 0 4px;">
-      ${hist.length ? hist.map(h => `<div class="row"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}</div></span>
+      ${hist.length ? hist.map(h => `<div class="row"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
         <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('') : '<p class="mut">Nenhuma produção registrada.</p>'}
     </div>` : '';
     return `<div class="row" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
-        <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
+        ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
+        <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Lucro por peça: ${BRL(Math.round(p.sale_price_cents - unitCostCents(p)))} · Margem: ${p.sale_price_cents > 0 ? fmtN((p.sale_price_cents - unitCostCents(p)) / p.sale_price_cents * 100) : '0'}% · Tempo: ${fmtTime(p.print_time_minutes)}</div>
         <div class="mut">Estoque em casa: <b style="color:var(--txt);">${st.available}</b> · Produzidas: ${st.produced} · Em expositores: ${st.in_displays} · Em pedidos: ${st.in_orders}</div>
         ${histHtml}</span></span>
       <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
+        <button class="ghost btn-sm" onclick="loadProductIntoCalc(${p.id})">Editar</button>
         <button class="pinkbtn btn-sm" onclick="openProduction(${p.id})">Produzir</button>
         <button class="ghost btn-sm" onclick="toggleHist(${p.id})">${S.histOpen[p.id] ? 'Fechar histórico' : 'Histórico'}</button>
         <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, true)">Arquivar</button>
@@ -1279,6 +1939,7 @@ async function purgeProduct(id){
   if(prods.length) await sb.from('productions').delete().eq('product_id', id);
   const { error } = await sb.from('products').delete().eq('id', id);
   if(error){ toast('Não consegui excluir de vez. Se o produto estiver em pedidos, ele precisa ficar no histórico. Detalhe: ' + error.message, true); return; }
+  if(isStoragePath(p.photo_path)){ try { await sb.storage.from('product-photos').remove([p.photo_path]); } catch(e) {} }
   await fetchAll(); renderAll();
   toast('Produto excluído de vez.');
 }
@@ -1289,7 +1950,7 @@ function openProduction(pid){
   if(!prod){ toast('Produto não encontrado.', true); return; }
   const rec = recipeOf(pid);
   P = {
-    productId: pid, qty: 1, saveRecipe: false,
+    productId: pid, qty: 1, saveRecipe: false, note: '',
     fils: rec.fils.map(r => ({ filamentId: r.filament_id, perPiece: r.grams, grams: r.grams })),
     sups: rec.sups.map(r => ({ supplyId: r.supply_id, perPiece: r.qty_per_piece, qty: r.qty_per_piece }))
   };
@@ -1306,10 +1967,13 @@ function renderProdModal(){
     <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(prod.name)}</b>. Confira a prévia de consumo: pode trocar o rolo e ajustar as quantidades antes de confirmar.</p>
     <label>Quantidade de peças desta leva</label>
     <input type="text" inputmode="numeric" value="${P.qty}" oninput="prodQtyChange(this.value)">
+    <label>Observação (opcional)</label>
+    <input type="text" value="${esc(P.note || '')}" placeholder="Ex.: leva para a Pure Pilates" oninput="P.note = this.value">
     <h3>Filamentos (total da leva, em gramas)</h3>
     ${P.fils.length ? P.fils.map((l, i) => `<div class="linebox">
       <label>Rolo (pode trocar)</label>
       <select onchange="prodFilSel(${i}, this.value)">${filOpts(l.filamentId)}</select>
+      <div class="mut" style="margin-top:6px;"><span class="sw" id="prodfil-sw-${i}" style="background:${swatch((filById(l.filamentId) || {}).color)}"></span>Cor aproximada do rolo selecionado</div>
       <label>Gramas no total</label>
       <input type="text" inputmode="decimal" value="${numStr(l.grams)}" oninput="prodFilGrams(${i}, this.value)">
       <div class="mut">Receita: ${fmtN(l.perPiece)} g por peça</div>
@@ -1334,7 +1998,7 @@ function prodQtyChange(v){
   P.sups.forEach(l => { l.qty = r2(l.perPiece * P.qty); });
   renderProdModal();
 }
-function prodFilSel(i, v){ P.fils[i].filamentId = parseInt(v, 10); }
+function prodFilSel(i, v){ P.fils[i].filamentId = parseInt(v, 10); const f = filById(P.fils[i].filamentId); const sw = $('prodfil-sw-' + i); if(sw) sw.style.background = swatch(f ? f.color : ''); }
 function prodFilGrams(i, v){ P.fils[i].grams = parseNum(v) || 0; }
 function prodSupSel(i, v){ P.sups[i].supplyId = parseInt(v, 10); }
 function prodSupQty(i, v){ P.sups[i].qty = parseNum(v) || 0; }
@@ -1353,7 +2017,7 @@ async function confirmProduction(){
       consumption.push({ kind: 'supply', id: l.supplyId, name: s ? s.name : '', qty: r2(l.qty) });
     }
   });
-  const { error } = await sb.from('productions').insert({ product_id: P.productId, qty: P.qty, consumption: consumption });
+  const { error } = await sb.from('productions').insert({ product_id: P.productId, qty: P.qty, consumption: consumption, note: P.note || '' });
   if(error) return toastErr(error);
   const ended = [];
   for(const c of consumption){
@@ -1425,7 +2089,7 @@ function renderLojas(){
 }
 function renderStoreList(){
   const q = norm(S.storeSearch);
-  const list = S.stores.filter(st => !q || norm(st.name + ' ' + (st.contact_name || '')).indexOf(q) >= 0);
+  const list = S.stores.filter(st => !q || norm(st.name + ' ' + (st.contact_name || '') + ' ' + (st.whatsapp || '') + ' ' + (st.address || '')).indexOf(q) >= 0);
   $('store-list').innerHTML = list.map(st => {
     const rows = S.storeStock.filter(r => r.store_id === st.id);
     const inDisplay = rows.reduce((a, r) => a + (r.delivered_qty - r.sold_in_cycle), 0);
@@ -1442,6 +2106,7 @@ function renderStoreList(){
 function openStore(id){
   S.currentStore = id;
   S.displaySearch = '';
+  S.mountSearch = '';
   renderLojas();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1557,9 +2222,18 @@ function cycleInfo(store){
   return { last: last, byProd: byProd, gross: gross, items: items, commission: commission, net: net, carriedIn: carriedIn, due: net + carriedIn };
 }
 function activeProductOptions(){
-  const act = S.products.filter(p => !p.archived);
+  const q = norm(S.mountSearch);
+  const act = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0));
   if(!act.length) return '<option value="">Nenhum produto ativo</option>';
   return act.map(p => `<option value="${p.id}">${esc(p.name)} (em casa: ${homeAvail(p.id)})</option>`).join('');
+}
+function refreshMountOptions(){
+  const sel = $('disp-product');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = activeProductOptions();
+  if(cur && Array.from(sel.options).some(o => String(o.value) === String(cur))) sel.value = cur;
+  updateDispHint();
 }
 function updateDispHint(){
   const sel = $('disp-product');
@@ -1599,12 +2273,15 @@ function renderStoreDetail(){
       <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>
       <div class="row"><span><b>Total do acerto</b></span><span class="big">${BRL(cyc.due)}</span></div>
       <p class="mut">${cyc.last ? 'Último acerto em ' + fmtDateTime(cyc.last.settled_at) + '.' : 'Ainda não houve acerto nesta loja.'} Acerto antecipado é permitido, não precisa esperar a data combinada.</p>
+      <p class="mut">${esc(nextSettlementText(st))}</p>
     </div>
     <div class="card">
       <h2>Expositor</h2>
       <input type="text" placeholder="Buscar produto no expositor (pode digitar sem acento)" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();">
       <div class="linebox">
         <label>Adicionar produto ao expositor</label>
+        <label>Buscar produto</label>
+        <input type="text" placeholder="Buscar produto (pode digitar sem acento)" value="${esc(S.mountSearch)}" oninput="S.mountSearch = this.value; refreshMountOptions();">
         <select id="disp-product" onchange="updateDispHint()">${activeProductOptions()}</select>
         <label>Quantidade</label>
         <input id="disp-qty" type="text" inputmode="numeric" value="1">
@@ -1612,6 +2289,14 @@ function renderStoreDetail(){
         <div class="btnrow"><button class="btn-sm" onclick="mountDisplay()">Adicionar ao expositor</button></div>
       </div>
       <div id="display-list"></div>
+    </div>
+    <div class="card">
+      <h2>Reposições pendentes desta loja</h2>
+      <div>${restockHtml(st.id)}</div>
+    </div>
+    <div class="card">
+      <h2>Histórico de reposições</h2>
+      <div>${storeRestockHistoryHtml(st.id)}</div>
     </div>
     <div class="card">
       <h2>Vendas da loja</h2>
@@ -1759,8 +2444,13 @@ function openSettlement(storeId){
     <div class="row"><span>Líquido para a J2L</span><b>${BRL(cyc.net)}</b></div>
     <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>
     <div class="row"><span><b>Total do acerto</b></span><b>${BRL(cyc.due)}</b></div>
+    <label>Data do acerto</label>
+    <input id="settle-date" type="date" value="${todayStr()}">
     <label>Valor acertado com a loja (R$)</label>
     <input id="settle-paid" type="text" inputmode="decimal" value="${moneyStr(Math.max(0, cyc.due))}">
+    <label>Observação (opcional)</label>
+    <input id="settle-note" type="text" placeholder="Ex.: pago via Pix">
+    <label class="check"><input type="checkbox" id="settle-finance" checked> Lançar o valor acertado nas Finanças como ganho</label>
     <p class="mut">Se o valor acertado for menor que o total, o restante vira saldo do próximo ciclo. Ao confirmar, os vendidos zeram e o que sobrou no expositor vira o estoque inicial do novo ciclo.</p>
     <div class="btnrow">
       <button onclick="confirmSettlement()">Confirmar acerto</button>
@@ -1773,10 +2463,28 @@ async function confirmSettlement(){
   if(!st) return;
   const paid = parseMoney($('settle-paid').value);
   if(paid < 0){ toast('O valor acertado não pode ser negativo.', true); return; }
+  const settleDate = $('settle-date').value || todayStr();
+  const postFinance = $('settle-finance').checked;
+  const settleNote = $('settle-note').value.trim();
   const cyc = cycleInfo(st);
   const remainder = Math.max(0, ST.due - paid);
-  const { error } = await sb.from('settlements').insert({ store_id: st.id, amount_cents: paid });
-  if(error) return toastErr(error);
+  let financeTxId = null;
+  if(postFinance && paid > 0){
+    const insTx = await sb.from('transactions').insert({
+      kind: 'income', category: 'Acertos', description: 'Acerto: ' + st.name,
+      amount_cents: paid, date: settleDate, notes: 'Acerto da loja ' + st.name + (settleNote ? '. ' + settleNote : '')
+    }).select().single();
+    if(insTx.error) return toastErr(insTx.error);
+    financeTxId = insTx.data.id;
+  }
+  const { error } = await sb.from('settlements').insert({
+    store_id: st.id, amount_cents: paid, settled_at: settleDate + 'T12:00:00',
+    finance_transaction_id: financeTxId, notes: settleNote
+  });
+  if(error){
+    if(financeTxId) await sb.from('transactions').delete().eq('id', financeTxId);
+    return toastErr(error);
+  }
   const rows = S.storeStock.filter(r => r.store_id === st.id);
   const weights = rows.map(r => Math.max(0, cyc.byProd[r.product_id] ? cyc.byProd[r.product_id].gross : 0) + (r.carried_balance_cents || 0));
   const totalW = weights.reduce((a, b) => a + b, 0);
@@ -1804,31 +2512,23 @@ async function confirmSettlement(){
   }
   closeBox();
   await fetchAll(); renderAll();
-  toast('Acerto registrado para ' + st.name + ': ' + BRL(paid) + '.' + (remainder > 0 ? ' Saldo de ' + BRL(remainder) + ' carregado para o próximo ciclo.' : ''));
+  toast('Acerto registrado para ' + st.name + ': ' + BRL(paid) + '.' + (financeTxId ? ' Valor lançado nas Finanças.' : '') + (remainder > 0 ? ' Saldo de ' + BRL(remainder) + ' carregado para o próximo ciclo.' : ''));
 }
 function salesHistoryHtml(storeId){
-  const rows = S.sales.filter(x => x.store_id === storeId);
+  const rows = S.sales.filter(x => x.store_id === storeId).slice(0, 80);
   if(!rows.length) return '<p class="mut">Nenhuma venda registrada ainda.</p>';
-  const groups = {};
-  rows.forEach(x => {
-    const day = String(x.sold_at).slice(0, 10);
-    const key = x.product_id + '|' + x.unit_price_cents + '|' + day;
-    const g = groups[key] || (groups[key] = { pid: x.product_id, price: x.unit_price_cents, day: day, qty: 0, total: 0, latest: x.sold_at });
-    const sgn = x.kind === 'correction' ? -1 : 1;
-    g.qty += sgn;
-    g.total += sgn * (x.unit_price_cents || 0);
-    if(String(x.sold_at) > String(g.latest)) g.latest = x.sold_at;
-  });
-  const list = Object.values(groups).sort((a, b) => String(b.latest).localeCompare(String(a.latest))).slice(0, 60);
-  return list.map(g => {
-    const p = prodById(g.pid);
-    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${fmtDate(g.day)} · ${g.qty} un × ${BRL(g.price)}</div></span><b>${BRL(g.total)}</b></div>`;
+  return rows.map(x => {
+    const p = prodById(x.product_id);
+    const corr = x.kind === 'correction';
+    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
+      <div class="mut">${fmtDateTime(x.sold_at)} · ${corr ? 'Correção de venda' : 'Venda'} · ${BRL(x.unit_price_cents)} cada</div></span>
+      <b class="${corr ? 'neg' : ''}">${corr ? '- ' : ''}${BRL(x.unit_price_cents)}</b></div>`;
   }).join('');
 }
 function settlementHistoryHtml(storeId){
   const rows = S.settlements.filter(x => x.store_id === storeId);
   if(!rows.length) return '<p class="mut">Nenhum acerto registrado ainda.</p>';
-  return rows.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
+  return rows.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
 }
 function storeChartHtml(storeId){
   const byMonth = {};
@@ -1870,10 +2570,11 @@ function restockGroups(){
   RGROUPS = groups;
   return groups;
 }
-function restockHtml(){
+function restockHtml(storeId){
   const groups = restockGroups();
-  if(!groups.length) return '<p class="mut">Nenhum pedido de reposição pendente.</p>';
-  return groups.map((g, i) => {
+  const entries = groups.map((g, i) => ({ g: g, i: i })).filter(x => !storeId || x.g.storeId === storeId);
+  if(!entries.length) return '<p class="mut">Nenhum pedido de reposição pendente.</p>';
+  return entries.map(({ g, i }) => {
     const st = storeById(g.storeId);
     const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
     const lines = g.rows.map(r => {
@@ -1889,6 +2590,30 @@ function restockHtml(){
         <button class="ghost btn-sm" onclick="ignoreRestock(${i})">Ignorar</button>
       </div>
     </div>`;
+  }).join('');
+}
+function storeRestockHistoryHtml(storeId){
+  const rows = S.restocks.filter(r => r.store_id === storeId);
+  if(!rows.length) return '<p class="mut">Nenhuma reposição registrada para esta loja.</p>';
+  const map = {};
+  const groups = [];
+  rows.forEach(r => {
+    const key = r.group_id ? 'g:' + r.group_id : 'd:' + String(r.created_at).slice(0, 16) + ':' + r.status;
+    let g = map[key];
+    if(!g){ g = { createdAt: r.created_at, status: r.status, origin: r.origin, message: '', rows: [] }; map[key] = g; groups.push(g); }
+    if(String(r.created_at) > String(g.createdAt)) g.createdAt = r.created_at;
+    if(r.message && !g.message) g.message = r.message;
+    g.rows.push(r);
+  });
+  groups.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  return groups.map(g => {
+    const total = g.rows.reduce((a, r) => a + r.qty, 0);
+    const lines = g.rows.map(r => {
+      const p = prodById(r.product_id);
+      return `<div class="mut">${esc(p ? p.name : 'Produto')}: ${r.qty} peças</div>`;
+    }).join('');
+    return `<div class="linebox"><div><b>${fmtDateTime(g.createdAt)}</b> ${restockStatusBadge(g.status)} <span class="mut">· ${total} itens · origem: ${g.origin === 'loja' ? 'pedido da loja' : esc(g.origin || 'loja')}</span></div>
+      ${g.message ? `<div class="mut" style="margin-top:4px;">${esc(g.message)}</div>` : ''}${lines}</div>`;
   }).join('');
 }
 async function attendRestock(i){
@@ -1959,50 +2684,139 @@ function orderProductOptions(selId){
   const opts = act.map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${esc(p.name)} (${BRL(p.sale_price_cents)})</option>`).join('');
   return `<option value="" ${selId ? '' : 'selected'}>Escolher produto...</option>` + opts;
 }
+function blankOrderLine(){ return { mode: 'catalog', productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '' }; }
 function renderOrderLines(){
-  if(!S.orderLines.length) S.orderLines = [{ productId: null, qtyStr: '1' }];
+  if(!S.orderLines.length) S.orderLines = [blankOrderLine()];
+  S.orderLines = S.orderLines.map(l => Object.assign(blankOrderLine(), l));
   $('ord-lines').innerHTML = S.orderLines.map((l, i) => {
     const p = l.productId ? prodById(l.productId) : null;
+    const priceVal = l.priceStr !== '' ? l.priceStr : (p ? moneyStr(p.sale_price_cents) : '');
+    const costVal = l.costStr !== '' ? l.costStr : (p ? moneyStr(Math.round(unitCostCents(p))) : '');
     return `<div class="linebox">
-      <label>Produto</label>
+      <label>Tipo do item</label>
+      <select onchange="orderLineMode(${i}, this.value)">
+        <option value="catalog" ${l.mode !== 'free' ? 'selected' : ''}>Produto do catálogo</option>
+        <option value="free" ${l.mode === 'free' ? 'selected' : ''}>Item avulso</option>
+      </select>
+      ${l.mode === 'free' ? `<label>Descrição do item avulso</label>
+      <input type="text" value="${esc(l.description)}" placeholder="Ex.: Bonequinho personalizado" oninput="orderLineField(${i}, 'description', this.value)">`
+      : `<label>Produto</label>
       <select onchange="orderLineProduct(${i}, this.value)">${orderProductOptions(l.productId)}</select>
-      <label>Quantidade</label>
-      <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="S.orderLines[${i}].qtyStr = this.value">
-      <div class="mut">${p ? 'Preço: ' + BRL(p.sale_price_cents) + ' cada · em casa: ' + homeAvail(p.id) : ''}</div>
+      <div class="mut">${p ? 'Em casa: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>`}
+      <div class="cols">
+        <div><label>Quantidade</label><input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)"></div>
+        <div><label>Preço unitário (R$)</label><input type="text" inputmode="decimal" value="${esc(priceVal)}" oninput="orderLineField(${i}, 'priceStr', this.value)"></div>
+      </div>
+      <label>Custo unitário congelado no pedido (R$)</label>
+      <input type="text" inputmode="decimal" value="${esc(costVal)}" oninput="orderLineField(${i}, 'costStr', this.value)">
       <div class="btnrow"><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
     </div>`;
   }).join('');
 }
-function orderLineProduct(i, v){ S.orderLines[i].productId = v ? parseInt(v, 10) : null; renderOrderLines(); }
-function addOrderLine(){ S.orderLines.push({ productId: null, qtyStr: '1' }); renderOrderLines(); }
+function orderLineMode(i, v){ S.orderLines[i].mode = v; renderOrderLines(); }
+function orderLineField(i, field, v){ S.orderLines[i][field] = v; }
+function orderLineProduct(i, v){
+  S.orderLines[i].productId = v ? parseInt(v, 10) : null;
+  const p = S.orderLines[i].productId ? prodById(S.orderLines[i].productId) : null;
+  if(p){ S.orderLines[i].priceStr = moneyStr(p.sale_price_cents); S.orderLines[i].costStr = moneyStr(Math.round(unitCostCents(p))); }
+  renderOrderLines();
+}
+function addOrderLine(){ S.orderLines.push(blankOrderLine()); renderOrderLines(); }
 function removeOrderLine(i){ S.orderLines.splice(i, 1); renderOrderLines(); }
+function resetOrderForm(){
+  S.editingOrder = null;
+  $('ord-form-title').textContent = 'Novo pedido avulso';
+  $('ord-save-btn').textContent = 'Salvar pedido';
+  $('ord-cancel-edit').classList.add('hidden');
+  $('ord-client').value = '';
+  $('ord-date').value = todayStr();
+  $('ord-contact').value = '';
+  $('ord-notes').value = '';
+  S.orderLines = [blankOrderLine()];
+}
+function startEditOrder(id){
+  const o = orderById(id);
+  if(!o) return;
+  if(o.status === 'entregue' || o.status === 'cancelado'){ toast('Pedido entregue ou cancelado fica travado. Reabra o pedido antes de editar.', true); return; }
+  const items = orderItemsOf(id);
+  S.editingOrder = id;
+  $('ord-form-title').textContent = 'Editar pedido';
+  $('ord-save-btn').textContent = 'Salvar alterações do pedido';
+  $('ord-cancel-edit').classList.remove('hidden');
+  $('ord-client').value = o.client_name || '';
+  $('ord-date').value = o.order_date || String(o.created_at || '').slice(0, 10);
+  $('ord-contact').value = o.customer_contact || '';
+  $('ord-notes').value = o.notes || '';
+  S.orderLines = items.length ? items.map(i => ({
+    mode: i.product_id ? 'catalog' : 'free', productId: i.product_id || null, qtyStr: String(i.qty),
+    description: i.description || '', priceStr: moneyStr(i.unit_price_cents), costStr: moneyStr(i.unit_cost_cents || 0)
+  })) : [blankOrderLine()];
+  renderOrderLines();
+  showTab('pedidos');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function cancelOrderEdit(){ resetOrderForm(); renderOrderLines(); }
+async function deleteOrder(id){
+  const o = orderById(id);
+  if(!o) return;
+  if(!confirm('Excluir o pedido de ' + o.client_name + '? Se já houver ganho lançado nas Finanças, ele será mantido.')) return;
+  const { error } = await sb.from('orders').delete().eq('id', id);
+  if(error) return toastErr(error);
+  if(S.editingOrder === id) resetOrderForm();
+  await fetchAll(); renderAll();
+  toast('Pedido excluído. Um ganho já lançado nas Finanças foi mantido.');
+}
 async function saveOrder(){
   const client = $('ord-client').value.trim();
+  const oDate = $('ord-date').value || todayStr();
+  const oContact = $('ord-contact').value.trim();
+  const oNotes = $('ord-notes').value.trim();
   if(!client){ toast('Escreva o nome do cliente do pedido.', true); return; }
+  const editing = S.editingOrder ? orderById(S.editingOrder) : null;
+  if(S.editingOrder && !editing){ toast('Este pedido não existe mais.', true); return; }
+  if(editing && (editing.status === 'entregue' || editing.status === 'cancelado')){ toast('Pedido entregue ou cancelado fica travado. Reabra o pedido antes de editar.', true); return; }
   const lines = [];
   for(const l of S.orderLines){
-    if(!l.productId) continue;
     const qty = Math.round(parseNum(l.qtyStr) || 0);
     if(qty <= 0) continue;
-    const p = prodById(l.productId);
-    if(p) lines.push({ product: p, qty: qty });
+    if(l.mode === 'free'){
+      const desc = (l.description || '').trim();
+      if(!desc){ toast('Um item avulso está sem descrição. Escreva a descrição ou remova a linha.', true); return; }
+      lines.push({ product: null, description: desc, qty: qty, unitPrice: Math.max(0, parseMoney(l.priceStr)), unitCost: Math.max(0, parseMoney(l.costStr)) });
+    } else {
+      if(!l.productId) continue;
+      const p = prodById(l.productId);
+      if(!p) continue;
+      const unitPrice = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
+      const unitCost = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
+      lines.push({ product: p, description: p.name, qty: qty, unitPrice: unitPrice, unitCost: unitCost });
+    }
   }
-  if(!lines.length){ toast('Adicione pelo menos um produto com quantidade ao pedido.', true); return; }
+  if(!lines.length){ toast('Adicione pelo menos um item com quantidade ao pedido.', true); return; }
   const warnings = [];
   lines.forEach(l => {
+    if(!l.product) return;
     const avail = homeAvail(l.product.id);
     if(l.qty > avail) warnings.push('Faltam ' + (l.qty - avail) + ' peças de "' + l.product.name + '" (pedido de ' + l.qty + ', em casa ' + avail + ').');
   });
   if(warnings.length && !confirm(warnings.join('\n') + '\n\nSalvar o pedido mesmo assim?')) return;
-  const { data: ord, error } = await sb.from('orders').insert({ client_name: client, status: 'pendente', post_to_finance: false }).select().single();
-  if(error) return toastErr(error);
-  const rows = lines.map(l => ({ order_id: ord.id, product_id: l.product.id, description: l.product.name, qty: l.qty, unit_price_cents: l.product.sale_price_cents, unit_cost_cents: Math.round(unitCostCents(l.product)) }));
+  let orderId = S.editingOrder;
+  if(editing){
+    const { error } = await sb.from('orders').update({ client_name: client, order_date: oDate, customer_contact: oContact, notes: oNotes }).eq('id', editing.id);
+    if(error) return toastErr(error);
+    const { error: delErr } = await sb.from('order_items').delete().eq('order_id', editing.id);
+    if(delErr) return toastErr(delErr);
+  } else {
+    const { data: ord, error } = await sb.from('orders').insert({ client_name: client, status: 'pendente', post_to_finance: false, order_date: oDate, customer_contact: oContact, notes: oNotes }).select().single();
+    if(error) return toastErr(error);
+    orderId = ord.id;
+  }
+  const rows = lines.map(l => ({ order_id: orderId, product_id: l.product ? l.product.id : null, description: l.description, qty: l.qty, unit_price_cents: l.unitPrice, unit_cost_cents: l.unitCost }));
   const { error: e2 } = await sb.from('order_items').insert(rows);
   if(e2) return toastErr(e2);
-  $('ord-client').value = '';
-  S.orderLines = [{ productId: null, qtyStr: '1' }];
+  resetOrderForm();
   await fetchAll(); renderAll();
-  toast('Pedido de ' + client + ' salvo como pendente.' + (warnings.length ? ' ' + warnings.join(' ') : ''));
+  toast('Pedido de ' + client + (editing ? ' atualizado.' : ' salvo como pendente.') + (warnings.length ? ' ' + warnings.join(' ') : ''));
 }
 function renderOrders(){
   $('ord-list').innerHTML = S.orders.map(o => {
@@ -2011,13 +2825,16 @@ function renderOrders(){
     const cost = orderCost(o.id);
     const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} × ${BRL(i.unit_price_cents)} = ${BRL(i.qty * i.unit_price_cents)}</div>`).join('');
     const btns = [];
+    if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="startEditOrder(${o.id})">Editar</button>`);
+    btns.push(`<button class="danger btn-sm" onclick="deleteOrder(${o.id})">Excluir</button>`);
     if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
     if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
     if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
     if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
     return `<div class="row" style="align-items:flex-start;">
       <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
-        <div class="mut">${fmtDateTime(o.created_at)}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
+        <div class="mut">${o.order_date ? fmtDate(o.order_date) : fmtDateTime(o.created_at)}${o.customer_contact ? ' · ' + esc(o.customer_contact) : ''}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
+        ${o.notes ? `<div class="mut">Obs.: ${esc(o.notes)}</div>` : ''}
         ${itemsHtml || '<div class="mut">Sem itens.</div>'}
         <div class="mut">Total: <b style="color:var(--txt);">${BRL(total)}</b>${cost > 0 ? ' · Custo: ' + BRL(cost) + ' · Lucro: ' + BRL(total - cost) : ''}${o.finance_transaction_id ? ' · <span class="badge link">lançado nas Finanças</span>' : ''}</div>
       </span>
@@ -2211,6 +3028,7 @@ function renderStoreView(){
   renderStoreSaleOptions();
   renderStoreRestock();
   renderStoreSales();
+  hydrateProductPhotos(document);
 }
 function renderStoreCycle(){
   const c = svCycle();
@@ -2370,26 +3188,18 @@ function renderStoreSales(){
   const salesEl = $('sv-sales'); if(salesEl) salesEl.innerHTML = svSalesHistoryHtml();
   const setEl = $('sv-settlements');
   if(setEl) setEl.innerHTML = SV.settlements.length
-    ? SV.settlements.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
+    ? SV.settlements.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
     : '<p class="mut">Nenhum acerto registrado ainda.</p>';
   const chartEl = $('sv-chart'); if(chartEl) chartEl.innerHTML = svChartHtml();
 }
 function svSalesHistoryHtml(){
   if(!SV.sales.length) return '<p class="mut">Nenhuma venda registrada ainda.</p>';
-  const groups = {};
-  SV.sales.forEach(x => {
-    const day = String(x.sold_at).slice(0, 10);
-    const key = x.product_id + '|' + x.unit_price_cents + '|' + day;
-    const g = groups[key] || (groups[key] = { pid: x.product_id, price: x.unit_price_cents, day: day, qty: 0, total: 0, latest: x.sold_at });
-    const sgn = x.kind === 'correction' ? -1 : 1;
-    g.qty += sgn;
-    g.total += sgn * (x.unit_price_cents || 0);
-    if(String(x.sold_at) > String(g.latest)) g.latest = x.sold_at;
-  });
-  const list = Object.values(groups).sort((a, b) => String(b.latest).localeCompare(String(a.latest))).slice(0, 60);
-  return list.map(g => {
-    const p = svProd(g.pid);
-    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${fmtDate(g.day)} · ${g.qty} un × ${BRL(g.price)}</div></span><b>${BRL(g.total)}</b></div>`;
+  return SV.sales.slice(0, 80).map(x => {
+    const p = svProd(x.product_id);
+    const corr = x.kind === 'correction';
+    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
+      <div class="mut">${fmtDateTime(x.sold_at)} · ${corr ? 'Correção de venda' : 'Venda'} · ${BRL(x.unit_price_cents)} cada</div></span>
+      <b class="${corr ? 'neg' : ''}">${corr ? '- ' : ''}${BRL(x.unit_price_cents)}</b></div>`;
   }).join('');
 }
 function svChartHtml(){
@@ -2475,6 +3285,8 @@ async function forgotPassword(){
 (function seedCalc(){
   S.calc.fils = [{ filamentId: null, gramsStr: '' }];
   S.calc.sups = [{ supplyId: null, qtyStr: '' }];
+  const od = $('calc-orderdate'); if(od) od.value = todayStr();
+  renderCalcPhotoPreview('');
 })();
 
 detectAuthLink();
