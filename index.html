@@ -12,36 +12,64 @@
   }
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
   body{background:var(--bg); color:var(--txt); min-height:100vh;}
-  header{background:var(--navy); padding:16px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--line);}
-  .logo{font-weight:800; font-size:24px; letter-spacing:1px;}
-  .logo .j{color:var(--cyan);} .logo .n{color:var(--yellow);} .logo .l{color:var(--pink);}
-  .tag{font-size:10px; letter-spacing:3px; color:var(--mut);}
+  header{background:var(--navy); padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--line);}
+  header img.logoimg{height:34px; width:auto; display:block;}
   main{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
   h2{font-size:17px; margin-bottom:10px;}
   h3{font-size:14px; color:var(--mut); margin:14px 0 8px; text-transform:uppercase; letter-spacing:1px;}
-  input,button{font-size:15px; border-radius:10px;}
-  input{width:100%; padding:12px; background:#141126; border:1px solid var(--line); color:var(--txt); margin-bottom:10px;}
+  input,button,select,textarea{font-size:15px; border-radius:10px;}
+  input,select,textarea{width:100%; padding:12px; background:#141126; border:1px solid var(--line); color:var(--txt); margin-bottom:10px;}
+  input[type="checkbox"]{width:auto; margin:0; padding:0;}
+  label{display:block; font-size:13px; color:var(--mut); margin:6px 0 4px;}
   button{background:var(--cyan); color:#0b0a18; border:0; padding:12px 18px; font-weight:700; cursor:pointer;}
   button.ghost{background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:600;}
-  .row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  button.danger{background:transparent; color:var(--bad); border:1px solid var(--bad); font-weight:600;}
+  button.pinkbtn{background:var(--pink); color:#fff;}
+  .btn-sm{padding:7px 11px; font-size:13px; border-radius:8px;}
+  .row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:0;}
   .mut{color:var(--mut); font-size:13px;}
-  .big{font-size:26px; font-weight:800;}
+  .big{font-size:24px; font-weight:800;}
   .neg{color:var(--bad);} .pos{color:var(--ok);}
   .sw{display:inline-block; width:14px; height:14px; border-radius:4px; margin-right:8px; vertical-align:-2px; border:1px solid rgba(255,255,255,.25);}
   .err{color:var(--bad); font-size:14px; min-height:20px; margin-top:6px;}
-  .center{max-width:400px; margin:8vh auto 0;}
-  .hidden{display:none;}
+  .center{max-width:400px; margin:6vh auto 0;}
+  .hidden{display:none !important;}
   .pill{font-size:11px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--mut);}
+  .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+  .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:600;}
+  .tabbtn.on{background:var(--cyan); color:#0b0a18; border-color:var(--cyan);}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media(max-width:560px){ .cols{grid-template-columns:1fr;} }
+  .badge{font-size:11px; padding:2px 8px; border-radius:99px; font-weight:700; white-space:nowrap;}
+  .badge.low{background:#5a3b12; color:var(--yellow);}
+  .badge.out{background:#5a1f1f; color:var(--bad);}
+  .badge.link{background:#22304d; color:var(--cyan);}
+  .check{display:flex; gap:8px; align-items:center; font-size:14px; margin:8px 0;}
+  .chart{display:flex; gap:14px; align-items:flex-end; height:150px; padding-top:8px; overflow-x:auto;}
+  .cmonth{display:flex; flex-direction:column; align-items:center; gap:4px; min-width:54px;}
+  .cbars{display:flex; gap:4px; align-items:flex-end; height:108px;}
+  .cbar{width:16px; border-radius:4px 4px 0 0; min-height:2px;}
+  .modal{position:fixed; inset:0; background:rgba(5,4,15,.78); display:flex; align-items:flex-start; justify-content:center; padding:20px 12px; overflow-y:auto; z-index:50;}
+  .modal .box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; width:100%; max-width:560px;}
+  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#26224a; color:var(--txt); border:1px solid var(--cyan); padding:12px 16px; border-radius:10px; z-index:99; max-width:92vw; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.5);}
+  #toast.errbox{border-color:var(--bad);}
+  .picksel{border:1px solid var(--line); border-radius:10px; padding:11px; cursor:pointer; background:#141126; margin-bottom:6px;}
+  .pickbox{border:1px solid var(--line); border-radius:10px; padding:8px; margin:0 0 8px; background:#141126;}
+  .pickbox input{margin-bottom:6px;}
+  .pickopt{display:block; width:100%; text-align:left; background:transparent; color:var(--txt); border:0; border-bottom:1px solid var(--line); padding:9px 6px; font-weight:500; cursor:pointer; border-radius:0;}
+  .pickopt:last-child{border-bottom:0;}
+  .thumb{width:52px; height:52px; object-fit:cover; border-radius:10px; border:1px solid var(--line); background:#141126;}
+  .linebox{border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .loginlogo{display:block; max-width:220px; width:70%; margin:0 auto 10px;}
+  .loginsub{text-align:center; font-size:18px; font-weight:700; margin-bottom:16px;}
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <div class="logo"><span class="j">J</span><span class="n">2</span><span class="l">L</span></div>
-    <div class="tag">IMPRESSÃO 3D</div>
-  </div>
+  <img class="logoimg" src="logo-j2l.png" alt="J2L Impressão 3D">
   <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
     <span id="who" class="pill hidden"></span>
     <button id="btn-out" class="ghost hidden" style="padding:8px 12px;">Sair</button>
@@ -51,6 +79,8 @@
 <main>
   <!-- LOGIN -->
   <section id="view-login" class="center hidden">
+    <img class="loginlogo" src="logo-j2l.png" alt="J2L Impressão 3D">
+    <div class="loginsub">Finanças e Consignado</div>
     <div class="card">
       <h2>Entrar</h2>
       <input id="in-email" type="email" placeholder="Seu e-mail" autocomplete="username">
@@ -63,27 +93,216 @@
 
   <!-- MASTER -->
   <section id="view-master" class="hidden">
-    <div class="card">
-      <h2>Finanças do mês</h2>
-      <div class="mut" id="fin-month"></div>
-      <div style="display:flex; gap:24px; margin-top:10px; flex-wrap:wrap;">
-        <div><div class="mut">Ganhos</div><div class="big pos" id="fin-in">R$ 0,00</div></div>
-        <div><div class="mut">Despesas</div><div class="big neg" id="fin-out">R$ 0,00</div></div>
-        <div><div class="mut">Resultado</div><div class="big" id="fin-res">R$ 0,00</div></div>
+    <nav class="tabs">
+      <button class="tabbtn on" data-tab="inicio" onclick="showTab('inicio')">Início</button>
+      <button class="tabbtn" data-tab="financas" onclick="showTab('financas')">Finanças</button>
+      <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')">Materiais</button>
+      <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')">Calculadora</button>
+      <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')">Produtos</button>
+    </nav>
+
+    <!-- INÍCIO -->
+    <div id="tab-inicio" class="tabpage">
+      <div class="card">
+        <h2>Finanças do mês</h2>
+        <div class="mut" id="ini-month"></div>
+        <div style="display:flex; gap:24px; margin-top:10px; flex-wrap:wrap;">
+          <div><div class="mut">Ganhos</div><div class="big pos" id="ini-in">R$ 0,00</div></div>
+          <div><div class="mut">Despesas</div><div class="big neg" id="ini-out">R$ 0,00</div></div>
+          <div><div class="mut">Resultado</div><div class="big" id="ini-res">R$ 0,00</div></div>
+          <div><div class="mut">Saldo acumulado</div><div class="big" id="ini-acc">R$ 0,00</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Materiais</h2>
+        <h3>Filamentos</h3>
+        <div id="ini-fil"></div>
+        <h3>Insumos</h3>
+        <div id="ini-sup"></div>
+      </div>
+      <div class="card">
+        <h2>Últimos lançamentos</h2>
+        <div id="ini-tx"></div>
       </div>
     </div>
-    <div class="card">
-      <h2>Materiais</h2>
-      <h3>Filamentos</h3>
-      <div id="list-fil"></div>
-      <h3>Insumos</h3>
-      <div id="list-sup"></div>
+
+    <!-- FINANÇAS -->
+    <div id="tab-financas" class="tabpage hidden">
+      <div class="card">
+        <h2>Finanças</h2>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+          <button class="ghost btn-sm" onclick="finNav(-1)">&#8592;</button>
+          <input type="month" id="fin-month" style="margin:0;" onchange="finMonthChange()">
+          <button class="ghost btn-sm" onclick="finNav(1)">&#8594;</button>
+        </div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div><div class="mut">Ganhos do mês</div><div class="big pos" id="fin-t-in">R$ 0,00</div></div>
+          <div><div class="mut">Despesas do mês</div><div class="big neg" id="fin-t-out">R$ 0,00</div></div>
+          <div><div class="mut">Resultado do mês</div><div class="big" id="fin-t-res">R$ 0,00</div></div>
+          <div><div class="mut">Saldo anterior</div><div class="big" id="fin-t-prev">R$ 0,00</div></div>
+          <div><div class="mut">Saldo final acumulado</div><div class="big" id="fin-t-acc">R$ 0,00</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Ganhos e despesas por mês</h2>
+        <div id="fin-chart" class="chart"></div>
+        <p class="mut"><span style="color:var(--ok)">&#9632;</span> Ganhos &nbsp; <span style="color:var(--bad)">&#9632;</span> Despesas</p>
+      </div>
+      <div class="card">
+        <h2 id="tx-form-title">Novo lançamento</h2>
+        <label>Tipo</label>
+        <select id="tx-kind">
+          <option value="expense">Despesa</option>
+          <option value="income">Ganho</option>
+        </select>
+        <label>Descrição</label>
+        <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
+        <label>Categoria</label>
+        <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Materiais">
+        <datalist id="cat-list"></datalist>
+        <div class="cols">
+          <div><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
+          <div><label>Data</label><input id="tx-date" type="date"></div>
+        </div>
+        <label>Observações</label>
+        <input id="tx-notes" type="text" placeholder="Opcional">
+        <div class="btnrow">
+          <button onclick="txSave()">Salvar lançamento</button>
+          <button class="ghost hidden" id="tx-cancel" onclick="txCancel()">Cancelar edição</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Lançamentos do mês</h2>
+        <div id="fin-list"></div>
+      </div>
     </div>
-    <div class="card">
-      <h2>Últimos lançamentos</h2>
-      <div id="list-tx"></div>
+
+    <!-- MATERIAIS -->
+    <div id="tab-materiais" class="tabpage hidden">
+      <div class="card">
+        <h2>Comprar material</h2>
+        <div class="btnrow" style="margin:0 0 12px;">
+          <button class="btn-sm" id="mat-type-f" onclick="setMatType('filament')">Filamento</button>
+          <button class="btn-sm ghost" id="mat-type-s" onclick="setMatType('supply')">Insumo</button>
+        </div>
+        <div id="mat-form-fil">
+          <label>Nome do filamento</label>
+          <input id="mf-name" type="text" placeholder="Ex.: PLA Velvet Preto">
+          <div class="cols">
+            <div><label>Marca</label><input id="mf-brand" type="text" placeholder="Ex.: Voolt3D"></div>
+            <div><label>Material</label><input id="mf-material" type="text" value="PLA"></div>
+          </div>
+          <div class="cols">
+            <div><label>Cor</label><input id="mf-color" type="text" placeholder="Ex.: Preto"></div>
+            <div><label>Peso do rolo (g)</label><input id="mf-weight" type="text" inputmode="decimal" value="1000"></div>
+          </div>
+          <label>Preço pago (R$)</label>
+          <input id="mf-price" type="text" inputmode="decimal" placeholder="0,00">
+        </div>
+        <div id="mat-form-sup" class="hidden">
+          <label>Nome do insumo</label>
+          <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
+          <div class="cols">
+            <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+            <div><label>Unidade</label><input id="ms-unit" type="text" value="un"></div>
+          </div>
+          <label>Preço total pago (R$)</label>
+          <input id="ms-price" type="text" inputmode="decimal" placeholder="0,00">
+          <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
+        </div>
+        <label>Data da compra</label>
+        <input id="mat-date" type="date">
+        <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
+        <div class="btnrow">
+          <button onclick="savePurchase()">Salvar compra</button>
+        </div>
+      </div>
+      <div class="card hidden" id="mat-edit-card">
+        <h2>Editar material</h2>
+        <div id="mat-edit-fields"></div>
+        <div class="btnrow">
+          <button onclick="saveMatEdit()">Salvar edição</button>
+          <button class="ghost" onclick="cancelMatEdit()">Cancelar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Materiais em estoque</h2>
+        <h3>Filamentos</h3>
+        <div id="mat-fil"></div>
+        <h3>Insumos</h3>
+        <div id="mat-sup"></div>
+      </div>
     </div>
-    <p class="mut">Versão de produção conectada ao banco novo. As telas completas (Calculadora, Produtos, Lojas, Pedidos) entram nas próximas etapas, com os mesmos dados.</p>
+
+    <!-- CALCULADORA -->
+    <div id="tab-calculadora" class="tabpage hidden">
+      <div class="card">
+        <h2>Calculadora de produto</h2>
+        <label>Nome do produto</label>
+        <input id="calc-name" type="text" placeholder="Ex.: Chaveiro logo redondo">
+        <label>Foto (URL ou caminho, opcional)</label>
+        <input id="calc-photo" type="text" placeholder="Opcional">
+        <div class="cols">
+          <div><label>Preço de venda (R$, opcional)</label><input id="calc-price" type="text" inputmode="decimal" placeholder="Vazio: usa o sugerido" oninput="recomputeCalc()"></div>
+          <div><label>Tempo de impressão (formato do fatiador)</label><input id="calc-time" type="text" placeholder="Ex.: 20h1m, 45m ou 2h" oninput="recomputeCalc()"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="calc-lotmode" onchange="recomputeCalc()"> Modo lote: os valores abaixo são os totais do fatiador para o lote todo</label>
+        <label>Peças no lote</label>
+        <input id="calc-lotqty" type="text" inputmode="numeric" value="10" oninput="recomputeCalc()">
+        <h3>Filamentos</h3>
+        <p class="mut" id="calc-fil-hint">Gramas por peça (ou o total do lote, com o modo lote ligado).</p>
+        <div id="calc-fils"></div>
+        <button class="ghost btn-sm" onclick="addCalcFil()">+ Filamento</button>
+        <h3>Insumos</h3>
+        <p class="mut">Quantidade por peça.</p>
+        <div id="calc-sups"></div>
+        <button class="ghost btn-sm" onclick="addCalcSup()">+ Insumo</button>
+        <h3>Energia e desgaste</h3>
+        <div class="cols">
+          <div><label>Potência da impressora (W)</label><input id="calc-watts" type="text" inputmode="decimal" value="200" oninput="recomputeCalc()"></div>
+          <div><label>Preço do kWh (R$)</label><input id="calc-kwh" type="text" inputmode="decimal" value="1,00" oninput="recomputeCalc()"></div>
+        </div>
+        <div class="cols">
+          <div><label>Desgaste da máquina (R$ por hora)</label><input id="calc-wear" type="text" inputmode="decimal" value="1,00" oninput="recomputeCalc()"></div>
+          <div><label>Margem desejada (%)</label><input id="calc-margin" type="text" inputmode="decimal" value="30" oninput="recomputeCalc()"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Resultado</h2>
+        <div id="calc-out"></div>
+        <label class="check"><input type="checkbox" id="calc-asorder" onchange="toggleOrderFields()"> Este cálculo já é um pedido</label>
+        <div id="calc-order-fields" class="hidden">
+          <div class="cols">
+            <div><label>Nome do cliente</label><input id="calc-client" type="text" placeholder="Ex.: Pure Pilates Cerejeiras"></div>
+            <div><label>Quantidade do pedido</label><input id="calc-orderqty" type="text" inputmode="numeric" value="1"></div>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button onclick="saveProductCalc()">Salvar produto</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Registrar produção</h2>
+        <p class="mut">Escolha um produto já salvo para registrar uma leva produzida. O consumo de materiais é baixado na hora, com prévia editável.</p>
+        <label>Produto</label>
+        <select id="prod-select"></select>
+        <div class="btnrow">
+          <button class="pinkbtn" onclick="openProductionFromCalc()">Registrar produção</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div id="tab-produtos" class="tabpage hidden">
+      <div class="card">
+        <h2>Produtos</h2>
+        <div id="prod-list"></div>
+      </div>
+      <div class="card">
+        <h2>Arquivados</h2>
+        <div id="prod-arch"></div>
+      </div>
+    </div>
   </section>
 
   <!-- LOJA -->
@@ -95,20 +314,141 @@
   </section>
 </main>
 
+<!-- MODAL DE PRODUÇÃO -->
+<div id="modal" class="modal hidden">
+  <div class="box" id="modal-box"></div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+"use strict";
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.J2L_CONFIG;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
 const BRL = cents => (cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const r2 = n => Math.round((+n || 0)*100)/100;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const fmtN = n => (+n || 0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+const fmtDate = d => { if(!d) return ''; const p = String(d).slice(0,10).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : String(d); };
+const fmtDateTime = ts => { if(!ts) return ''; const d = new Date(ts); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const todayStr = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const ymNow = () => todayStr().slice(0,7);
+const ymLabel = ym => { const p = ym.split('-'); return p[1]+'/'+p[0]; };
+function parseMoney(v){
+  if(v == null) return 0;
+  let s = String(v).replace(/[^\d.,-]/g,'');
+  if(!s) return 0;
+  const neg = s.indexOf('-') >= 0;
+  s = s.replace(/-/g,'');
+  if(s.indexOf(',') >= 0) s = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(s);
+  if(isNaN(n)) return 0;
+  return Math.round((neg ? -n : n)*100);
+}
+const moneyStr = cents => (cents/100).toFixed(2).replace('.',',');
+function parseNum(v){
+  if(v == null) return 0;
+  let s = String(v).replace(/[^\d.,-]/g,'');
+  if(!s) return 0;
+  const neg = s.indexOf('-') >= 0;
+  s = s.replace(/-/g,'');
+  if(s.indexOf(',') >= 0) s = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : (neg ? -n : n);
+}
+const numStr = n => String(r2(n)).replace('.',',');
+function parsePrintTime(str){
+  const s = norm(str).replace(/\s+/g,'');
+  if(!s) return 0;
+  const m = s.match(/^(?:(\d+(?:[.,]\d+)?)h)?(?:(\d+(?:[.,]\d+)?)m)?$/);
+  if(m && (m[1] || m[2])){
+    const h = m[1] ? parseFloat(m[1].replace(',','.')) : 0;
+    const mi = m[2] ? parseFloat(m[2].replace(',','.')) : 0;
+    return r2(h*60 + mi);
+  }
+  const n = parseFloat(s.replace(',','.'));
+  return isNaN(n) ? 0 : n;
+}
+function fmtTime(mins){
+  mins = Math.round(+mins || 0);
+  if(mins <= 0) return '0m';
+  const h = Math.floor(mins/60), m = mins % 60;
+  if(h && m) return h+'h'+m+'m';
+  if(h) return h+'h';
+  return m+'m';
+}
+let toastTimer = null;
+function toast(msg, isErr){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'errbox' : '';
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 4200);
+}
+function toastErr(error){
+  const msg = (error && error.message) ? error.message : String(error || 'erro desconhecido');
+  toast('Ops, algo deu errado: ' + msg, true);
+}
 
-const COLOR_HEX = [['azul','#3b82f6'],['marrom','#8b5a2b'],['cinza','#9aa0a6'],['dourado','#d4af37'],['vermelho','#e53935'],['salm','#fa8072'],['branco','#f5f5f5'],['laranja','#fb8c00'],['preto','#212121'],['verde','#43a047']];
+const COLOR_HEX = [
+  ['azul','#3b82f6'],['marrom','#8b5a2b'],['cinza','#9aa0a6'],['grafite','#5a5a66'],
+  ['dourado','#d4af37'],['ouro','#d4af37'],['vermelho','#e53935'],['salm','#fa8072'],
+  ['branco','#f5f5f5'],['laranja','#fb8c00'],['preto','#212121'],['verde','#43a047'],
+  ['amarelo','#fdd835'],['rosa','#ff5ea8'],['roxo','#8e24aa'],['lilas','#b39ddb'],
+  ['violeta','#7e57c2'],['bege','#d7c39a'],['marfim','#f2ead8'],['pele','#f1c27d'],
+  ['skin','#f1c27d'],['prata','#c0c0c8'],['cobre','#b87333'],['transparente','#cfd8dc'],
+  ['natural','#e8dcc8'],['turquesa','#26c6da'],['ciano','#4ce0ff'],['magenta','#d81b60']
+];
 function swatch(color){
-  const c = (color||'').toLowerCase();
-  const hit = COLOR_HEX.find(([k]) => c.includes(k));
+  const c = norm(color);
+  const hit = COLOR_HEX.find(([k]) => c.indexOf(norm(k)) >= 0);
   return hit ? hit[1] : '#8e8ea3';
 }
+
+/* ---------------- estado ---------------- */
+const S = {
+  profile: null,
+  filaments: [], supplies: [], products: [], pf: [], ps: [], prods: [],
+  stock: {}, recipes: {}, txs: [],
+  settings: { watts: 200, kwh: 100, wear: 100, margin: 30 },
+  finMonth: ymNow(), editingTx: null,
+  matType: 'filament', editingMat: null,
+  calc: { fils: [], sups: [] },
+  histOpen: {}
+};
+let P = null; // estado da produção em edição no modal
+
+const filById = id => S.filaments.find(f => f.id === id);
+const supById = id => S.supplies.find(s => s.id === id);
+const prodById = id => S.products.find(p => p.id === id);
+const filRemaining = f => r2(f.weight_grams - f.used_grams);
+const supRemaining = s => r2(s.stock_qty - s.used_qty);
+const filCostPerGram = f => f.weight_grams > 0 ? f.price_cents / f.weight_grams : 0;
+function lowBadge(rem, total){
+  if(rem <= 0) return '<span class="badge out">acabou</span>';
+  if(total > 0 && rem <= total*0.10) return '<span class="badge low">acabando</span>';
+  return '';
+}
+function energyCostCents(minutes){
+  const hours = (minutes || 0)/60;
+  return hours * (S.settings.watts/1000) * S.settings.kwh + hours * S.settings.wear;
+}
+function recipeOf(pid){ return S.recipes[pid] || { fils: [], sups: [] }; }
+function unitCostCents(product){
+  const rec = recipeOf(product.id);
+  let c = 0;
+  rec.fils.forEach(r => { const f = filById(r.filament_id); if(f) c += r.grams * filCostPerGram(f); });
+  rec.sups.forEach(r => { const s = supById(r.supply_id); if(s) c += r.qty_per_piece * s.unit_cost_cents; });
+  c += energyCostCents(product.print_time_minutes);
+  return c;
+}
+
+/* ---------------- autenticação e rotas ---------------- */
 function show(id){
   ['view-login','view-master','view-store'].forEach(v => $(v).classList.toggle('hidden', v !== id));
 }
@@ -116,30 +456,19 @@ async function route(){
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ show('view-login'); $('who').classList.add('hidden'); $('btn-out').classList.add('hidden'); return; }
   const { data: profile } = await sb.from('profiles').select('role, store_id, display_name').eq('id', session.user.id).single();
+  S.profile = profile;
   $('who').textContent = session.user.email;
   $('who').classList.remove('hidden'); $('btn-out').classList.remove('hidden');
-  if(profile && profile.role === 'master'){ show('view-master'); loadMaster(); }
-  else if(profile && profile.role === 'store'){ show('view-store'); loadStore(profile.store_id); }
-  else { show('view-store'); $('store-name').textContent = 'Conta sem perfil ainda'; }
-}
-async function loadMaster(){
-  const now = new Date();
-  const ym = now.toISOString().slice(0,7);
-  $('fin-month').textContent = 'Mês ' + ym.split('-').reverse().join('/');
-  const { data: txs } = await sb.from('transactions').select('*').order('date',{ascending:false});
-  let inc=0, exp=0;
-  (txs||[]).filter(t => t.date.startsWith(ym)).forEach(t => { if(t.kind==='income') inc+=t.amount_cents; else exp+=t.amount_cents; });
-  $('fin-in').textContent = BRL(inc);
-  $('fin-out').textContent = BRL(exp);
-  const res = $('fin-res'); res.textContent = BRL(inc-exp); res.className = 'big ' + (inc-exp < 0 ? 'neg' : 'pos');
-  $('list-tx').innerHTML = (txs||[]).slice(0,10).map(t =>
-    `<div class="row"><span>${t.description}<div class="mut">${t.date.split('-').reverse().join('/')} · ${t.category}</div></span><b class="${t.kind==='income'?'pos':'neg'}">${t.kind==='income'?'+':'−'} ${BRL(t.amount_cents)}</b></div>`).join('') || '<p class="mut">Nenhum lançamento.</p>';
-  const { data: fils } = await sb.from('filaments').select('*').order('name');
-  $('list-fil').innerHTML = (fils||[]).map(f =>
-    `<div class="row"><span><span class="sw" style="background:${swatch(f.color)}"></span>${f.name}<div class="mut">${f.brand||''} · ${f.material}</div></span><span class="mut">${(f.weight_grams - f.used_grams).toLocaleString('pt-BR')} g restantes</span></div>`).join('') || '<p class="mut">Nenhum filamento.</p>';
-  const { data: sups } = await sb.from('supplies').select('*').order('name');
-  $('list-sup').innerHTML = (sups||[]).map(s =>
-    `<div class="row"><span>${s.name}</span><span class="mut">${(s.stock_qty - s.used_qty).toLocaleString('pt-BR')} ${s.unit} · ${BRL(s.unit_cost_cents)} cada</span></div>`).join('') || '<p class="mut">Nenhum insumo.</p>';
+  if(profile && profile.role === 'master'){
+    show('view-master');
+    initMasterForms();
+    await fetchAll();
+    renderAll();
+  } else if(profile && profile.role === 'store'){
+    show('view-store'); loadStore(profile.store_id);
+  } else {
+    show('view-store'); $('store-name').textContent = 'Conta sem perfil ainda';
+  }
 }
 async function loadStore(storeId){
   if(!storeId) return;
@@ -154,6 +483,723 @@ $('btn-login').addEventListener('click', async () => {
 });
 $('btn-out').addEventListener('click', async () => { await sb.auth.signOut(); route(); });
 sb.auth.onAuthStateChange(() => route());
+
+function showTab(name){
+  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+}
+function initMasterForms(){
+  if($('fin-month') && !$('fin-month').value) $('fin-month').value = S.finMonth;
+  if($('tx-date') && !$('tx-date').value) $('tx-date').value = todayStr();
+  if($('mat-date') && !$('mat-date').value) $('mat-date').value = todayStr();
+  try {
+    const saved = JSON.parse(localStorage.getItem('j2l_calc_settings') || 'null');
+    if(saved){
+      S.settings = Object.assign(S.settings, saved);
+      $('calc-watts').value = numStr(S.settings.watts);
+      $('calc-kwh').value = moneyStr(S.settings.kwh);
+      $('calc-wear').value = moneyStr(S.settings.wear);
+      $('calc-margin').value = numStr(S.settings.margin);
+    }
+  } catch(e) { /* sem persistência, segue com os padrões */ }
+}
+
+/* ---------------- carga de dados ---------------- */
+async function fetchAll(){
+  const [f, s, p, pf, ps, pd, gs, tx] = await Promise.all([
+    sb.from('filaments').select('*').order('name'),
+    sb.from('supplies').select('*').order('name'),
+    sb.from('products').select('*').order('name'),
+    sb.from('product_filaments').select('*'),
+    sb.from('product_supplies').select('*'),
+    sb.from('productions').select('*').order('created_at', { ascending: false }),
+    sb.from('general_stock').select('*'),
+    sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })
+  ]);
+  const firstErr = [f,s,p,pf,ps,pd,gs,tx].map(r => r.error).find(Boolean);
+  if(firstErr) toastErr(firstErr);
+  S.filaments = f.data || []; S.supplies = s.data || []; S.products = p.data || [];
+  S.pf = pf.data || []; S.ps = ps.data || []; S.prods = pd.data || [];
+  S.txs = tx.data || [];
+  S.stock = {};
+  (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
+  S.recipes = {};
+  S.products.forEach(pr => { S.recipes[pr.id] = { fils: [], sups: [] }; });
+  S.pf.forEach(r => { if(S.recipes[r.product_id]) S.recipes[r.product_id].fils.push(r); });
+  S.ps.forEach(r => { if(S.recipes[r.product_id]) S.recipes[r.product_id].sups.push(r); });
+}
+function renderAll(){
+  renderInicio();
+  renderFinancas();
+  renderMateriais();
+  renderCalcProductOptions();
+  renderCalcLines();
+  recomputeCalc();
+  renderProdutos();
+}
+
+/* ---------------- Início ---------------- */
+function renderInicio(){
+  const ym = ymNow();
+  $('ini-month').textContent = 'Mês ' + ymLabel(ym);
+  let inc = 0, exp = 0, acc = 0;
+  S.txs.forEach(t => {
+    const v = t.kind === 'income' ? t.amount_cents : -t.amount_cents;
+    acc += v;
+    if(t.date.slice(0,7) === ym){ if(t.kind === 'income') inc += t.amount_cents; else exp += t.amount_cents; }
+  });
+  $('ini-in').textContent = BRL(inc);
+  $('ini-out').textContent = BRL(exp);
+  const res = $('ini-res'); res.textContent = BRL(inc - exp); res.className = 'big ' + (inc - exp < 0 ? 'neg' : 'pos');
+  const accEl = $('ini-acc'); accEl.textContent = BRL(acc); accEl.className = 'big ' + (acc < 0 ? 'neg' : 'pos');
+  $('ini-tx').innerHTML = S.txs.slice(0,10).map(txRowHtml).join('') || '<p class="mut">Nenhum lançamento.</p>';
+  $('ini-fil').innerHTML = S.filaments.map(f => {
+    const rem = filRemaining(f);
+    return `<div class="row"><span><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}<div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')}</div></span><span class="mut">${fmtN(rem)} g restantes</span></div>`;
+  }).join('') || '<p class="mut">Nenhum filamento.</p>';
+  $('ini-sup').innerHTML = S.supplies.map(s => {
+    const rem = supRemaining(s);
+    return `<div class="row"><span>${esc(s.name)} ${lowBadge(rem, s.stock_qty)}</span><span class="mut">${fmtN(rem)} ${esc(s.unit)} · ${BRL(s.unit_cost_cents)} cada</span></div>`;
+  }).join('') || '<p class="mut">Nenhum insumo.</p>';
+}
+function txRowHtml(t){
+  const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
+  return `<div class="row"><span>${esc(t.description)}${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div></span><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b></div>`;
+}
+
+/* ---------------- Finanças ---------------- */
+function finNav(dir){
+  const parts = S.finMonth.split('-').map(Number);
+  const d = new Date(parts[0], parts[1] - 1 + dir, 1);
+  S.finMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  $('fin-month').value = S.finMonth;
+  renderFinancas();
+}
+function finMonthChange(){
+  if($('fin-month').value) S.finMonth = $('fin-month').value;
+  renderFinancas();
+}
+function renderFinancas(){
+  const ym = S.finMonth;
+  let inc = 0, exp = 0, prev = 0;
+  S.txs.forEach(t => {
+    const m = t.date.slice(0,7);
+    if(m === ym){ if(t.kind === 'income') inc += t.amount_cents; else exp += t.amount_cents; }
+    else if(m < ym){ prev += t.kind === 'income' ? t.amount_cents : -t.amount_cents; }
+  });
+  $('fin-t-in').textContent = BRL(inc);
+  $('fin-t-out').textContent = BRL(exp);
+  const resEl = $('fin-t-res'); resEl.textContent = BRL(inc - exp); resEl.className = 'big ' + (inc - exp < 0 ? 'neg' : 'pos');
+  const prevEl = $('fin-t-prev'); prevEl.textContent = BRL(prev); prevEl.className = 'big ' + (prev < 0 ? 'neg' : 'pos');
+  const accEl = $('fin-t-acc'); const acc = prev + inc - exp;
+  accEl.textContent = BRL(acc); accEl.className = 'big ' + (acc < 0 ? 'neg' : 'pos');
+  const cats = Array.from(new Set(S.txs.map(t => t.category).filter(Boolean)));
+  $('cat-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  const monthTxs = S.txs.filter(t => t.date.slice(0,7) === ym);
+  $('fin-list').innerHTML = monthTxs.map(t => {
+    const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
+    const notes = t.notes ? `<div class="mut">${esc(t.notes)}</div>` : '';
+    return `<div class="row"><span style="flex:1;">${esc(t.description)}${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
+      <span style="text-align:right;"><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b>
+      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
+        <button class="ghost btn-sm" onclick="txEdit(${t.id})">Editar</button>
+        <button class="danger btn-sm" onclick="txDel(${t.id})">Excluir</button>
+      </div></span></div>`;
+  }).join('') || '<p class="mut">Nenhum lançamento neste mês.</p>';
+  renderFinChart();
+}
+function renderFinChart(){
+  const byMonth = {};
+  S.txs.forEach(t => {
+    const m = t.date.slice(0,7);
+    if(!byMonth[m]) byMonth[m] = { inc: 0, exp: 0 };
+    if(t.kind === 'income') byMonth[m].inc += t.amount_cents; else byMonth[m].exp += t.amount_cents;
+  });
+  const keys = Object.keys(byMonth).sort().slice(-8);
+  if(!keys.length){ $('fin-chart').innerHTML = '<p class="mut">Sem dados ainda.</p>'; return; }
+  const max = Math.max(1, ...keys.map(k => Math.max(byMonth[k].inc, byMonth[k].exp)));
+  $('fin-chart').innerHTML = keys.map(k => {
+    const v = byMonth[k];
+    const hi = Math.max(2, Math.round(v.inc / max * 100));
+    const he = Math.max(2, Math.round(v.exp / max * 100));
+    return `<div class="cmonth"><div class="cbars">
+      <div class="cbar" style="height:${hi}px; background:var(--ok);" title="Ganhos ${ymLabel(k)}: ${BRL(v.inc)}"></div>
+      <div class="cbar" style="height:${he}px; background:var(--bad);" title="Despesas ${ymLabel(k)}: ${BRL(v.exp)}"></div>
+    </div><div class="mut">${ymLabel(k)}</div></div>`;
+  }).join('');
+}
+function txCancel(){
+  S.editingTx = null;
+  $('tx-form-title').textContent = 'Novo lançamento';
+  $('tx-cancel').classList.add('hidden');
+  $('tx-kind').value = 'expense'; $('tx-desc').value = ''; $('tx-cat').value = '';
+  $('tx-amount').value = ''; $('tx-notes').value = ''; $('tx-date').value = todayStr();
+}
+function txEdit(id){
+  const t = S.txs.find(x => x.id === id);
+  if(!t) return;
+  S.editingTx = id;
+  $('tx-form-title').textContent = 'Editar lançamento';
+  $('tx-cancel').classList.remove('hidden');
+  $('tx-kind').value = t.kind; $('tx-desc').value = t.description; $('tx-cat').value = t.category || '';
+  $('tx-amount').value = moneyStr(t.amount_cents); $('tx-notes').value = t.notes || ''; $('tx-date').value = t.date;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+async function txSave(){
+  const desc = $('tx-desc').value.trim();
+  const amount = parseMoney($('tx-amount').value);
+  const date = $('tx-date').value || todayStr();
+  if(!desc){ toast('Escreva uma descrição para o lançamento.', true); return; }
+  if(amount <= 0){ toast('Informe um valor maior que zero.', true); return; }
+  const payload = {
+    kind: $('tx-kind').value, description: desc, category: $('tx-cat').value.trim(),
+    amount_cents: amount, date: date, notes: $('tx-notes').value.trim()
+  };
+  let error;
+  if(S.editingTx){
+    ({ error } = await sb.from('transactions').update(payload).eq('id', S.editingTx));
+  } else {
+    ({ error } = await sb.from('transactions').insert(payload));
+  }
+  if(error) return toastErr(error);
+  txCancel();
+  await fetchAll(); renderAll();
+  toast('Lançamento salvo.');
+}
+async function txDel(id){
+  const t = S.txs.find(x => x.id === id);
+  if(!t) return;
+  let msg = 'Excluir o lançamento "' + t.description + '"?';
+  if(t.linked_type) msg += ' Ele está vinculado à compra de um material: o vínculo será desfeito (o material continua cadastrado).';
+  if(!confirm(msg)) return;
+  const { error } = await sb.from('transactions').delete().eq('id', id);
+  if(error) return toastErr(error);
+  if(t.linked_type && t.linked_id){
+    const table = t.linked_type === 'filament' ? 'filaments' : 'supplies';
+    await sb.from(table).update({ purchase_transaction_id: null }).eq('id', t.linked_id);
+  }
+  if(S.editingTx === id) txCancel();
+  await fetchAll(); renderAll();
+  toast('Lançamento excluído.');
+}
+
+/* ---------------- Materiais ---------------- */
+function setMatType(t){
+  S.matType = t;
+  $('mat-form-fil').classList.toggle('hidden', t !== 'filament');
+  $('mat-form-sup').classList.toggle('hidden', t !== 'supply');
+  $('mat-type-f').className = 'btn-sm' + (t === 'filament' ? '' : ' ghost');
+  $('mat-type-s').className = 'btn-sm' + (t === 'supply' ? '' : ' ghost');
+}
+function renderMateriais(){
+  $('mat-fil').innerHTML = S.filaments.map(f => {
+    const rem = filRemaining(f);
+    const link = f.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
+    return `<div class="row"><span style="flex:1;"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}${link}
+      <div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')} · comprou por ${BRL(f.price_cents)} · ${BRL(Math.round(filCostPerGram(f)*100)/100)} por grama</div></span>
+      <span style="text-align:right;"><b>${fmtN(rem)} g</b><div class="mut">de ${fmtN(f.weight_grams)} g</div>
+      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
+        <button class="ghost btn-sm" onclick="editMat('filament', ${f.id})">Editar</button>
+        <button class="danger btn-sm" onclick="delMat('filament', ${f.id})">Excluir</button>
+      </div></span></div>`;
+  }).join('') || '<p class="mut">Nenhum filamento.</p>';
+  $('mat-sup').innerHTML = S.supplies.map(s => {
+    const rem = supRemaining(s);
+    const link = s.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
+    return `<div class="row"><span style="flex:1;">${esc(s.name)} ${lowBadge(rem, s.stock_qty)}${link}
+      <div class="mut">${BRL(s.unit_cost_cents)} cada · comprados: ${fmtN(s.stock_qty)} ${esc(s.unit)}</div></span>
+      <span style="text-align:right;"><b>${fmtN(rem)} ${esc(s.unit)}</b><div class="mut">restantes</div>
+      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
+        <button class="ghost btn-sm" onclick="editMat('supply', ${s.id})">Editar</button>
+        <button class="danger btn-sm" onclick="delMat('supply', ${s.id})">Excluir</button>
+      </div></span></div>`;
+  }).join('') || '<p class="mut">Nenhum insumo.</p>';
+}
+async function savePurchase(){
+  const toFinance = $('mat-fin').checked;
+  const date = $('mat-date').value || todayStr();
+  let matId = null, price = 0, name = '', desc = '', table = '', linkedType = '';
+  if(S.matType === 'filament'){
+    name = $('mf-name').value.trim();
+    price = parseMoney($('mf-price').value);
+    const weight = parseNum($('mf-weight').value) || 1000;
+    if(!name){ toast('Dê um nome ao filamento.', true); return; }
+    if(price <= 0){ toast('Informe o preço pago pelo filamento.', true); return; }
+    const { data, error } = await sb.from('filaments').insert({
+      name: name, brand: $('mf-brand').value.trim(), material: $('mf-material').value.trim() || 'PLA',
+      color: $('mf-color').value.trim(), price_cents: price, weight_grams: weight, used_grams: 0
+    }).select().single();
+    if(error) return toastErr(error);
+    matId = data.id; desc = 'Filamento: ' + name; table = 'filaments'; linkedType = 'filament';
+  } else {
+    name = $('ms-name').value.trim();
+    price = parseMoney($('ms-price').value);
+    const qty = parseNum($('ms-qty').value);
+    if(!name){ toast('Dê um nome ao insumo.', true); return; }
+    if(qty <= 0){ toast('Informe a quantidade comprada.', true); return; }
+    if(price <= 0){ toast('Informe o preço total pago.', true); return; }
+    const unitCost = Math.round(price / qty);
+    const { data, error } = await sb.from('supplies').insert({
+      name: name, unit: $('ms-unit').value.trim() || 'un',
+      stock_qty: qty, used_qty: 0, unit_cost_cents: unitCost
+    }).select().single();
+    if(error) return toastErr(error);
+    matId = data.id; desc = 'Insumo: ' + name; table = 'supplies'; linkedType = 'supply';
+  }
+  if(toFinance){
+    const { data: tx, error } = await sb.from('transactions').insert({
+      kind: 'expense', category: 'Materiais', description: desc,
+      amount_cents: price, date: date, linked_type: linkedType, linked_id: matId
+    }).select().single();
+    if(error) return toastErr(error);
+    const { error: e2 } = await sb.from(table).update({ purchase_transaction_id: tx.id }).eq('id', matId);
+    if(e2) return toastErr(e2);
+  }
+  $('mf-name').value = ''; $('mf-brand').value = ''; $('mf-color').value = ''; $('mf-price').value = '';
+  $('ms-name').value = ''; $('ms-qty').value = ''; $('ms-price').value = '';
+  await fetchAll(); renderAll();
+  toast('Compra salva: ' + name + (toFinance ? ', com a despesa lançada nas Finanças.' : '.'));
+}
+function editMat(type, id){
+  S.editingMat = { type: type, id: id };
+  if(type === 'filament'){
+    const f = filById(id); if(!f) return;
+    $('mat-edit-fields').innerHTML = `
+      <label>Nome</label><input id="me-name" type="text" value="${esc(f.name)}">
+      <div class="cols">
+        <div><label>Marca</label><input id="me-brand" type="text" value="${esc(f.brand || '')}"></div>
+        <div><label>Material</label><input id="me-material" type="text" value="${esc(f.material || 'PLA')}"></div>
+      </div>
+      <label>Cor</label><input id="me-color" type="text" value="${esc(f.color || '')}">`;
+  } else {
+    const s = supById(id); if(!s) return;
+    $('mat-edit-fields').innerHTML = `
+      <label>Nome</label><input id="me-name" type="text" value="${esc(s.name)}">
+      <label>Unidade</label><input id="me-unit" type="text" value="${esc(s.unit || 'un')}">`;
+  }
+  $('mat-edit-card').classList.remove('hidden');
+  $('mat-edit-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function cancelMatEdit(){
+  S.editingMat = null;
+  $('mat-edit-card').classList.add('hidden');
+  $('mat-edit-fields').innerHTML = '';
+}
+async function saveMatEdit(){
+  if(!S.editingMat) return;
+  const { type, id } = S.editingMat;
+  const name = $('me-name').value.trim();
+  if(!name){ toast('O nome não pode ficar vazio.', true); return; }
+  let error;
+  if(type === 'filament'){
+    ({ error } = await sb.from('filaments').update({
+      name: name, brand: $('me-brand').value.trim(),
+      material: $('me-material').value.trim() || 'PLA', color: $('me-color').value.trim()
+    }).eq('id', id));
+  } else {
+    ({ error } = await sb.from('supplies').update({
+      name: name, unit: $('me-unit').value.trim() || 'un'
+    }).eq('id', id));
+  }
+  if(error) return toastErr(error);
+  cancelMatEdit();
+  await fetchAll(); renderAll();
+  toast('Material atualizado.');
+}
+async function delMat(type, id){
+  const m = type === 'filament' ? filById(id) : supById(id);
+  if(!m) return;
+  const label = type === 'filament' ? 'filamento' : 'insumo';
+  let msg = 'Excluir o ' + label + ' "' + m.name + '"?';
+  if(m.purchase_transaction_id) msg += ' A despesa de compra dele nas Finanças será excluída junto.';
+  if(!confirm(msg)) return;
+  const table = type === 'filament' ? 'filaments' : 'supplies';
+  const { error } = await sb.from(table).delete().eq('id', id);
+  if(error){ toast('Não consegui excluir. Se ele estiver na receita de algum produto, tire de lá antes. Detalhe: ' + error.message, true); return; }
+  if(m.purchase_transaction_id){
+    const { error: e2 } = await sb.from('transactions').delete().eq('id', m.purchase_transaction_id);
+    if(e2) return toastErr(e2);
+  }
+  if(S.editingMat && S.editingMat.type === type && S.editingMat.id === id) cancelMatEdit();
+  await fetchAll(); renderAll();
+  toast('Material excluído.');
+}
+
+/* ---------------- Calculadora ---------------- */
+function filPickOptions(i, filter){
+  const q = norm(filter || '');
+  const list = S.filaments.filter(f => !q || norm(f.name + ' ' + f.brand + ' ' + f.color + ' ' + f.material).indexOf(q) >= 0);
+  if(!list.length) return '<p class="mut">Nenhum filamento encontrado.</p>';
+  return list.map(f => `<button class="pickopt" onclick="pickCalcFil(${i}, ${f.id})"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}<span class="mut"> · ${fmtN(filRemaining(f))} g restantes · ${BRL(Math.round(filCostPerGram(f)*100)/100)}/g</span></button>`).join('');
+}
+function supPickOptions(i, filter){
+  const q = norm(filter || '');
+  const list = S.supplies.filter(s => !q || norm(s.name).indexOf(q) >= 0);
+  if(!list.length) return '<p class="mut">Nenhum insumo encontrado.</p>';
+  return list.map(s => `<button class="pickopt" onclick="pickCalcSup(${i}, ${s.id})">${esc(s.name)}<span class="mut"> · ${fmtN(supRemaining(s))} ${esc(s.unit)} restantes · ${BRL(s.unit_cost_cents)} cada</span></button>`).join('');
+}
+function renderCalcLines(){
+  $('calc-fils').innerHTML = S.calc.fils.map((l, i) => {
+    const f = l.filamentId ? filById(l.filamentId) : null;
+    const sel = f ? `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}` : '<span class="mut">Escolher filamento...</span>';
+    return `<div class="linebox">
+      <div class="picksel" onclick="togglePick('f', ${i})">${sel} <span style="float:right;" class="mut">&#9662;</span></div>
+      <div class="pickbox hidden" id="pickbox-f-${i}">
+        <input type="text" placeholder="Buscar filamento (pode digitar sem acento)" oninput="filterPick('f', ${i}, this.value)">
+        <div id="pickopts-f-${i}">${filPickOptions(i, '')}</div>
+      </div>
+      <label>Gramas</label>
+      <input type="text" inputmode="decimal" value="${esc(l.gramsStr)}" placeholder="Ex.: 12,5" oninput="calcFilGrams(${i}, this.value)">
+      <div class="mut" id="calcfil-info-${i}"></div>
+      <div class="btnrow"><button class="danger btn-sm" onclick="removeCalcFil(${i})">Remover</button></div>
+    </div>`;
+  }).join('') || '<p class="mut">Nenhum filamento neste produto.</p>';
+  $('calc-sups').innerHTML = S.calc.sups.map((l, i) => {
+    const s = l.supplyId ? supById(l.supplyId) : null;
+    const sel = s ? esc(s.name) : '<span class="mut">Escolher insumo...</span>';
+    return `<div class="linebox">
+      <div class="picksel" onclick="togglePick('s', ${i})">${sel} <span style="float:right;" class="mut">&#9662;</span></div>
+      <div class="pickbox hidden" id="pickbox-s-${i}">
+        <input type="text" placeholder="Buscar insumo (pode digitar sem acento)" oninput="filterPick('s', ${i}, this.value)">
+        <div id="pickopts-s-${i}">${supPickOptions(i, '')}</div>
+      </div>
+      <label>Quantidade por peça</label>
+      <input type="text" inputmode="decimal" value="${esc(l.qtyStr)}" placeholder="Ex.: 1" oninput="calcSupQty(${i}, this.value)">
+      <div class="mut" id="calcsup-info-${i}"></div>
+      <div class="btnrow"><button class="danger btn-sm" onclick="removeCalcSup(${i})">Remover</button></div>
+    </div>`;
+  }).join('') || '<p class="mut">Nenhum insumo neste produto.</p>';
+}
+function togglePick(kind, i){
+  const box = $('pickbox-' + kind + '-' + i);
+  const wasHidden = box.classList.contains('hidden');
+  document.querySelectorAll('.pickbox').forEach(b => b.classList.add('hidden'));
+  if(wasHidden) box.classList.remove('hidden');
+}
+function filterPick(kind, i, v){
+  $('pickopts-' + kind + '-' + i).innerHTML = kind === 'f' ? filPickOptions(i, v) : supPickOptions(i, v);
+}
+function pickCalcFil(i, id){ S.calc.fils[i].filamentId = id; renderCalcLines(); recomputeCalc(); }
+function pickCalcSup(i, id){ S.calc.sups[i].supplyId = id; renderCalcLines(); recomputeCalc(); }
+function addCalcFil(){ S.calc.fils.push({ filamentId: null, gramsStr: '' }); renderCalcLines(); }
+function removeCalcFil(i){ S.calc.fils.splice(i, 1); renderCalcLines(); recomputeCalc(); }
+function addCalcSup(){ S.calc.sups.push({ supplyId: null, qtyStr: '' }); renderCalcLines(); }
+function removeCalcSup(i){ S.calc.sups.splice(i, 1); renderCalcLines(); recomputeCalc(); }
+function calcFilGrams(i, v){ S.calc.fils[i].gramsStr = v; recomputeCalc(); }
+function calcSupQty(i, v){ S.calc.sups[i].qtyStr = v; recomputeCalc(); }
+function toggleOrderFields(){ $('calc-order-fields').classList.toggle('hidden', !$('calc-asorder').checked); }
+
+function recomputeCalc(){
+  S.settings.watts = parseNum($('calc-watts').value) || 0;
+  S.settings.kwh = parseMoney($('calc-kwh').value);
+  S.settings.wear = parseMoney($('calc-wear').value);
+  S.settings.margin = parseNum($('calc-margin').value) || 0;
+  try { localStorage.setItem('j2l_calc_settings', JSON.stringify(S.settings)); } catch(e) {}
+  const lotMode = $('calc-lotmode').checked;
+  const lotQty = Math.max(1, Math.round(parseNum($('calc-lotqty').value) || 1));
+  const timeTotal = parsePrintTime($('calc-time').value);
+  const timePP = lotMode ? timeTotal / lotQty : timeTotal;
+  let filCost = 0;
+  const filDetail = [];
+  S.calc.fils.forEach((l, i) => {
+    const info = $('calcfil-info-' + i);
+    const f = l.filamentId ? filById(l.filamentId) : null;
+    const gramsPP = (parseNum(l.gramsStr) || 0) / (lotMode ? lotQty : 1);
+    let c = 0;
+    if(f && gramsPP > 0){ c = gramsPP * filCostPerGram(f); filCost += c; filDetail.push({ filamentId: f.id, grams: r2(gramsPP) }); }
+    if(info) info.textContent = f ? ('Por peça: ' + fmtN(gramsPP) + ' g · ' + BRL(Math.round(c)) + (lotMode ? ' (total do lote dividido por ' + lotQty + ')' : '')) : '';
+  });
+  let supCost = 0;
+  const supDetail = [];
+  S.calc.sups.forEach((l, i) => {
+    const info = $('calcsup-info-' + i);
+    const s = l.supplyId ? supById(l.supplyId) : null;
+    const qty = parseNum(l.qtyStr) || 0;
+    let c = 0;
+    if(s && qty > 0){ c = qty * s.unit_cost_cents; supCost += c; supDetail.push({ supplyId: s.id, qty: r2(qty) }); }
+    if(info) info.textContent = s ? ('Por peça: ' + BRL(Math.round(c))) : '';
+  });
+  const energy = energyCostCents(timePP);
+  const cost = filCost + supCost + energy;
+  const margin = S.settings.margin;
+  const suggested = margin >= 100 ? cost : cost / (1 - margin/100);
+  const typedPrice = parseMoney($('calc-price').value);
+  const priceUsed = typedPrice > 0 ? typedPrice : suggested;
+  const profit = priceUsed - cost;
+  S.calcResult = {
+    cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP),
+    lotQty: lotQty, filDetail: filDetail, supDetail: supDetail
+  };
+  $('calc-out').innerHTML = `
+    <div class="row"><span>Filamentos por peça</span><b>${BRL(Math.round(filCost))}</b></div>
+    <div class="row"><span>Insumos por peça</span><b>${BRL(Math.round(supCost))}</b></div>
+    <div class="row"><span>Energia e desgaste por peça <span class="mut">(${fmtTime(timePP)} de impressão)</span></span><b>${BRL(Math.round(energy))}</b></div>
+    <div class="row"><span><b>Custo por peça</b></span><span class="big">${BRL(Math.round(cost))}</span></div>
+    <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>
+    <div class="row"><span>Preço usado no cálculo ${typedPrice > 0 ? '(o digitado)' : '(o sugerido)'}</span><b>${BRL(Math.round(priceUsed))}</b></div>
+    <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>
+    <div class="row"><span>Lucro no lote de ${lotQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * lotQty))}</b></div>`;
+}
+async function saveProductCalc(){
+  recomputeCalc();
+  const name = $('calc-name').value.trim();
+  if(!name){ toast('Dê um nome ao produto antes de salvar.', true); return; }
+  const R = S.calcResult;
+  const typedPrice = parseMoney($('calc-price').value);
+  const salePrice = typedPrice > 0 ? typedPrice : Math.round(R.suggested);
+  const photo = $('calc-photo').value.trim();
+  const { data: prod, error } = await sb.from('products').insert({
+    name: name, photo_path: photo || null, sale_price_cents: salePrice,
+    print_time_minutes: R.timePP, archived: false
+  }).select().single();
+  if(error) return toastErr(error);
+  if(R.filDetail.length){
+    const { error: e1 } = await sb.from('product_filaments').insert(R.filDetail.map(d => ({ product_id: prod.id, filament_id: d.filamentId, grams: d.grams })));
+    if(e1) return toastErr(e1);
+  }
+  if(R.supDetail.length){
+    const { error: e2 } = await sb.from('product_supplies').insert(R.supDetail.map(d => ({ product_id: prod.id, supply_id: d.supplyId, qty_per_piece: d.qty })));
+    if(e2) return toastErr(e2);
+  }
+  let extra = '';
+  if($('calc-asorder').checked){
+    const client = $('calc-client').value.trim();
+    const oqty = Math.max(1, Math.round(parseNum($('calc-orderqty').value) || 1));
+    if(!client){ toast('Produto salvo, mas o pedido não: falta o nome do cliente.', true); await fetchAll(); renderAll(); return; }
+    const { data: ord, error: e3 } = await sb.from('orders').insert({
+      client_name: client, status: 'pendente', post_to_finance: false
+    }).select().single();
+    if(e3) return toastErr(e3);
+    const { error: e4 } = await sb.from('order_items').insert({
+      order_id: ord.id, product_id: prod.id, description: name, qty: oqty,
+      unit_price_cents: salePrice, unit_cost_cents: Math.round(R.cost)
+    });
+    if(e4) return toastErr(e4);
+    extra = ' Pedido de ' + oqty + ' peças para ' + client + ' criado como pendente.';
+  }
+  $('calc-name').value = ''; $('calc-photo').value = ''; $('calc-price').value = ''; $('calc-time').value = '';
+  $('calc-asorder').checked = false; toggleOrderFields();
+  S.calc.fils = [{ filamentId: null, gramsStr: '' }];
+  S.calc.sups = [{ supplyId: null, qtyStr: '' }];
+  await fetchAll(); renderAll();
+  toast('Produto "' + name + '" salvo.' + extra);
+}
+function renderCalcProductOptions(){
+  const active = S.products.filter(p => !p.archived);
+  const sel = $('prod-select');
+  const cur = sel.value;
+  sel.innerHTML = active.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">Nenhum produto salvo ainda</option>';
+  if(cur && active.some(p => String(p.id) === String(cur))) sel.value = cur;
+}
+function openProductionFromCalc(){
+  const pid = parseInt($('prod-select').value, 10);
+  if(!pid){ toast('Salve um produto primeiro, na Calculadora.', true); return; }
+  openProduction(pid);
+}
+
+/* ---------------- Produtos ---------------- */
+function photoHtml(p){
+  if(p.photo_path && /^https?:\/\//i.test(p.photo_path)) return `<img class="thumb" src="${esc(p.photo_path)}" alt="">`;
+  return `<div class="thumb" style="display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--mut);">${esc((p.name || '?').slice(0,1).toUpperCase())}</div>`;
+}
+function renderProdutos(){
+  const active = S.products.filter(p => !p.archived);
+  $('prod-list').innerHTML = active.map(p => {
+    const st = S.stock[p.id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
+    const hist = S.prods.filter(x => x.product_id === p.id);
+    const histHtml = S.histOpen[p.id] ? `<div style="margin:8px 0 4px;">
+      ${hist.length ? hist.map(h => `<div class="row"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}</div></span>
+        <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('') : '<p class="mut">Nenhuma produção registrada.</p>'}
+    </div>` : '';
+    return `<div class="row" style="align-items:flex-start;">
+      <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
+        <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
+        <div class="mut">Estoque em casa: <b style="color:var(--txt);">${st.available}</b> · Produzidas: ${st.produced} · Em expositores: ${st.in_displays} · Em pedidos: ${st.in_orders}</div>
+        ${histHtml}</span></span>
+      <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
+        <button class="pinkbtn btn-sm" onclick="openProduction(${p.id})">Produzir</button>
+        <button class="ghost btn-sm" onclick="toggleHist(${p.id})">${S.histOpen[p.id] ? 'Fechar histórico' : 'Histórico'}</button>
+        <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, true)">Arquivar</button>
+      </div></span></div>`;
+  }).join('') || '<p class="mut">Nenhum produto ativo. Crie o primeiro na Calculadora.</p>';
+  const arch = S.products.filter(p => p.archived);
+  $('prod-arch').innerHTML = arch.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div></span>
+    <span class="btnrow" style="margin-top:0;">
+      <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, false)">Restaurar</button>
+      <button class="danger btn-sm" onclick="purgeProduct(${p.id})">Excluir de vez</button>
+    </span></div>`).join('') || '<p class="mut">Nenhum produto arquivado.</p>';
+}
+function consumptionSummary(consumption){
+  if(!Array.isArray(consumption) || !consumption.length) return 'Sem consumo registrado.';
+  return consumption.map(c => c.kind === 'filament'
+    ? (c.name || 'Filamento') + ': ' + fmtN(c.grams) + ' g'
+    : (c.name || 'Insumo') + ': ' + fmtN(c.qty) + ' un').join(' · ');
+}
+function toggleHist(id){ S.histOpen[id] = !S.histOpen[id]; renderProdutos(); }
+async function archiveProduct(id, flag){
+  const { error } = await sb.from('products').update({ archived: flag }).eq('id', id);
+  if(error) return toastErr(error);
+  await fetchAll(); renderAll();
+  toast(flag ? 'Produto arquivado.' : 'Produto restaurado.');
+}
+async function reverseConsumption(consumption){
+  if(!Array.isArray(consumption)) return;
+  for(const c of consumption){
+    if(c.kind === 'filament'){
+      const f = filById(c.id);
+      if(f){
+        const nu = Math.max(0, r2(f.used_grams - (c.grams || 0)));
+        const { error } = await sb.from('filaments').update({ used_grams: nu }).eq('id', f.id);
+        if(!error) f.used_grams = nu;
+      }
+    } else if(c.kind === 'supply'){
+      const s = supById(c.id);
+      if(s){
+        const nu = Math.max(0, r2(s.used_qty - (c.qty || 0)));
+        const { error } = await sb.from('supplies').update({ used_qty: nu }).eq('id', s.id);
+        if(!error) s.used_qty = nu;
+      }
+    }
+  }
+}
+async function deleteProduction(id){
+  const pr = S.prods.find(x => x.id === id);
+  if(!pr) return;
+  if(!confirm('Excluir esta produção de ' + pr.qty + ' peças? Os materiais consumidos voltam ao estoque.')) return;
+  await reverseConsumption(pr.consumption);
+  const { error } = await sb.from('productions').delete().eq('id', id);
+  if(error) return toastErr(error);
+  await fetchAll(); renderAll();
+  toast('Produção excluída e materiais devolvidos.');
+}
+async function purgeProduct(id){
+  const p = prodById(id);
+  if(!p) return;
+  if(!confirm('Excluir o produto "' + p.name + '" de vez? As produções dele serão desfeitas e os materiais voltam ao estoque. Esta ação não tem volta.')) return;
+  const prods = S.prods.filter(x => x.product_id === id);
+  for(const pr of prods) await reverseConsumption(pr.consumption);
+  if(prods.length) await sb.from('productions').delete().eq('product_id', id);
+  const { error } = await sb.from('products').delete().eq('id', id);
+  if(error){ toast('Não consegui excluir de vez. Se o produto estiver em pedidos, ele precisa ficar no histórico. Detalhe: ' + error.message, true); return; }
+  await fetchAll(); renderAll();
+  toast('Produto excluído de vez.');
+}
+
+/* ---------------- Produção (modal) ---------------- */
+function openProduction(pid){
+  const prod = prodById(pid);
+  if(!prod){ toast('Produto não encontrado.', true); return; }
+  const rec = recipeOf(pid);
+  P = {
+    productId: pid, qty: 1, saveRecipe: false,
+    fils: rec.fils.map(r => ({ filamentId: r.filament_id, perPiece: r.grams, grams: r.grams })),
+    sups: rec.sups.map(r => ({ supplyId: r.supply_id, perPiece: r.qty_per_piece, qty: r.qty_per_piece }))
+  };
+  renderProdModal();
+  $('modal').classList.remove('hidden');
+}
+function closeModal(){ $('modal').classList.add('hidden'); P = null; }
+function renderProdModal(){
+  const prod = prodById(P.productId);
+  const filOpts = selId => S.filaments.map(f => `<option value="${f.id}" ${f.id === selId ? 'selected' : ''}>${esc(f.name)} (${fmtN(filRemaining(f))} g restantes)</option>`).join('');
+  const supOpts = selId => S.supplies.map(s => `<option value="${s.id}" ${s.id === selId ? 'selected' : ''}>${esc(s.name)} (${fmtN(supRemaining(s))} ${esc(s.unit)} restantes)</option>`).join('');
+  $('modal-box').innerHTML = `
+    <h2>Registrar produção</h2>
+    <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(prod.name)}</b>. Confira a prévia de consumo: pode trocar o rolo e ajustar as quantidades antes de confirmar.</p>
+    <label>Quantidade de peças desta leva</label>
+    <input type="text" inputmode="numeric" value="${P.qty}" oninput="prodQtyChange(this.value)">
+    <h3>Filamentos (total da leva, em gramas)</h3>
+    ${P.fils.length ? P.fils.map((l, i) => `<div class="linebox">
+      <label>Rolo (pode trocar)</label>
+      <select onchange="prodFilSel(${i}, this.value)">${filOpts(l.filamentId)}</select>
+      <label>Gramas no total</label>
+      <input type="text" inputmode="decimal" value="${numStr(l.grams)}" oninput="prodFilGrams(${i}, this.value)">
+      <div class="mut">Receita: ${fmtN(l.perPiece)} g por peça</div>
+    </div>`).join('') : '<p class="mut">A receita deste produto não tem filamentos.</p>'}
+    <h3>Insumos (total da leva)</h3>
+    ${P.sups.length ? P.sups.map((l, i) => `<div class="linebox">
+      <label>Insumo</label>
+      <select onchange="prodSupSel(${i}, this.value)">${supOpts(l.supplyId)}</select>
+      <label>Quantidade no total</label>
+      <input type="text" inputmode="decimal" value="${numStr(l.qty)}" oninput="prodSupQty(${i}, this.value)">
+      <div class="mut">Receita: ${fmtN(l.perPiece)} por peça</div>
+    </div>`).join('') : '<p class="mut">A receita deste produto não tem insumos.</p>'}
+    <label class="check"><input type="checkbox" ${P.saveRecipe ? 'checked' : ''} onchange="P.saveRecipe = this.checked"> Salvar esta prévia como a nova receita do produto</label>
+    <div class="btnrow">
+      <button onclick="confirmProduction()">Confirmar produção</button>
+      <button class="ghost" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+function prodQtyChange(v){
+  P.qty = Math.max(1, Math.round(parseNum(v) || 1));
+  P.fils.forEach(l => { l.grams = r2(l.perPiece * P.qty); });
+  P.sups.forEach(l => { l.qty = r2(l.perPiece * P.qty); });
+  renderProdModal();
+}
+function prodFilSel(i, v){ P.fils[i].filamentId = parseInt(v, 10); }
+function prodFilGrams(i, v){ P.fils[i].grams = parseNum(v) || 0; }
+function prodSupSel(i, v){ P.sups[i].supplyId = parseInt(v, 10); }
+function prodSupQty(i, v){ P.sups[i].qty = parseNum(v) || 0; }
+async function confirmProduction(){
+  if(!P) return;
+  const consumption = [];
+  P.fils.forEach(l => {
+    if(l.grams > 0){
+      const f = filById(l.filamentId);
+      consumption.push({ kind: 'filament', id: l.filamentId, name: f ? f.name : '', grams: r2(l.grams) });
+    }
+  });
+  P.sups.forEach(l => {
+    if(l.qty > 0){
+      const s = supById(l.supplyId);
+      consumption.push({ kind: 'supply', id: l.supplyId, name: s ? s.name : '', qty: r2(l.qty) });
+    }
+  });
+  const { error } = await sb.from('productions').insert({ product_id: P.productId, qty: P.qty, consumption: consumption });
+  if(error) return toastErr(error);
+  const ended = [];
+  for(const c of consumption){
+    if(c.kind === 'filament'){
+      const f = filById(c.id);
+      if(f){
+        const nu = r2(f.used_grams + c.grams);
+        const { error: e } = await sb.from('filaments').update({ used_grams: nu }).eq('id', f.id);
+        if(e) return toastErr(e);
+        f.used_grams = nu;
+        if(filRemaining(f) <= 0) ended.push(f.name);
+      }
+    } else {
+      const s = supById(c.id);
+      if(s){
+        const nu = r2(s.used_qty + c.qty);
+        const { error: e } = await sb.from('supplies').update({ used_qty: nu }).eq('id', s.id);
+        if(e) return toastErr(e);
+        s.used_qty = nu;
+        if(supRemaining(s) <= 0) ended.push(s.name);
+      }
+    }
+  }
+  if(P.saveRecipe){
+    const pid = P.productId, q = P.qty;
+    await sb.from('product_filaments').delete().eq('product_id', pid);
+    await sb.from('product_supplies').delete().eq('product_id', pid);
+    const filRows = P.fils.filter(l => l.grams > 0).map(l => ({ product_id: pid, filament_id: l.filamentId, grams: r2(l.grams / q) }));
+    const supRows = P.sups.filter(l => l.qty > 0).map(l => ({ product_id: pid, supply_id: l.supplyId, qty_per_piece: r2(l.qty / q) }));
+    if(filRows.length){ const { error: e } = await sb.from('product_filaments').insert(filRows); if(e) return toastErr(e); }
+    if(supRows.length){ const { error: e } = await sb.from('product_supplies').insert(supRows); if(e) return toastErr(e); }
+  }
+  const qtyDone = P.qty;
+  closeModal();
+  await fetchAll(); renderAll();
+  toast('Produção registrada: ' + qtyDone + ' peças.' + (ended.length ? ' Atenção, acabou o estoque de: ' + ended.join(', ') + '.' : ''));
+}
+
+/* Renderiza as linhas iniciais da Calculadora */
+(function seedCalc(){
+  S.calc.fils = [{ filamentId: null, gramsStr: '' }];
+  S.calc.sups = [{ supplyId: null, qtyStr: '' }];
+})();
+
 route();
 </script>
 </body>
