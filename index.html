@@ -91,7 +91,22 @@
       <input id="in-pass" type="password" placeholder="Sua senha" autocomplete="current-password">
       <button id="btn-login" style="width:100%;">Entrar</button>
       <div id="login-err" class="err"></div>
+      <p style="text-align:right;"><a href="#" onclick="forgotPassword(); return false;" style="color:var(--cyan); font-size:13px;">Esqueci minha senha</a></p>
       <p class="mut">Master e lojas entram aqui. A loja só enxerga o próprio expositor.</p>
+    </div>
+  </section>
+
+  <!-- CRIAR SENHA (convite ou recuperação) -->
+  <section id="view-setpass" class="center hidden">
+    <img class="loginlogo" src="logo-j2l.png" alt="J2L Impressão 3D">
+    <div class="loginsub">Finanças e Consignado</div>
+    <div class="card">
+      <h2>Criar sua senha</h2>
+      <p class="mut" style="margin-bottom:10px;">Você entrou por um convite ou por um link de recuperação. Defina a sua senha para continuar: é ela que você vai usar nos próximos acessos.</p>
+      <input id="np-pass" type="password" placeholder="Nova senha" autocomplete="new-password">
+      <input id="np-pass2" type="password" placeholder="Repita a nova senha" autocomplete="new-password">
+      <button id="btn-setpass" style="width:100%;" onclick="saveNewPassword()">Salvar senha e entrar</button>
+      <div id="np-err" class="err"></div>
     </div>
   </section>
 
@@ -347,8 +362,8 @@
             <input id="st-other" type="text" placeholder="Ex.: toda sexta-feira">
           </div>
           <label>E-mail de acesso da loja</label>
-          <input id="st-email" type="email" disabled placeholder="Criado na próxima etapa">
-          <p class="mut">Os logins das lojas serão criados dentro do próprio app na Etapa C. Por enquanto este campo fica só de referência e não é salvo.</p>
+          <input id="st-email" type="email" placeholder="Ex.: loja@exemplo.com.br">
+          <p class="mut">Se a loja ainda não tiver login, ao salvar com o e-mail preenchido o app cria o acesso e envia o convite: a loja define a própria senha pelo link do e-mail. O e-mail em si fica na conta de autenticação da loja, não neste cadastro.</p>
           <label>Contrato (caminho do arquivo)</label>
           <input id="st-contract" type="text" placeholder="Opcional. O envio de arquivos entra numa etapa seguinte">
           <label>Observações</label>
@@ -363,6 +378,20 @@
           <h2>Lojas parceiras</h2>
           <input id="store-search" type="text" placeholder="Buscar loja (pode digitar sem acento)" oninput="S.storeSearch = this.value; renderStoreList();">
           <div id="store-list"></div>
+        </div>
+        <div class="card">
+          <h2>Equipe</h2>
+          <p class="mut" style="margin-bottom:8px;">Quem tem acesso ao app. O e-mail de cada pessoa fica guardado na conta de autenticação dela: ele aparece aqui quando o acesso foi criado deste aparelho; nos outros casos, ele pode ser conferido no painel do Supabase.</p>
+          <div id="equipe-list"></div>
+          <h3>Adicionar master</h3>
+          <div class="cols">
+            <div><label>E-mail</label><input id="eq-email" type="email" placeholder="Ex.: joao@exemplo.com.br"></div>
+            <div><label>Nome</label><input id="eq-name" type="text" placeholder="Ex.: João"></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn-sm" onclick="addMaster()">Enviar convite de master</button>
+          </div>
+          <p class="mut">A pessoa recebe um e-mail, define a própria senha pelo link e entra como master, igual a você. É assim que se cria o acesso do João.</p>
         </div>
       </div>
       <div id="lojas-detail-wrap" class="hidden">
@@ -405,7 +434,55 @@
   <section id="view-store" class="hidden">
     <div class="card">
       <h2 id="store-name">Meu expositor</h2>
-      <p class="mut">A visão completa da loja (estoque do expositor, registrar venda, acerto e pedir reposição) entra na etapa do piloto. Seus dados já estão protegidos: você só acessa o que é da sua loja.</p>
+      <div class="mut" id="store-sub"></div>
+    </div>
+    <div id="sv-body">
+      <div class="card">
+        <h2>Ciclo atual</h2>
+        <div id="sv-cycle"></div>
+      </div>
+      <div class="card">
+        <h2>Meu expositor</h2>
+        <input type="text" id="sv-search" placeholder="Buscar produto no expositor (pode digitar sem acento)" oninput="SV.search = this.value; renderStoreDisplay();">
+        <div id="sv-display"></div>
+      </div>
+      <div class="card">
+        <h2>Registrar venda</h2>
+        <label>Produto do expositor</label>
+        <select id="sv-sale-product"></select>
+        <label>Quantidade</label>
+        <input id="sv-sale-qty" type="text" inputmode="numeric" value="1">
+        <div class="btnrow">
+          <button class="pinkbtn" onclick="storeRegisterSale()">Registrar venda</button>
+          <button class="ghost" onclick="toggleStoreCorrect()">Corrigir uma venda</button>
+        </div>
+        <div id="sv-correct" class="hidden">
+          <h3>Corrigir venda</h3>
+          <p class="mut">Use quando uma venda foi registrada por engano. A correção fica registrada com data e hora, igual à venda, e abate dos vendidos do ciclo.</p>
+          <label>Produto</label>
+          <select id="sv-corr-product"></select>
+          <label>Quantidade a corrigir</label>
+          <input id="sv-corr-qty" type="text" inputmode="numeric" value="1">
+          <div class="btnrow">
+            <button class="danger" onclick="storeRegisterCorrection()">Registrar correção</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="sv-restock-card"></div>
+      <div class="card">
+        <h2>Minhas reposições</h2>
+        <div id="sv-restocks"></div>
+      </div>
+      <div class="card">
+        <h2>Vendas</h2>
+        <div id="sv-sales"></div>
+      </div>
+      <div class="card">
+        <h2>Acertos</h2>
+        <div id="sv-settlements"></div>
+        <h3>Vendas e acertos por mês</h3>
+        <div id="sv-chart"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -422,7 +499,7 @@
 <script>
 "use strict";
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.J2L_CONFIG;
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { detectSessionInUrl: true } });
 const $ = id => document.getElementById(id);
 const BRL = cents => (cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const r2 = n => Math.round((+n || 0)*100)/100;
@@ -519,7 +596,8 @@ const S = {
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
   storeSearch: '', currentStore: null, displaySearch: '', editingStore: null,
-  orderLines: []
+  orderLines: [],
+  profiles: [], setPassMode: false
 };
 let P = null; // estado da produção em edição no modal
 
@@ -550,30 +628,36 @@ function unitCostCents(product){
 
 /* ---------------- autenticação e rotas ---------------- */
 function show(id){
-  ['view-login','view-master','view-store'].forEach(v => $(v).classList.toggle('hidden', v !== id));
+  ['view-login','view-setpass','view-master','view-store'].forEach(v => $(v).classList.toggle('hidden', v !== id));
 }
 async function route(){
   const { data:{ session } } = await sb.auth.getSession();
-  if(!session){ show('view-login'); $('who').classList.add('hidden'); $('btn-out').classList.add('hidden'); return; }
-  const { data: profile } = await sb.from('profiles').select('role, store_id, display_name').eq('id', session.user.id).single();
-  S.profile = profile;
+  if(!session){ rtUnsubscribe(); show('view-login'); $('who').classList.add('hidden'); $('btn-out').classList.add('hidden'); return; }
   $('who').textContent = session.user.email;
   $('who').classList.remove('hidden'); $('btn-out').classList.remove('hidden');
+  if(S.setPassMode){ rtUnsubscribe(); show('view-setpass'); return; }
+  const { data: profile } = await sb.from('profiles').select('role, store_id, display_name').eq('id', session.user.id).single();
+  S.profile = profile;
   if(profile && profile.role === 'master'){
     show('view-master');
     initMasterForms();
     await fetchAll();
     renderAll();
+    subscribeMasterRT();
   } else if(profile && profile.role === 'store'){
-    show('view-store'); loadStore(profile.store_id);
+    show('view-store');
+    $('sv-body').classList.remove('hidden');
+    SV.storeId = profile.store_id;
+    await loadStoreFull();
+    renderStoreView();
+    subscribeStoreRT();
   } else {
-    show('view-store'); $('store-name').textContent = 'Conta sem perfil ainda';
+    rtUnsubscribe();
+    show('view-store');
+    $('sv-body').classList.add('hidden');
+    $('store-name').textContent = 'Conta sem perfil ainda';
+    $('store-sub').textContent = 'Fale com a J2L para liberar o seu acesso.';
   }
-}
-async function loadStore(storeId){
-  if(!storeId) return;
-  const { data: store } = await sb.from('stores').select('name').eq('id', storeId).single();
-  if(store) $('store-name').textContent = store.name + ' · meu expositor';
 }
 $('btn-login').addEventListener('click', async () => {
   $('login-err').textContent = '';
@@ -582,7 +666,7 @@ $('btn-login').addEventListener('click', async () => {
   route();
 });
 $('btn-out').addEventListener('click', async () => { await sb.auth.signOut(); route(); });
-sb.auth.onAuthStateChange(() => route());
+sb.auth.onAuthStateChange((event) => { if(event === 'PASSWORD_RECOVERY') S.setPassMode = true; route(); });
 
 function showTab(name){
   document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
@@ -606,7 +690,7 @@ function initMasterForms(){
 
 /* ---------------- carga de dados ---------------- */
 async function fetchAll(){
-  const [f, s, p, pf, ps, pd, gs, tx, st, ss, sl, sm, od, oi, rr] = await Promise.all([
+  const [f, s, p, pf, ps, pd, gs, tx, st, ss, sl, sm, od, oi, rr, pp] = await Promise.all([
     sb.from('filaments').select('*').order('name'),
     sb.from('supplies').select('*').order('name'),
     sb.from('products').select('*').order('name'),
@@ -621,16 +705,17 @@ async function fetchAll(){
     sb.from('settlements').select('*').order('settled_at', { ascending: false }),
     sb.from('orders').select('*').order('created_at', { ascending: false }),
     sb.from('order_items').select('*'),
-    sb.from('restock_requests').select('*').order('created_at', { ascending: false })
+    sb.from('restock_requests').select('*').order('created_at', { ascending: false }),
+    sb.from('profiles').select('*').order('created_at')
   ]);
-  const firstErr = [f,s,p,pf,ps,pd,gs,tx,st,ss,sl,sm,od,oi,rr].map(r => r.error).find(Boolean);
+  const firstErr = [f,s,p,pf,ps,pd,gs,tx,st,ss,sl,sm,od,oi,rr,pp].map(r => r.error).find(Boolean);
   if(firstErr) toastErr(firstErr);
   S.filaments = f.data || []; S.supplies = s.data || []; S.products = p.data || [];
   S.pf = pf.data || []; S.ps = ps.data || []; S.prods = pd.data || [];
   S.txs = tx.data || [];
   S.stores = st.data || []; S.storeStock = ss.data || []; S.sales = sl.data || [];
   S.settlements = sm.data || []; S.orders = od.data || []; S.orderItems = oi.data || [];
-  S.restocks = rr.data || [];
+  S.restocks = rr.data || []; S.profiles = pp.data || [];
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -1336,6 +1421,7 @@ function renderLojas(){
   $('lojas-list-wrap').classList.toggle('hidden', inDetail);
   $('lojas-detail-wrap').classList.toggle('hidden', !inDetail);
   if(inDetail) renderStoreDetail(); else renderStoreList();
+  renderEquipe();
 }
 function renderStoreList(){
   const q = norm(S.storeSearch);
@@ -1372,7 +1458,7 @@ function storeFormReset(scroll){
   S.editingStore = null;
   $('store-form-title').textContent = 'Nova loja';
   $('st-cancel').classList.add('hidden');
-  ['st-name','st-contact','st-whats','st-address','st-day','st-other','st-contract','st-notes','st-commission'].forEach(id => { $(id).value = ''; });
+  ['st-name','st-contact','st-whats','st-address','st-day','st-other','st-contract','st-notes','st-commission','st-email'].forEach(id => { $(id).value = ''; });
   $('st-cycle').value = 'mensal';
   $('st-restock').checked = true;
   toggleCycleFields();
@@ -1396,6 +1482,8 @@ function editStore(id){
   $('st-contract').value = st.contract_file_path || '';
   $('st-notes').value = st.notes || '';
   $('st-restock').checked = !!st.restock_requests_enabled;
+  const profLoja = (S.profiles || []).find(pr => pr.store_id === id && pr.role === 'store');
+  $('st-email').value = profLoja ? knownEmail(profLoja.id) : '';
   toggleCycleFields();
   renderLojas();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1418,15 +1506,34 @@ async function saveStore(){
     restock_requests_enabled: $('st-restock').checked,
     contract_file_path: $('st-contract').value.trim() || null
   };
+  const email = $('st-email').value.trim();
+  let savedId = S.editingStore;
   let error;
   if(S.editingStore){
     ({ error } = await sb.from('stores').update(payload).eq('id', S.editingStore));
   } else {
-    ({ error } = await sb.from('stores').insert(payload));
+    const ins = await sb.from('stores').insert(payload).select().single();
+    error = ins.error;
+    if(ins.data) savedId = ins.data.id;
   }
   if(error) return toastErr(error);
   storeFormReset(false);
   await fetchAll(); renderAll();
+  if(email && savedId){
+    if(email.indexOf('@') < 0){ toast('Loja salva: ' + name + '. O e-mail de acesso parece incompleto, então o convite não foi enviado. Confira no cartão Acesso da loja.', true); return; }
+    const linked = (S.profiles || []).some(pr => pr.store_id === savedId && pr.role === 'store');
+    if(!linked){
+      const res = await invokeCreateUser({ email: email, role: 'store', store_id: savedId, display_name: name });
+      if(res.ok){
+        if(res.userId) rememberEmail(res.userId, email);
+        await fetchAll(); renderAll();
+        toast('Loja salva: ' + name + '. Convite de acesso enviado para ' + email + '.');
+      } else {
+        toast('Loja salva: ' + name + '. Mas o acesso não foi criado (' + res.error + '). Abra a loja e tente de novo no cartão Acesso da loja.', true);
+      }
+      return;
+    }
+  }
   toast('Loja salva: ' + name + '.');
 }
 
@@ -1478,6 +1585,10 @@ function renderStoreDetail(){
         <button onclick="openSettlement(${st.id})">Fazer acerto</button>
         <button class="ghost" onclick="editStore(${st.id})">Editar cadastro</button>
       </div>
+    </div>
+    <div class="card">
+      <h2>Acesso da loja</h2>
+      <div id="store-access">${storeAccessHtml(st)}</div>
     </div>
     <div class="card">
       <h2>Ciclo atual</h2>
@@ -1964,12 +2075,409 @@ async function doSetOrderStatus(id, st, post){
   toast('Pedido de ' + o.client_name + ' agora está: ' + st.replace('_', ' ') + '.');
 }
 
+/* ---------------- Etapa C: acessos, equipe, visão da loja, tempo real ---------------- */
+function knownEmails(){ try { return JSON.parse(localStorage.getItem('j2l_known_emails') || '{}'); } catch(e){ return {}; } }
+function rememberEmail(profileId, email){ try { const m = knownEmails(); m[profileId] = email; localStorage.setItem('j2l_known_emails', JSON.stringify(m)); } catch(e){} }
+function knownEmail(profileId){ return knownEmails()[profileId] || ''; }
+
+async function invokeCreateUser(payload){
+  const { data, error } = await sb.functions.invoke('create-user', { body: payload });
+  if(error){
+    let msg = error.message || 'a função de criar acesso falhou';
+    try {
+      if(error.context && typeof error.context.json === 'function'){
+        const body = await error.context.json();
+        if(body && body.error) msg = body.error;
+      }
+    } catch(e){ /* segue com a mensagem genérica */ }
+    return { ok: false, error: msg };
+  }
+  if(data && data.ok) return { ok: true, userId: data.user_id || null };
+  return { ok: false, error: (data && data.error) || 'resposta inesperada da função de criar acesso' };
+}
+
+/* ---------------- Equipe (master) ---------------- */
+function renderEquipe(){
+  const el = $('equipe-list');
+  if(!el) return;
+  const rows = S.profiles || [];
+  el.innerHTML = rows.map(p => {
+    const store = p.store_id ? storeById(p.store_id) : null;
+    const email = knownEmail(p.id);
+    return `<div class="row"><span style="flex:1;">${esc(p.display_name || 'Sem nome')}
+      <div class="mut">${p.role === 'master' ? 'Acesso master' : 'Acesso de loja' + (store ? ': ' + esc(store.name) : '')}${email ? ' · ' + esc(email) : ''}</div></span>
+      <span class="badge ${p.role === 'master' ? 'stprod' : 'stp'}">${p.role === 'master' ? 'Master' : 'Loja'}</span></div>`;
+  }).join('') || '<p class="mut">Nenhum acesso criado ainda.</p>';
+}
+async function addMaster(){
+  const email = $('eq-email').value.trim();
+  const name = $('eq-name').value.trim();
+  if(!email || email.indexOf('@') < 0){ toast('Informe um e-mail válido para o novo master.', true); return; }
+  const res = await invokeCreateUser({ email: email, role: 'master', display_name: name });
+  if(!res.ok){ toast('Não consegui criar o acesso: ' + res.error, true); return; }
+  if(res.userId) rememberEmail(res.userId, email);
+  $('eq-email').value = ''; $('eq-name').value = '';
+  await fetchAll(); renderAll();
+  toast('Convite enviado para ' + email + '. A pessoa define a própria senha pelo link do e-mail.');
+}
+
+/* ---------------- Acesso da loja (no detalhe, visão master) ---------------- */
+function storeAccessHtml(st){
+  const prof = (S.profiles || []).find(p => p.store_id === st.id && p.role === 'store');
+  if(prof){
+    const email = knownEmail(prof.id);
+    return `<p>Login criado para esta loja${prof.display_name ? ' (' + esc(prof.display_name) + ')' : ''}${email ? ': <b>' + esc(email) + '</b>' : '.'}</p>
+      <p class="mut">A loja entra com o e-mail dela e a senha que ela mesma definiu pelo convite.${email ? '' : ' O e-mail fica guardado na conta de autenticação e aparece aqui quando o acesso é criado deste aparelho.'}</p>`;
+  }
+  return `<p class="mut" style="margin-bottom:8px;">Esta loja ainda não tem login. Informe o e-mail dela para criar o acesso e enviar o convite: ela define a própria senha pelo link que recebe.</p>
+    <label>E-mail de acesso da loja</label>
+    <input id="acc-email" type="email" placeholder="Ex.: loja@exemplo.com.br">
+    <div class="btnrow"><button class="btn-sm" onclick="createStoreAccess(${st.id})">Criar acesso e enviar convite</button></div>`;
+}
+async function createStoreAccess(storeId){
+  const st = storeById(storeId);
+  if(!st) return;
+  const email = $('acc-email') ? $('acc-email').value.trim() : '';
+  if(!email || email.indexOf('@') < 0){ toast('Informe um e-mail válido da loja.', true); return; }
+  const res = await invokeCreateUser({ email: email, role: 'store', store_id: storeId, display_name: st.name });
+  if(!res.ok){ toast('A loja está salva, mas o acesso não foi criado: ' + res.error + '. Tente de novo aqui em Acesso da loja.', true); return; }
+  if(res.userId) rememberEmail(res.userId, email);
+  await fetchAll(); renderAll();
+  toast('Convite enviado para ' + email + '. A loja define a própria senha pelo link do e-mail.');
+}
+
+/* ---------------- Visão da loja ---------------- */
+const SV = { storeId: null, store: null, stock: [], products: [], sales: [], settlements: [], gs: {}, restocks: [], search: '' };
+const svProd = id => SV.products.find(p => p.id === id);
+
+async function loadStoreFull(){
+  const sid = SV.storeId;
+  if(!sid) return;
+  const [st, ss, pd, sl, sm, gs, rr] = await Promise.all([
+    sb.from('stores').select('*').eq('id', sid).single(),
+    sb.from('store_stock').select('*').eq('store_id', sid),
+    sb.from('products').select('*').eq('archived', false).order('name'),
+    sb.from('sales').select('*').eq('store_id', sid).order('sold_at', { ascending: false }),
+    sb.from('settlements').select('*').eq('store_id', sid).order('settled_at', { ascending: false }),
+    sb.from('general_stock').select('*'),
+    sb.from('restock_requests').select('*').eq('store_id', sid).order('created_at', { ascending: false })
+  ]);
+  const firstErr = [st, ss, pd, sl, sm, gs, rr].map(r => r.error).find(Boolean);
+  if(firstErr) toastErr(firstErr);
+  SV.store = st.data || null;
+  SV.stock = ss.data || [];
+  SV.products = pd.data || [];
+  SV.sales = sl.data || [];
+  SV.settlements = sm.data || [];
+  SV.restocks = rr.data || [];
+  SV.gs = {};
+  (gs.data || []).forEach(r => { SV.gs[r.product_id] = Number(r.available) || 0; });
+}
+function svCycle(){
+  const st = SV.store;
+  if(!st) return null;
+  const last = SV.settlements.length ? SV.settlements[0] : null;
+  const rows = SV.sales.filter(x => !last || String(x.sold_at) > String(last.settled_at));
+  let gross = 0, items = 0;
+  rows.forEach(x => { const sgn = x.kind === 'correction' ? -1 : 1; items += sgn; gross += sgn * (x.unit_price_cents || 0); });
+  const commission = Math.round(gross * (Number(st.commission_percent) || 0) / 100);
+  const carried = SV.stock.reduce((a, r) => a + (r.carried_balance_cents || 0), 0);
+  const net = gross - commission;
+  return { last: last, gross: gross, items: items, commission: commission, net: net, carried: carried, due: net + carried };
+}
+function nextSettlementText(st){
+  if(st.settlement_cycle === 'outro') return st.settlement_other ? 'Combinado do acerto: ' + st.settlement_other + '.' : 'Acerto combinado direto com a J2L.';
+  const day = Number(st.settlement_day);
+  if(!day) return 'Acerto: ' + cycleText(st) + '.';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mk = (y, m, d) => new Date(y, m, Math.min(d, new Date(y, m + 1, 0).getDate()));
+  const cands = [];
+  for(let add = 0; add < 3; add++){
+    const base = new Date(now.getFullYear(), now.getMonth() + add, 1);
+    cands.push(mk(base.getFullYear(), base.getMonth(), day));
+    if(st.settlement_cycle === 'quinzenal') cands.push(mk(base.getFullYear(), base.getMonth(), day + 15));
+  }
+  const nx = cands.filter(c => c >= today).sort((a, b) => a - b)[0];
+  return nx ? 'Próximo acerto: ' + nx.toLocaleDateString('pt-BR') + ' (' + cycleText(st).toLowerCase() + ').' : '';
+}
+function renderStoreView(){
+  const st = SV.store;
+  if(!st) return;
+  $('store-name').textContent = st.name;
+  $('store-sub').textContent = 'Meu expositor · Comissão: ' + fmtN(st.commission_percent) + '% · Acerto: ' + cycleText(st);
+  renderStoreCycle();
+  renderStoreDisplay();
+  renderStoreSaleOptions();
+  renderStoreRestock();
+  renderStoreSales();
+}
+function renderStoreCycle(){
+  const c = svCycle();
+  const st = SV.store;
+  if(!c || !st){ $('sv-cycle').innerHTML = ''; return; }
+  $('sv-cycle').innerHTML = `
+    <div class="row"><span>Itens vendidos no ciclo</span><b>${c.items}</b></div>
+    <div class="row"><span>Vendido (bruto)</span><b>${BRL(c.gross)}</b></div>
+    <div class="row"><span>Sua comissão (${fmtN(st.commission_percent)}%)</span><b>${BRL(c.commission)}</b></div>
+    <div class="row"><span>Líquido para a J2L</span><b>${BRL(c.net)}</b></div>
+    <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(c.carried)}</b></div>
+    <div class="row"><span><b>Total do acerto</b></span><span class="big">${BRL(c.due)}</span></div>
+    <p class="mut">${c.last ? 'Último acerto em ' + fmtDateTime(c.last.settled_at) + '.' : 'Ainda não houve acerto.'} ${esc(nextSettlementText(st))}</p>`;
+}
+function renderStoreDisplay(){
+  const el = $('sv-display');
+  if(!el) return;
+  const q = norm(SV.search);
+  const rows = SV.stock.map(r => ({ row: r, prod: svProd(r.product_id) }))
+    .filter(x => x.prod)
+    .filter(x => !q || norm(x.prod.name).indexOf(q) >= 0)
+    .sort((a, b) => a.prod.name.localeCompare(b.prod.name));
+  el.innerHTML = rows.map(x => {
+    const r = x.row, p = x.prod;
+    const inDisplay = r.delivered_qty - r.sold_in_cycle;
+    return `<div class="row" style="align-items:flex-start;">
+      <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
+        <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div>
+        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle}</div>
+      </span></span></div>`;
+  }).join('') || '<p class="mut">Nenhum produto no seu expositor ainda. Quando a J2L montar o expositor, os produtos aparecem aqui.</p>';
+}
+function renderStoreSaleOptions(){
+  const saleSel = $('sv-sale-product'), corrSel = $('sv-corr-product');
+  if(!saleSel || !corrSel) return;
+  const curS = saleSel.value, curC = corrSel.value;
+  saleSel.innerHTML = SV.stock.filter(r => (r.delivered_qty - r.sold_in_cycle) > 0 && svProd(r.product_id))
+    .map(r => { const p = svProd(r.product_id); return `<option value="${p.id}">${esc(p.name)} (no expositor: ${r.delivered_qty - r.sold_in_cycle})</option>`; }).join('')
+    || '<option value="">Nada no expositor para vender</option>';
+  if(curS && SV.stock.some(r => String(r.product_id) === String(curS))) saleSel.value = curS;
+  corrSel.innerHTML = SV.stock.filter(r => r.sold_in_cycle > 0 && svProd(r.product_id))
+    .map(r => { const p = svProd(r.product_id); return `<option value="${p.id}">${esc(p.name)} (vendidos no ciclo: ${r.sold_in_cycle})</option>`; }).join('')
+    || '<option value="">Nenhuma venda para corrigir</option>';
+  if(curC && SV.stock.some(r => String(r.product_id) === String(curC))) corrSel.value = curC;
+}
+function toggleStoreCorrect(){ $('sv-correct').classList.toggle('hidden'); }
+async function storeRegisterSale(){
+  const pid = parseInt($('sv-sale-product').value, 10);
+  const qty = Math.round(parseNum($('sv-sale-qty').value) || 0);
+  const row = SV.stock.find(r => r.product_id === pid);
+  const prod = svProd(pid);
+  if(!row || !prod){ toast('Escolha um produto do seu expositor.', true); return; }
+  if(qty <= 0){ toast('Informe a quantidade vendida.', true); return; }
+  const avail = row.delivered_qty - row.sold_in_cycle;
+  if(qty > avail){ toast('Só há ' + avail + ' de "' + prod.name + '" no expositor. A venda não foi registrada.', true); return; }
+  const rows = [];
+  for(let i = 0; i < qty; i++) rows.push({ store_id: SV.storeId, product_id: pid, kind: 'sale', unit_price_cents: prod.sale_price_cents });
+  const { error } = await sb.from('sales').insert(rows);
+  if(error) return toastErr(error);
+  const { error: e2 } = await sb.from('store_stock').update({ sold_in_cycle: row.sold_in_cycle + qty }).eq('id', row.id);
+  if(e2) return toastErr(e2);
+  $('sv-sale-qty').value = '1';
+  await loadStoreFull(); renderStoreView();
+  toast('Venda registrada: ' + qty + ' × ' + prod.name + '.');
+}
+async function storeRegisterCorrection(){
+  const pid = parseInt($('sv-corr-product').value, 10);
+  const qty = Math.round(parseNum($('sv-corr-qty').value) || 0);
+  const row = SV.stock.find(r => r.product_id === pid);
+  const prod = svProd(pid);
+  if(!row || !prod){ toast('Escolha um produto com vendas no ciclo.', true); return; }
+  if(qty <= 0){ toast('Informe a quantidade a corrigir.', true); return; }
+  if(qty > row.sold_in_cycle){ toast('Só há ' + row.sold_in_cycle + ' vendidos de "' + prod.name + '" neste ciclo. A correção não foi registrada.', true); return; }
+  const rows = [];
+  for(let i = 0; i < qty; i++) rows.push({ store_id: SV.storeId, product_id: pid, kind: 'correction', unit_price_cents: prod.sale_price_cents });
+  const { error } = await sb.from('sales').insert(rows);
+  if(error) return toastErr(error);
+  const novo = Math.max(0, row.sold_in_cycle - qty);
+  const { error: e2 } = await sb.from('store_stock').update({ sold_in_cycle: novo }).eq('id', row.id);
+  if(e2) return toastErr(e2);
+  $('sv-corr-qty').value = '1';
+  await loadStoreFull(); renderStoreView();
+  toast('Correção registrada: ' + qty + ' × ' + prod.name + ' abatidos dos vendidos.');
+}
+function restockStatusBadge(status){
+  const map = { pendente: ['stp', 'Pendente'], atendida: ['stent', 'Atendida'], ignorada: ['stcanc', 'Ignorada'], cancelada: ['stcanc', 'Cancelada'] };
+  const m = map[status] || ['stcanc', status];
+  return `<span class="badge ${m[0]}">${m[1]}</span>`;
+}
+function renderStoreRestock(){
+  const card = $('sv-restock-card');
+  const st = SV.store;
+  if(!card || !st) return;
+  if(st.restock_requests_enabled){
+    card.innerHTML = `<h2>Reposição</h2>
+      <p class="mut" style="margin-bottom:8px;">Faltou produto no expositor? Peça para a J2L o que ela tem em casa, tudo de uma vez só.</p>
+      <div class="btnrow"><button class="pinkbtn" onclick="openStoreRestock()">Pedir reposição pra J2L</button></div>`;
+  } else {
+    card.innerHTML = `<h2>Reposição</h2><p class="mut">A reposição desta loja é combinada direto com a J2L.</p>`;
+  }
+  const list = $('sv-restocks');
+  if(list){
+    list.innerHTML = SV.restocks.length ? SV.restocks.map(r => {
+      const p = svProd(r.product_id);
+      return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${r.qty} peças · pedido em ${fmtDateTime(r.created_at)}</div></span>${restockStatusBadge(r.status)}</div>`;
+    }).join('') : '<p class="mut">Você ainda não pediu reposição por aqui.</p>';
+  }
+}
+function newUuid(){
+  if(window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+function openStoreRestock(){
+  const st = SV.store;
+  if(!st || !st.restock_requests_enabled) return;
+  const prods = SV.products.filter(p => (SV.gs[p.id] || 0) > 0).sort((a, b) => a.name.localeCompare(b.name));
+  openBox(`
+    <h2>Pedir reposição pra J2L</h2>
+    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto. Se algum pedido passar do que a J2L tem em casa, nada é enviado: ajuste e tente de novo.</p>
+    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Em casa na J2L: ${SV.gs[p.id]}</div></span>
+      <input type="text" inputmode="numeric" id="svr-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')
+      : '<p class="mut">A J2L não tem produtos em casa agora.</p>'}
+    <label>Mensagem (opcional)</label>
+    <input id="svr-msg" type="text" placeholder="Ex.: o chaveiro está acabando">
+    <div class="btnrow">
+      <button class="pinkbtn" onclick="submitStoreRestock()">Enviar pedido</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function submitStoreRestock(){
+  const lines = [];
+  for(const p of SV.products){
+    const inp = $('svr-qty-' + p.id);
+    if(!inp) continue;
+    const qty = Math.round(parseNum(inp.value) || 0);
+    if(qty > 0) lines.push({ product: p, qty: qty });
+  }
+  if(!lines.length){ toast('Digite a quantidade de pelo menos um produto.', true); return; }
+  for(const l of lines){
+    const avail = SV.gs[l.product.id] || 0;
+    if(l.qty > avail){ toast('Você pediu ' + l.qty + ' de "' + l.product.name + '" e a J2L só tem ' + avail + ' em casa. Nada foi enviado.', true); return; }
+  }
+  const gid = newUuid();
+  const msg = $('svr-msg') ? $('svr-msg').value.trim() : '';
+  const rows = lines.map(l => ({ store_id: SV.storeId, product_id: l.product.id, qty: l.qty, origin: 'loja', group_id: gid, message: msg }));
+  const { error } = await sb.from('restock_requests').insert(rows);
+  if(error) return toastErr(error);
+  closeBox();
+  await loadStoreFull(); renderStoreView();
+  toast('Pedido de reposição enviado para a J2L: ' + lines.reduce((a, l) => a + l.qty, 0) + ' itens.');
+}
+function renderStoreSales(){
+  const salesEl = $('sv-sales'); if(salesEl) salesEl.innerHTML = svSalesHistoryHtml();
+  const setEl = $('sv-settlements');
+  if(setEl) setEl.innerHTML = SV.settlements.length
+    ? SV.settlements.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
+    : '<p class="mut">Nenhum acerto registrado ainda.</p>';
+  const chartEl = $('sv-chart'); if(chartEl) chartEl.innerHTML = svChartHtml();
+}
+function svSalesHistoryHtml(){
+  if(!SV.sales.length) return '<p class="mut">Nenhuma venda registrada ainda.</p>';
+  const groups = {};
+  SV.sales.forEach(x => {
+    const day = String(x.sold_at).slice(0, 10);
+    const key = x.product_id + '|' + x.unit_price_cents + '|' + day;
+    const g = groups[key] || (groups[key] = { pid: x.product_id, price: x.unit_price_cents, day: day, qty: 0, total: 0, latest: x.sold_at });
+    const sgn = x.kind === 'correction' ? -1 : 1;
+    g.qty += sgn;
+    g.total += sgn * (x.unit_price_cents || 0);
+    if(String(x.sold_at) > String(g.latest)) g.latest = x.sold_at;
+  });
+  const list = Object.values(groups).sort((a, b) => String(b.latest).localeCompare(String(a.latest))).slice(0, 60);
+  return list.map(g => {
+    const p = svProd(g.pid);
+    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${fmtDate(g.day)} · ${g.qty} un × ${BRL(g.price)}</div></span><b>${BRL(g.total)}</b></div>`;
+  }).join('');
+}
+function svChartHtml(){
+  const byMonth = {};
+  const touch = m => byMonth[m] || (byMonth[m] = { v: 0, a: 0 });
+  SV.sales.forEach(x => { const b = touch(String(x.sold_at).slice(0, 7)); b.v += x.kind === 'correction' ? -(x.unit_price_cents || 0) : (x.unit_price_cents || 0); });
+  SV.settlements.forEach(x => { touch(String(x.settled_at).slice(0, 7)).a += x.amount_cents || 0; });
+  const keys = Object.keys(byMonth).sort().slice(-8);
+  if(!keys.length) return '<p class="mut">Sem dados ainda.</p>';
+  const max = Math.max(1, ...keys.map(k => Math.max(byMonth[k].v, byMonth[k].a)));
+  const bars = keys.map(k => {
+    const v = byMonth[k];
+    const hv = Math.max(2, Math.round(Math.max(0, v.v) / max * 100));
+    const ha = Math.max(2, Math.round(Math.max(0, v.a) / max * 100));
+    return `<div class="cmonth"><div class="cbars">
+      <div class="cbar" style="height:${hv}px; background:var(--cyan);" title="Vendas ${ymLabel(k)}: ${BRL(v.v)}"></div>
+      <div class="cbar" style="height:${ha}px; background:var(--pink);" title="Acertos ${ymLabel(k)}: ${BRL(v.a)}"></div>
+    </div><div class="mut">${ymLabel(k)}</div></div>`;
+  }).join('');
+  return `<div class="chart">${bars}</div><p class="mut"><span style="color:var(--cyan)">&#9632;</span> Vendas &nbsp; <span style="color:var(--pink)">&#9632;</span> Acertos</p>`;
+}
+
+/* ---------------- Tempo real ---------------- */
+let rtChannel = null, rtTimer = null;
+function rtUnsubscribe(){ try { sb.removeAllChannels(); } catch(e){} rtChannel = null; }
+function rtDebounce(fn){ clearTimeout(rtTimer); rtTimer = setTimeout(fn, 900); }
+function subscribeMasterRT(){
+  rtUnsubscribe();
+  rtChannel = sb.channel('j2l-master-rt');
+  ['sales','store_stock','restock_requests'].forEach(t => {
+    rtChannel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => rtDebounce(async () => {
+      if(!$('modal').classList.contains('hidden')) return;
+      await fetchAll(); renderAll();
+    }));
+  });
+  rtChannel.subscribe();
+}
+function subscribeStoreRT(){
+  rtUnsubscribe();
+  if(!SV.storeId) return;
+  rtChannel = sb.channel('j2l-store-rt-' + SV.storeId);
+  ['sales','store_stock','restock_requests'].forEach(t => {
+    rtChannel.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: 'store_id=eq.' + SV.storeId }, () => rtDebounce(async () => {
+      if(!$('modal').classList.contains('hidden')) return;
+      await loadStoreFull(); renderStoreView();
+    }));
+  });
+  rtChannel.subscribe();
+}
+
+/* ---------------- Convite, recuperação e senha ---------------- */
+function detectAuthLink(){
+  const h = window.location.hash || '';
+  if(h.length < 2) return;
+  const p = new URLSearchParams(h.slice(1));
+  const t = p.get('type');
+  if(t === 'invite' || t === 'recovery') S.setPassMode = true;
+  const desc = p.get('error_description');
+  if(desc) setTimeout(() => { const el = $('login-err'); if(el) el.textContent = 'Este link não vale mais (' + desc.replace(/\+/g, ' ') + '). Peça um convite novo ou use "Esqueci minha senha".'; }, 300);
+}
+async function saveNewPassword(){
+  const p1 = $('np-pass').value, p2 = $('np-pass2').value;
+  $('np-err').textContent = '';
+  if(!p1 || p1.length < 6){ $('np-err').textContent = 'A senha precisa de pelo menos 6 caracteres.'; return; }
+  if(p1 !== p2){ $('np-err').textContent = 'As senhas não conferem. Digite de novo.'; return; }
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if(error){ $('np-err').textContent = 'Não consegui salvar a senha: ' + error.message; return; }
+  S.setPassMode = false;
+  try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e){}
+  toast('Senha criada. Bem-vindo(a) à J2L!');
+  route();
+}
+async function forgotPassword(){
+  const email = $('in-email').value.trim();
+  $('login-err').textContent = '';
+  if(!email || email.indexOf('@') < 0){ $('login-err').textContent = 'Digite seu e-mail no campo acima e toque em "Esqueci minha senha" de novo.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://j2l.pages.dev' });
+  if(error){ $('login-err').textContent = 'Não consegui enviar o e-mail: ' + error.message; return; }
+  toast('Enviamos um link para ' + email + '. Abra o e-mail e toque no link para criar uma senha nova.');
+}
+
 /* Renderiza as linhas iniciais da Calculadora */
 (function seedCalc(){
   S.calc.fils = [{ filamentId: null, gramsStr: '' }];
   S.calc.sups = [{ supplyId: null, qtyStr: '' }];
 })();
 
+detectAuthLink();
 route();
 </script>
 </body>
