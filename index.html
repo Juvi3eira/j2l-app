@@ -430,7 +430,7 @@
           <h2>Reposições pedidas pelas lojas</h2>
           <div id="lojas-restock"></div>
         </div>
-        <div class="card">
+        <div class="card hidden" id="store-form-card">
           <h2 id="store-form-title">Nova loja</h2>
           <label>Nome da loja</label>
           <input id="st-name" type="text" placeholder="Ex.: Pure Pilates Cerejeiras">
@@ -469,11 +469,12 @@
           <label class="check"><input type="checkbox" id="st-restock" checked> A loja pode pedir reposição</label>
           <div class="btnrow">
             <button onclick="saveStore()">Salvar loja</button>
-            <button class="ghost hidden" id="st-cancel" onclick="storeFormReset(true)">Cancelar edição</button>
+            <button class="ghost hidden" id="st-cancel" onclick="closeStoreForm()">Cancelar</button>
           </div>
         </div>
         <div class="card">
           <h2>Lojas parceiras</h2>
+          <div class="btnrow" style="margin:0 0 10px;"><button class="btn-sm" onclick="openStoreForm()">+ Loja</button></div>
           <input id="store-search" type="text" placeholder="Buscar loja (pode digitar sem acento)" oninput="S.storeSearch = this.value; renderStoreList();">
           <div id="store-list"></div>
         </div>
@@ -2148,6 +2149,18 @@ function storeFormReset(scroll){
   toggleCycleFields();
   if(scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+function openStoreForm(){
+  S.currentStore = null;
+  storeFormReset(false);
+  $('st-cancel').classList.remove('hidden');
+  $('store-form-card').classList.remove('hidden');
+  renderLojas();
+  $('store-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closeStoreForm(){
+  storeFormReset(false);
+  $('store-form-card').classList.add('hidden');
+}
 function editStore(id){
   const st = storeById(id);
   if(!st) return;
@@ -2169,8 +2182,9 @@ function editStore(id){
   const profLoja = (S.profiles || []).find(pr => pr.store_id === id && pr.role === 'store');
   $('st-email').value = profLoja ? knownEmail(profLoja.id) : '';
   toggleCycleFields();
+  $('store-form-card').classList.remove('hidden');
   renderLojas();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  $('store-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function saveStore(){
   const name = $('st-name').value.trim();
@@ -2201,7 +2215,7 @@ async function saveStore(){
     if(ins.data) savedId = ins.data.id;
   }
   if(error) return toastErr(error);
-  storeFormReset(false);
+  closeStoreForm();
   await fetchAll(); renderAll();
   if(email && savedId){
     if(email.indexOf('@') < 0){ toast('Loja salva: ' + name + '. O e-mail de acesso parece incompleto, então o convite não foi enviado. Confira no cartão Acesso da loja.', true); return; }
