@@ -140,6 +140,7 @@
     <button class="drawer-item" type="button" data-menu-tab="calculadora" onclick="menuGo('calculadora')">Calculadora</button>
     <button class="drawer-item" type="button" data-menu-tab="produtos" onclick="menuGo('produtos')">Produtos</button>
     <button class="drawer-item" type="button" data-menu-tab="lojas" onclick="menuGo('lojas')">Lojas</button>
+    <button class="drawer-item" type="button" data-menu-tab="equipe" onclick="menuGo('equipe')">Equipe</button>
     <button class="drawer-item" type="button" data-menu-tab="pedidos" onclick="menuGo('pedidos')">Pedidos</button>
   </nav>
   <div class="drawer-foot">
@@ -187,6 +188,7 @@
       <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')">Calculadora</button>
       <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')">Produtos</button>
       <button class="tabbtn" data-tab="lojas" onclick="showTab('lojas')">Lojas</button>
+      <button class="tabbtn" data-tab="equipe" onclick="showTab('equipe')">Equipe</button>
       <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')">Pedidos</button>
     </nav>
 
@@ -489,26 +491,35 @@
           <input id="store-search" type="text" placeholder="Buscar loja (pode digitar sem acento)" oninput="S.storeSearch = this.value; renderStoreList();">
           <div id="store-list"></div>
         </div>
-        <div class="card">
-          <h2>Equipe</h2>
-          <p class="mut" style="margin-bottom:8px;">Quem tem acesso ao app. O e-mail de cada pessoa fica guardado na conta de autenticação dela: ele aparece aqui quando o acesso foi criado deste aparelho; nos outros casos, ele pode ser conferido no painel do Supabase.</p>
-          <div id="equipe-list"></div>
-          <h3>Adicionar master</h3>
-          <div class="cols">
-            <div><label>E-mail</label><input id="eq-email" type="email" placeholder="Ex.: joao@exemplo.com.br"></div>
-            <div><label>Nome</label><input id="eq-name" type="text" placeholder="Ex.: João"></div>
-          </div>
-          <div class="btnrow">
-            <button class="btn-sm" onclick="addMaster()">Enviar convite de master</button>
-          </div>
-          <p class="mut">A pessoa recebe um e-mail, define a própria senha pelo link e entra como master, igual a você. É assim que se cria o acesso do João.</p>
-        </div>
       </div>
       <div id="lojas-detail-wrap" class="hidden">
         <div class="btnrow" style="margin:0 0 12px;">
           <button class="ghost btn-sm" onclick="closeStore()">&#8592; Voltar para a lista de lojas</button>
         </div>
         <div id="store-detail"></div>
+      </div>
+    </div>
+
+    <!-- EQUIPE -->
+    <div id="tab-equipe" class="tabpage hidden">
+      <div class="card">
+        <h2>Masters</h2>
+        <p class="mut" style="margin-bottom:8px;">Quem tem acesso master ao app. O e-mail de cada pessoa fica guardado na conta de autenticação dela: ele aparece aqui quando o acesso foi criado deste aparelho; nos outros casos, ele pode ser conferido no painel do Supabase.</p>
+        <div id="equipe-list"></div>
+        <h3>Adicionar master</h3>
+        <div class="cols">
+          <div><label>E-mail</label><input id="eq-email" type="email" placeholder="Ex.: joao@exemplo.com.br"></div>
+          <div><label>Nome</label><input id="eq-name" type="text" placeholder="Ex.: João"></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn-sm" onclick="addMaster()">Enviar convite de master</button>
+        </div>
+        <p class="mut">A pessoa recebe um e-mail, define a própria senha pelo link e entra como master, igual a você. É assim que se cria o acesso do João.</p>
+      </div>
+      <div class="card">
+        <h2>Acessos das lojas</h2>
+        <p class="mut" style="margin-bottom:8px;">O acesso de cada loja é criado no cadastro da própria loja, na aba Lojas: ao salvar a loja com o e-mail de acesso, o convite é enviado e a loja define a própria senha pelo link que recebe.</p>
+        <div id="equipe-stores"></div>
       </div>
     </div>
 
@@ -910,6 +921,7 @@ function renderAll(){
   recomputeCalc();
   renderProdutos();
   renderLojas();
+  renderEquipe();
   renderPedidos();
   hydrateProductPhotos(document);
 }
@@ -2106,7 +2118,6 @@ function renderLojas(){
   $('lojas-list-wrap').classList.toggle('hidden', inDetail);
   $('lojas-detail-wrap').classList.toggle('hidden', !inDetail);
   if(inDetail) renderStoreDetail(); else renderStoreList();
-  renderEquipe();
 }
 function renderStoreList(){
   const q = norm(S.storeSearch);
@@ -2937,15 +2948,30 @@ async function invokeCreateUser(payload){
 /* ---------------- Equipe (master) ---------------- */
 function renderEquipe(){
   const el = $('equipe-list');
-  if(!el) return;
-  const rows = S.profiles || [];
-  el.innerHTML = rows.map(p => {
-    const store = p.store_id ? storeById(p.store_id) : null;
-    const email = knownEmail(p.id);
-    return `<div class="row"><span style="flex:1;">${esc(p.display_name || 'Sem nome')}
-      <div class="mut">${p.role === 'master' ? 'Acesso master' : 'Acesso de loja' + (store ? ': ' + esc(store.name) : '')}${email ? ' · ' + esc(email) : ''}</div></span>
-      <span class="badge ${p.role === 'master' ? 'stprod' : 'stp'}">${p.role === 'master' ? 'Master' : 'Loja'}</span></div>`;
-  }).join('') || '<p class="mut">Nenhum acesso criado ainda.</p>';
+  if(el){
+    const masters = (S.profiles || []).filter(p => p.role === 'master');
+    el.innerHTML = masters.map(p => {
+      const email = knownEmail(p.id);
+      return `<div class="row"><span style="flex:1;">${esc(p.display_name || 'Sem nome')}
+        <div class="mut">Acesso master${email ? ' · ' + esc(email) : ''}</div></span>
+        <span class="badge stprod">Master</span></div>`;
+    }).join('') || '<p class="mut">Nenhum acesso master criado ainda.</p>';
+  }
+  const stEl = $('equipe-stores');
+  if(stEl){
+    stEl.innerHTML = (S.stores || []).map(st => {
+      const prof = (S.profiles || []).find(p => p.store_id === st.id && p.role === 'store');
+      if(prof){
+        const email = knownEmail(prof.id);
+        return `<div class="row"><span style="flex:1;">${esc(st.name)}
+          <div class="mut">Login: ${esc(prof.display_name || 'sem nome')}${email ? ' · ' + esc(email) : ''}</div></span>
+          <span class="badge stent">Com acesso</span></div>`;
+      }
+      return `<div class="row"><span style="flex:1;">${esc(st.name)}
+        <div class="mut">Nenhum login criado para esta loja.</div></span>
+        <span class="badge stcanc">Sem acesso ainda</span></div>`;
+    }).join('') || '<p class="mut">Nenhuma loja cadastrada ainda.</p>';
+  }
 }
 async function addMaster(){
   const email = $('eq-email').value.trim();
