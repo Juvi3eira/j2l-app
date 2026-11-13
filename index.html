@@ -31,7 +31,7 @@
   .drawer-head img{height:48px; width:auto; display:block;}
   .drawer-close{background:transparent; border:1px solid var(--line); color:var(--txt); width:44px; min-height:44px; font-size:17px; border-radius:12px; padding:0;}
   .drawer nav{display:flex; flex-direction:column; gap:6px;}
-  .drawer-item{display:flex; align-items:center; width:100%; min-height:52px; padding:12px 14px; background:transparent; color:var(--txt); border:0; border-radius:12px; text-align:left; font-weight:700; font-size:16px;}
+  .drawer-item{display:flex; align-items:center; width:100%; min-height:52px; padding:12px 14px; background:transparent; color:var(--txt); border:0; border-radius:12px; text-align:left; font-weight:400; font-size:15px;}
   .drawer-item.on{background:var(--cyan); color:#0b0a18;}
   .drawer-foot{margin-top:auto; border-top:1px solid var(--line); padding-top:14px;}
   .drawer-who{color:var(--mut); font-size:13px; word-break:break-all; margin-bottom:10px;}
@@ -45,12 +45,12 @@
   input,select,textarea{width:100%; padding:12px; background:#141126; border:1px solid var(--line); color:var(--txt); margin-bottom:10px;}
   input[type="checkbox"]{width:auto; margin:0; padding:0;}
   label{display:block; font-size:13px; color:var(--mut); margin:6px 0 4px;}
-  button{background:var(--cyan); color:#0b0a18; border:0; padding:12px 18px; font-weight:800; cursor:pointer;}
+  button{background:var(--cyan); color:#0b0a18; border:0; padding:12px 18px; font-family:'Bungee','Nunito',sans-serif; font-weight:400; letter-spacing:.3px; cursor:pointer;}
   button:not(.btn-sm){min-height:44px;}
   button.ghost{background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:600;}
   button.danger{background:transparent; color:var(--bad); border:1px solid var(--bad); font-weight:600;}
   button.pinkbtn{background:var(--pink); color:#fff;}
-  .btn-sm{padding:7px 11px; font-size:13px; border-radius:8px;}
+  .btn-sm{padding:7px 11px; font-size:12px; border-radius:8px;}
   .row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:0;}
   .mut{color:var(--mut); font-size:13px;}
@@ -65,7 +65,7 @@
   .hidden{display:none !important;}
   .pill{font-size:11px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--mut);}
   .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
-  .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:700;}
+  .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:400; font-size:13px;}
   .tabbtn.on{background:var(--cyan); color:#0b0a18; border-color:var(--cyan);}
   .nav-icon{display:inline-block; margin-right:7px;}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
@@ -127,8 +127,10 @@
   input.switch::after{content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s;}
   input.switch:checked::after{left:22px;}
   .seg{display:flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:10px;}
-  .seg button{flex:1; background:transparent; color:var(--mut); border:0; border-radius:0; font-weight:700; padding:10px;}
+  .seg button{flex:1; background:transparent; color:var(--mut); border:0; border-radius:0; font-weight:400; font-size:14px; padding:10px;}
   .seg button.on{background:var(--cyan); color:#0b0a18;}
+  .tx-kind-seg #tx-kind-expense.on{background:var(--pink); color:#fff;}
+  .tx-kind-seg #tx-kind-income.on{background:var(--cyan); color:#0b0a18;}
   #tab-calculadora h3.collapse-h{cursor:pointer;}
   #tab-calculadora h3.collapse-h .car{float:right; color:var(--mut);}
 </style>
@@ -212,6 +214,10 @@
 
     <!-- FINANÇAS -->
     <div id="tab-financas" class="tabpage">
+      <div class="btnrow" style="margin:0 0 14px;">
+        <button style="flex:1;" onclick="openTxModal()">Novo lançamento</button>
+      </div>
+      <datalist id="cat-list"></datalist>
       <div class="card">
         <h2>Finanças</h2>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
@@ -237,79 +243,6 @@
         <div id="fin-cat-summary"></div>
       </div>
       <div class="card">
-        <h2 id="tx-form-title">Novo lançamento</h2>
-        <label>Tipo</label>
-        <select id="tx-kind" onchange="txKindChange()">
-          <option value="expense">Despesa</option>
-          <option value="income">Ganho</option>
-          <option value="material">Compra de material</option>
-        </select>
-        <div id="tx-generic-fields">
-          <label>Descrição</label>
-          <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
-          <label>Categoria</label>
-          <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Filamento, Insumos, Equipamentos">
-          <datalist id="cat-list"></datalist>
-        </div>
-        <div id="tx-material-fields" class="hidden">
-          <div class="btnrow" style="margin:0 0 12px;">
-            <button class="btn-sm" id="mat-type-f" onclick="setMatType('filament')">Filamento</button>
-            <button class="btn-sm ghost" id="mat-type-s" onclick="setMatType('supply')">Insumo</button>
-          </div>
-          <div id="mat-form-fil">
-            <label>Nome do filamento</label>
-            <input id="mf-name" type="text" placeholder="Ex.: PLA Velvet Preto">
-            <div class="cols">
-              <div><label>Marca</label><input id="mf-brand" type="text" placeholder="Ex.: Voolt3D"></div>
-              <div><label>Material</label><input id="mf-material" type="text" value="PLA"></div>
-            </div>
-            <div class="cols">
-              <div><label>Cor</label><input id="mf-color" type="text" placeholder="Ex.: Preto"></div>
-              <div><label>Peso do rolo (g)</label><input id="mf-weight" type="text" inputmode="decimal" value="1000"></div>
-            </div>
-            <label>Preço pago (R$)</label>
-            <input id="mf-price" type="text" inputmode="decimal" placeholder="0,00">
-          </div>
-          <div id="mat-form-sup" class="hidden">
-            <label>Nome do insumo</label>
-            <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
-            <label>Como você sabe o custo?</label>
-            <select id="ms-mode" onchange="setSupplyMode(this.value)">
-              <option value="package">Pelo pacote: quantidade e preço total</option>
-              <option value="unit">Pelo custo de cada unidade</option>
-            </select>
-            <div id="ms-package">
-              <div class="cols">
-                <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
-                <div><label>Preço total pago (R$)</label><input id="ms-price" type="text" inputmode="decimal" placeholder="0,00"></div>
-              </div>
-              <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
-            </div>
-            <div id="ms-unitmode" class="hidden">
-              <div class="cols">
-                <div><label>Quantidade em estoque</label><input id="ms-uqty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
-                <div><label>Custo por unidade (R$)</label><input id="ms-unitcost" type="text" inputmode="decimal" placeholder="Ex.: 0,32"></div>
-              </div>
-            </div>
-            <label>Unidade</label>
-            <input id="ms-unit" type="text" value="un">
-          </div>
-          <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
-        </div>
-        <div class="cols">
-          <div id="tx-amount-cell"><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
-          <div><label>Data</label><input id="tx-date" type="date"></div>
-        </div>
-        <div id="tx-notes-wrap">
-          <label>Observações</label>
-          <input id="tx-notes" type="text" placeholder="Opcional">
-        </div>
-        <div class="btnrow">
-          <button id="tx-save-btn" onclick="txSave()">Salvar lançamento</button>
-          <button class="ghost hidden" id="tx-cancel" onclick="txCancel()">Cancelar edição</button>
-        </div>
-      </div>
-      <div class="card">
         <h2>Lançamentos do mês</h2>
         <div id="fin-list"></div>
       </div>
@@ -317,25 +250,26 @@
 
     <!-- MATERIAIS -->
     <div id="tab-materiais" class="tabpage hidden">
-      <div class="card">
-        <div class="btnrow" style="margin:0;">
-          <button style="flex:1;" onclick="openMaterialPurchase()">Comprar material</button>
-        </div>
-        <p class="mut" style="margin-top:10px;">A compra é feita no formulário de Finanças, no modo "Compra de material", e já pode entrar como despesa vinculada.</p>
-      </div>
       <div class="card hidden" id="mat-edit-card">
         <h2>Editar material</h2>
         <div id="mat-edit-fields"></div>
         <div class="btnrow">
           <button onclick="saveMatEdit()">Salvar edição</button>
+          <button class="danger" onclick="delMat(S.editingMat.type, S.editingMat.id)">Excluir</button>
           <button class="ghost" onclick="cancelMatEdit()">Cancelar</button>
         </div>
       </div>
       <div class="card">
         <h2>Materiais em estoque</h2>
-        <h3>Filamentos</h3>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <h3 style="margin:0;">Filamentos</h3>
+          <button class="btn-sm" onclick="openPurchaseModal('filament')">+ Filamento</button>
+        </div>
         <div id="mat-fil"></div>
-        <h3>Insumos</h3>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <h3 style="margin:0;">Insumos</h3>
+          <button class="btn-sm" onclick="openPurchaseModal('supply')">+ Insumo</button>
+        </div>
         <div id="mat-sup"></div>
       </div>
     </div>
@@ -941,6 +875,7 @@ function renderAll(){
   renderProdutos();
   renderLojas();
   renderEquipe();
+  refreshAccessStatus();
   renderPedidos();
   hydrateProductPhotos(document);
 }
@@ -1015,46 +950,55 @@ function renderFinChart(){
     </div><div class="mut">${ymLabel(k)}</div></div>`;
   }).join('');
 }
-function txKindChange(){
-  const material = $('tx-kind').value === 'material';
-  $('tx-generic-fields').classList.toggle('hidden', material);
-  $('tx-amount-cell').classList.toggle('hidden', material);
-  $('tx-notes-wrap').classList.toggle('hidden', material);
-  $('tx-material-fields').classList.toggle('hidden', !material);
-  $('tx-form-title').textContent = material ? 'Comprar material' : (S.editingTx ? 'Editar lançamento' : 'Novo lançamento');
-  $('tx-save-btn').textContent = material ? 'Salvar compra' : 'Salvar lançamento';
+function txFormHtml(){
+  return `
+    <h2 id="tx-form-title">Novo lançamento</h2>
+    <input id="tx-kind" type="hidden" value="expense">
+    <div class="seg tx-kind-seg">
+      <button type="button" id="tx-kind-expense" class="on" onclick="setTxKind('expense')">Saída</button>
+      <button type="button" id="tx-kind-income" onclick="setTxKind('income')">Entrada</button>
+    </div>
+    <label>Descrição</label>
+    <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
+    <div class="cols">
+      <div><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
+      <div><label>Data</label><input id="tx-date" type="date"></div>
+    </div>
+    <label>Categoria</label>
+    <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Filamento, Insumos, Equipamentos">
+    <label>Observações</label>
+    <input id="tx-notes" type="text" placeholder="Opcional">
+    <button id="tx-save-btn" style="width:100%;" onclick="txSave()">Salvar lançamento</button>
+    <div class="btnrow">
+      <button class="ghost" onclick="txCancel()">Cancelar</button>
+    </div>`;
 }
-function openMaterialPurchase(){
-  if(S.editingTx) txCancel();
-  showTab('financas');
-  $('tx-kind').value = 'material';
-  txKindChange();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function setTxKind(kind){
+  if($('tx-kind')) $('tx-kind').value = kind;
+  if($('tx-kind-expense')) $('tx-kind-expense').classList.toggle('on', kind === 'expense');
+  if($('tx-kind-income')) $('tx-kind-income').classList.toggle('on', kind === 'income');
+}
+function openTxModal(){
+  S.editingTx = null;
+  openBox(txFormHtml());
+  setTxKind('expense');
+  $('tx-date').value = todayStr();
 }
 function txCancel(){
   S.editingTx = null;
-  $('tx-form-title').textContent = 'Novo lançamento';
-  $('tx-cancel').classList.add('hidden');
-  $('tx-kind').value = 'expense'; $('tx-desc').value = ''; $('tx-cat').value = '';
-  $('tx-amount').value = ''; $('tx-notes').value = ''; $('tx-date').value = todayStr();
-  txKindChange();
+  closeBox();
 }
 function txEdit(id){
   const t = S.txs.find(x => x.id === id);
   if(!t) return;
   S.editingTx = id;
+  openBox(txFormHtml());
   $('tx-form-title').textContent = 'Editar lançamento';
-  $('tx-cancel').classList.remove('hidden');
-  $('tx-kind').value = t.kind; $('tx-desc').value = t.description; $('tx-cat').value = t.category || '';
+  setTxKind(t.kind);
+  $('tx-desc').value = t.description; $('tx-cat').value = t.category || '';
   $('tx-amount').value = moneyStr(t.amount_cents); $('tx-notes').value = t.notes || ''; $('tx-date').value = t.date;
-  txKindChange();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 async function txSave(){
-  if($('tx-kind').value === 'material'){
-    if(!S.editingTx) await savePurchase();
-    return;
-  }
   const desc = $('tx-desc').value.trim();
   const amount = parseMoney($('tx-amount').value);
   const date = $('tx-date').value || todayStr();
@@ -1093,6 +1037,65 @@ async function txDel(id){
 }
 
 /* ---------------- Materiais ---------------- */
+function purchaseFormHtml(){
+  return `
+    <h2>Comprar material</h2>
+    <div class="btnrow" style="margin:0 0 12px;">
+      <button class="btn-sm" id="mat-type-f" onclick="setMatType('filament')">Filamento</button>
+      <button class="btn-sm ghost" id="mat-type-s" onclick="setMatType('supply')">Insumo</button>
+    </div>
+    <div id="mat-form-fil">
+      <label>Nome do filamento</label>
+      <input id="mf-name" type="text" placeholder="Ex.: PLA Velvet Preto">
+      <div class="cols">
+        <div><label>Marca</label><input id="mf-brand" type="text" placeholder="Ex.: Voolt3D"></div>
+        <div><label>Material</label><input id="mf-material" type="text" value="PLA"></div>
+      </div>
+      <div class="cols">
+        <div><label>Cor</label><input id="mf-color" type="text" placeholder="Ex.: Preto"></div>
+        <div><label>Peso do rolo (g)</label><input id="mf-weight" type="text" inputmode="decimal" value="1000"></div>
+      </div>
+      <label>Preço pago (R$)</label>
+      <input id="mf-price" type="text" inputmode="decimal" placeholder="0,00">
+    </div>
+    <div id="mat-form-sup" class="hidden">
+      <label>Nome do insumo</label>
+      <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
+      <label>Como você sabe o custo?</label>
+      <select id="ms-mode" onchange="setSupplyMode(this.value)">
+        <option value="package">Pelo pacote: quantidade e preço total</option>
+        <option value="unit">Pelo custo de cada unidade</option>
+      </select>
+      <div id="ms-package">
+        <div class="cols">
+          <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+          <div><label>Preço total pago (R$)</label><input id="ms-price" type="text" inputmode="decimal" placeholder="0,00"></div>
+        </div>
+        <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
+      </div>
+      <div id="ms-unitmode" class="hidden">
+        <div class="cols">
+          <div><label>Quantidade em estoque</label><input id="ms-uqty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+          <div><label>Custo por unidade (R$)</label><input id="ms-unitcost" type="text" inputmode="decimal" placeholder="Ex.: 0,32"></div>
+        </div>
+      </div>
+      <label>Unidade</label>
+      <input id="ms-unit" type="text" value="un">
+    </div>
+    <label>Data</label>
+    <input id="mat-date" type="date">
+    <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
+    <div class="btnrow">
+      <button onclick="savePurchase()">Salvar compra</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`;
+}
+function openPurchaseModal(type){
+  openBox(purchaseFormHtml());
+  $('mat-date').value = todayStr();
+  setMatType(type === 'supply' ? 'supply' : 'filament');
+  if($('ms-mode')) setSupplyMode($('ms-mode').value);
+}
 function setMatType(t){
   S.matType = t;
   $('mat-form-fil').classList.toggle('hidden', t !== 'filament');
@@ -1104,24 +1107,16 @@ function renderMateriais(){
   $('mat-fil').innerHTML = S.filaments.map(f => {
     const rem = filRemaining(f);
     const link = f.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
-    return `<div class="row"><span style="flex:1;"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}${link}
+    return `<div class="row" style="cursor:pointer;" onclick="editMat('filament', ${f.id})"><span style="flex:1;"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}${link}
       <div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')} · comprou por ${BRL(f.price_cents)} · ${BRL(Math.round(filCostPerGram(f)*100)/100)} por grama</div></span>
-      <span style="text-align:right;"><b>${fmtN(rem)} g</b><div class="mut">de ${fmtN(f.weight_grams)} g</div>
-      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
-        <button class="ghost btn-sm" onclick="editMat('filament', ${f.id})">Editar</button>
-        <button class="danger btn-sm" onclick="delMat('filament', ${f.id})">Excluir</button>
-      </div></span></div>`;
+      <span style="text-align:right;"><b>${fmtN(rem)} g</b><div class="mut">de ${fmtN(f.weight_grams)} g</div></span></div>`;
   }).join('') || '<p class="mut">Nenhum filamento.</p>';
   $('mat-sup').innerHTML = S.supplies.map(s => {
     const rem = supRemaining(s);
     const link = s.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
-    return `<div class="row"><span style="flex:1;">${esc(s.name)} ${lowBadge(rem, s.stock_qty)}${link}
+    return `<div class="row" style="cursor:pointer;" onclick="editMat('supply', ${s.id})"><span style="flex:1;">${esc(s.name)} ${lowBadge(rem, s.stock_qty)}${link}
       <div class="mut">${BRL(s.unit_cost_cents)} cada · comprados: ${fmtN(s.stock_qty)} ${esc(s.unit)}</div></span>
-      <span style="text-align:right;"><b>${fmtN(rem)} ${esc(s.unit)}</b><div class="mut">restantes</div>
-      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
-        <button class="ghost btn-sm" onclick="editMat('supply', ${s.id})">Editar</button>
-        <button class="danger btn-sm" onclick="delMat('supply', ${s.id})">Excluir</button>
-      </div></span></div>`;
+      <span style="text-align:right;"><b>${fmtN(rem)} ${esc(s.unit)}</b><div class="mut">restantes</div></span></div>`;
   }).join('') || '<p class="mut">Nenhum insumo.</p>';
 }
 function setSupplyMode(v){
@@ -1130,7 +1125,7 @@ function setSupplyMode(v){
 }
 async function savePurchase(){
   const toFinance = $('mat-fin').checked;
-  const date = $('tx-date').value || todayStr();
+  const date = $('mat-date').value || todayStr();
   let matId = null, price = 0, name = '', desc = '', table = '', linkedType = '';
   if(S.matType === 'filament'){
     name = $('mf-name').value.trim();
@@ -1179,6 +1174,7 @@ async function savePurchase(){
   }
   $('mf-name').value = ''; $('mf-brand').value = ''; $('mf-color').value = ''; $('mf-price').value = '';
   $('ms-name').value = ''; $('ms-qty').value = ''; $('ms-price').value = ''; $('ms-uqty').value = ''; $('ms-unitcost').value = '';
+  closeBox();
   await fetchAll(); renderAll();
   toast('Compra salva: ' + name + (toFinance ? ', com a despesa lançada nas Finanças.' : '.'));
 }
@@ -1692,42 +1688,100 @@ function slicerMinutes(text){
 }
 function parseSlicerText(text){
   const res = { rows: [], total: null, minutes: slicerMinutes(text), changes: null };
-  let seenTotal = false;
-  String(text || '').split(/\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
+  const tokenize = str => {
+    const out = [];
+    const re = /(\d{1,6}(?:[.,]\d{1,4})?)\s*([gm])?/gi;
+    let m;
+    while((m = re.exec(str)) !== null) out.push({ raw: m[1], unit: (m[2] || '').toLowerCase() });
+    return out;
+  };
+  const gramsOf = raw => { const c = gramCandidates(raw); return c.length ? c[0] : null; };
+  const buildRow = seg => {
+    const gToks = seg.toks.filter(t => t.unit === 'g');
+    const mToks = seg.toks.filter(t => t.unit === 'm');
+    const uToks = seg.toks.filter(t => !t.unit);
+    let grams = null, meters = 0;
+    if(mToks.length) meters = metersValue(mToks[mToks.length - 1].raw);
+    if(gToks.length) grams = gramsOf(gToks[gToks.length - 1].raw);
+    else if(uToks.length){
+      const lastU = uToks[uToks.length - 1];
+      if(!mToks.length && uToks.length >= 2) meters = metersValue(uToks[0].raw);
+      grams = meters > 0 ? pickByRatio(gramCandidates(lastU.raw), meters) : gramsOf(lastU.raw);
+    }
+    if(grams == null || !isFinite(grams)) return null;
+    return { index: seg.index, grams: r2(grams), meters: meters };
+  };
+  const segments = [];
+  let current = null;
+  let inSummary = false, summaryDone = false;
+  const summaryToks = [];
+  const newSeg = idx => { current = { index: idx, toks: [] }; segments.push(current); };
+  String(text || '').split(/\n/).forEach(rawLine => {
+    const line = rawLine.trim();
+    if(!line) return;
     const low = norm(line);
+    if(low.indexOf('modelo') >= 0 && low.indexOf('torre') >= 0) return;
     if(low.indexOf('troca') >= 0){
       const mm = line.replace(/[Oo]/g, '0').match(/(\d{1,5})\s*$/);
       if(mm) res.changes = parseInt(mm[1], 10);
+      if(inSummary) summaryDone = true;
       return;
     }
-    if(low.indexOf('tempo') >= 0 || low.indexOf('custo') >= 0 || low.indexOf('estimativa') >= 0) return;
-    const toks = [];
-    const re = /(\d{1,6}(?:[.,]\d{1,4})?)\s*([gm])?/gi;
-    let m;
-    while((m = re.exec(line)) !== null) toks.push({ raw: m[1], unit: (m[2] || '').toLowerCase() });
-    if(!toks.length) return;
-    let gramTok = null, meterTok = null;
-    toks.forEach(tk => { if(tk.unit === 'g') gramTok = tk; if(tk.unit === 'm') meterTok = tk; });
-    if(!meterTok && toks.length >= 2) meterTok = toks[0];
-    if(!gramTok && toks.length >= 2) gramTok = toks[toks.length - 1];
-    if(!gramTok) return;
-    const meters = meterTok && meterTok !== gramTok ? metersValue(meterTok.raw) : 0;
-    const grams = pickByRatio(gramCandidates(gramTok.raw), meters);
-    if(grams == null) return;
-    if(/\btotal\b/i.test(low)){ res.total = grams; seenTotal = true; return; }
-    if(seenTotal) return;
-    let idx = null;
-    const lm = low.match(/filament\w*\s*(\d{1,2})/);
-    if(lm) idx = parseInt(lm[1], 10);
-    if(idx == null){
-      const lead = line.match(/^\s*[^0-9a-z]*?(\d{1,2})\s+\d/);
-      if(lead){ const v = parseInt(lead[1], 10); if(v >= 1 && v <= 12) idx = v; }
+    if(low.indexOf('tempo') >= 0 || low.indexOf('custo') >= 0 || low.indexOf('estimativa') >= 0 || low.indexOf('quantidade') >= 0 || low.indexOf('opcoes') >= 0){
+      if(inSummary) summaryDone = true;
+      return;
     }
-    if(idx == null || idx < 1 || idx > 12) idx = res.rows.length + 1;
-    while(res.rows.some(r => r.index === idx)) idx++;
-    res.rows.push({ index: idx, grams: grams, meters: meters });
+    if(!inSummary && /(^|[^a-z])total([^a-z]|$)/.test(low)){
+      inSummary = true;
+      current = null;
+      tokenize(line).forEach(tk => summaryToks.push(tk));
+      return;
+    }
+    if(inSummary){
+      if(!summaryDone) tokenize(line).forEach(tk => summaryToks.push(tk));
+      return;
+    }
+    const labelMatch = low.match(/filament\w*\s*[-#:]?\s*(\d{1,2})\b/);
+    const labelIdx = labelMatch ? parseInt(labelMatch[1], 10) : null;
+    let labelPending = labelIdx != null;
+    tokenize(line).forEach(tk => {
+      const plainInt = !tk.unit && !/[.,]/.test(tk.raw) && /^\d{1,2}$/.test(tk.raw);
+      const v = plainInt ? parseInt(tk.raw, 10) : null;
+      if(labelPending && plainInt && v === labelIdx){
+        if(!current || current.index !== v) newSeg(v);
+        labelPending = false;
+        return;
+      }
+      if(plainInt && v >= 1 && v <= 12){
+        if(!current && v === 1){ newSeg(v); return; }
+        if(current && v === current.index + 1 && current.toks.length >= 2){ newSeg(v); return; }
+      }
+      if(!current) newSeg(segments.length + 1);
+      current.toks.push(tk);
+    });
   });
+  segments.forEach(seg => { const row = buildRow(seg); if(row) res.rows.push(row); });
+  if(!res.rows.length){
+    String(text || '').split(/\n/).forEach(rawLine => {
+      const line = rawLine.trim();
+      if(!line) return;
+      const low = norm(line);
+      if(low.indexOf('troca') >= 0 || low.indexOf('tempo') >= 0 || low.indexOf('custo') >= 0 || low.indexOf('modelo') >= 0 || /(^|[^a-z])total([^a-z]|$)/.test(low)) return;
+      const row = buildRow({ index: res.rows.length + 1, toks: tokenize(line) });
+      if(row) res.rows.push(row);
+    });
+  }
   res.rows.sort((a, b) => a.index - b.index);
+  const sg = summaryToks.filter(t => t.unit === 'g');
+  const sm = summaryToks.filter(t => t.unit === 'm');
+  const su = summaryToks.filter(t => !t.unit);
+  if(sg.length) res.total = gramsOf(sg[sg.length - 1].raw);
+  else if(su.length){
+    const lastU = su[su.length - 1];
+    const mVal = sm.length ? metersValue(sm[sm.length - 1].raw) : (su.length >= 2 ? metersValue(su[0].raw) : 0);
+    res.total = mVal > 0 ? pickByRatio(gramCandidates(lastU.raw), mVal) : gramsOf(lastU.raw);
+  }
+  if(res.total != null) res.total = r2(res.total);
   return res;
 }
 function mergeSlicerResults(a, b){
@@ -1736,7 +1790,7 @@ function mergeSlicerResults(a, b){
   out.rows.sort((x, y) => x.index - y.index);
   if(out.total != null && out.rows.length >= 2){
     const sum = out.rows.reduce((s, r) => s + r.grams, 0);
-    if(Math.abs(sum - out.total) > 0.06){
+    if(Math.abs(sum - out.total) > Math.max(0.06, out.total * 0.02)){
       const second = out.rows.filter(r => r.fromSecond);
       if(second.length === 1){
         const r = second[0];
@@ -1838,7 +1892,7 @@ function applySlicerResult(res){
       <div class="mut">${f ? (r.matchBy === 'cor' ? 'Combinado pela cor do print.' : 'Combinado pela ordem dos rolos.') : 'Escolha o rolo no seletor da linha.'}${r.derived ? ' Valor completado pelo total.' : ''}</div>`;
   }).join('');
   const sum = res.rows.reduce((s, r) => s + r.grams, 0);
-  const sumTxt = res.total != null ? `Total lido: ${fmtN(res.total)} g${Math.abs(sum - res.total) > 0.06 ? ' (a soma das linhas deu ' + fmtN(r2(sum)) + ' g, confira)' : ''}. ` : '';
+  const sumTxt = res.total != null ? `Total lido: ${fmtN(res.total)} g${Math.abs(sum - res.total) > Math.max(0.06, res.total * 0.02) ? ' (a soma das linhas deu ' + fmtN(r2(sum)) + ' g, confira)' : ''}. ` : '';
   $('slicer-summary').innerHTML = `<h3>Leitura do print</h3>${lines}
     <p class="mut">${sumTxt}Tempo total: ${fmtTime(res.minutes)}.${res.changes ? ' Trocas: ' + res.changes + '.' : ''} Modo lote ligado: confira as peças do lote e os rolos. Nada foi salvo.</p>
     <div class="btnrow"><button class="ghost btn-sm" onclick="dismissSlicerSummary()">Fechar aviso</button></div>`;
@@ -3047,6 +3101,43 @@ async function invokeDeleteUser(userId){
   return { ok: false, error: (data && data.error) || 'resposta inesperada da função de retirar acesso' };
 }
 
+async function invokeAccessStatus(){
+  const { data, error } = await sb.functions.invoke('access-status', { body: {} });
+  if(error){
+    let msg = error.message || 'a função de status dos acessos falhou';
+    try {
+      if(error.context && typeof error.context.json === 'function'){
+        const body = await error.context.json();
+        if(body && body.error) msg = body.error;
+      }
+    } catch(e){ /* segue com a mensagem genérica */ }
+    return { ok: false, error: msg };
+  }
+  if(data && data.ok && Array.isArray(data.users)){
+    const map = {};
+    data.users.forEach(u => { if(u && u.id) map[u.id] = u; });
+    return { ok: true, map: map };
+  }
+  return { ok: false, error: (data && data.error) || 'resposta inesperada da função de status dos acessos' };
+}
+
+let accessStatusLoading = false;
+let accessStatusLoadedAt = 0;
+async function refreshAccessStatus(){
+  if(accessStatusLoading) return;
+  if(accessStatusLoadedAt && (Date.now() - accessStatusLoadedAt) < 60000) return;
+  accessStatusLoading = true;
+  try {
+    const res = await invokeAccessStatus();
+    S.accessStatus = res.ok ? res.map : null;
+  } catch(e) {
+    S.accessStatus = null;
+  }
+  accessStatusLoadedAt = Date.now();
+  accessStatusLoading = false;
+  renderEquipe();
+}
+
 /* ---------------- Equipe (master) ---------------- */
 function renderAccessStoreOptions(){
   const sel = $('ac-store');
@@ -3097,6 +3188,7 @@ async function createAccess(){
   const res = await invokeCreateUser(payload);
   if(!res.ok){ toast('Não consegui criar o acesso: ' + res.error, true); return; }
   if(res.userId) rememberEmail(res.userId, email);
+  accessStatusLoadedAt = 0;
   nameEl.value = '';
   emailEl.value = '';
   await fetchAll(); renderAll();
@@ -3126,7 +3218,9 @@ function renderEquipe(){
   } else if(S.accRoleFilter){
     list = list.filter(p => p.role === S.accRoleFilter);
   }
-  const displayName = p => p.display_name || knownEmail(p.id) || 'Sem nome';
+  const statusOf = p => (S.accessStatus && S.accessStatus[p.id]) ? S.accessStatus[p.id] : null;
+  const emailOf = p => { const st = statusOf(p); return (st && st.email) || knownEmail(p.id); };
+  const displayName = p => p.display_name || emailOf(p.id) || 'Sem nome';
   const storeName = p => {
     const st = storeById(p.store_id);
     return st ? st.name : 'Loja removida';
@@ -3146,18 +3240,34 @@ function renderEquipe(){
   }
   const myId = S.profile && S.profile.id ? S.profile.id : '';
   el.innerHTML = list.map(p => {
-    const email = knownEmail(p.id);
+    const email = emailOf(p);
     const name = displayName(p);
     const isMaster = p.role === 'master';
     const badge = isMaster ? '<span class="badge stprod">Master</span>' : '<span class="badge link">Loja</span>';
     const storeLine = !isMaster ? `<div class="mut">Loja: ${esc(storeName(p))}</div>` : '';
     const emailLine = email ? `<div class="mut">${esc(email)}</div>` : '';
+    const entry = statusOf(p);
+    let statusBadge = '';
+    let statusLine = '';
+    if(entry){
+      const active = !!(entry.email_confirmed_at || entry.confirmed_at);
+      if(active){
+        statusBadge = '<span class="badge stent">Ativo</span>';
+        if(entry.last_sign_in_at){
+          const d = new Date(entry.last_sign_in_at);
+          if(!isNaN(d.getTime())) statusLine = `<div class="mut">Último acesso em ${d.toLocaleDateString('pt-BR')}</div>`;
+        }
+      } else {
+        statusBadge = '<span class="badge low">Pendente</span>';
+        statusLine = '<div class="mut">Convite aguardando definição de senha.</div>';
+      }
+    }
     const own = myId && String(p.id) === String(myId);
     const removeBtn = own
       ? '<button class="danger btn-sm" type="button" disabled title="Seu próprio acesso">Retirar acesso</button>'
       : `<button class="danger btn-sm" type="button" data-name="${esc(name)}" onclick="removeAccess('${p.id}', this.dataset.name)">Retirar acesso</button>`;
-    return `<div class="row"><span style="flex:1;">${esc(name)}${emailLine}${storeLine}</span>
-      <span class="btnrow" style="margin-top:0; justify-content:flex-end;">${badge}${removeBtn}</span></div>`;
+    return `<div class="row"><span style="flex:1;">${esc(name)}${emailLine}${storeLine}${statusLine}</span>
+      <span class="btnrow" style="margin-top:0; justify-content:flex-end;">${badge}${statusBadge}${removeBtn}</span></div>`;
   }).join('');
 }
 async function removeAccess(profileId, displayName){
@@ -3171,6 +3281,7 @@ async function removeAccess(profileId, displayName){
   const res = await invokeDeleteUser(profileId);
   if(!res.ok){ toast('Não consegui retirar o acesso: ' + res.error, true); return; }
   forgetEmail(profileId);
+  accessStatusLoadedAt = 0;
   await fetchAll(); renderAll();
   toast('Acesso retirado.');
 }
