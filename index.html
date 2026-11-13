@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J2L Finanças e Consignado</title>
+<link rel="icon" type="image/png" href="favicon-heart.png">
+<link rel="apple-touch-icon" href="favicon-heart.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -16,7 +18,7 @@
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Nunito','Segoe UI',system-ui,sans-serif;}
   body{background:var(--bg); color:var(--txt); min-height:100vh;}
   header{background:var(--navy); padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--line); position:relative; z-index:60;}
-  header img.logoimg{height:34px; width:auto; display:block; flex:0 0 auto;}
+  header img.logoimg{height:46px; width:auto; max-width:34vw; object-fit:contain; display:block; flex:0 0 auto;}
   .header-actions{margin-left:auto; display:flex; gap:8px; align-items:center; min-width:0;}
   #who{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .menu-btn{display:none; align-items:center; gap:8px; min-height:44px; padding:10px 13px; background:transparent; color:var(--txt); border:1px solid var(--line); font-weight:800;}
@@ -26,7 +28,7 @@
   .drawer{position:fixed; top:0; left:0; height:100dvh; width:min(300px, 84vw); background:var(--navy); border-right:2px solid var(--line); z-index:90; transform:translateX(-105%); visibility:hidden; transition:transform .28s ease, visibility 0s linear .28s; display:flex; flex-direction:column; padding:18px 14px; box-shadow:16px 0 36px rgba(0,0,0,.48);}
   .drawer.open{transform:translateX(0); visibility:visible; transition:transform .28s ease, visibility 0s;}
   .drawer-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
-  .drawer-head img{height:40px; width:auto; display:block;}
+  .drawer-head img{height:48px; width:auto; display:block;}
   .drawer-close{background:transparent; border:1px solid var(--line); color:var(--txt); width:44px; min-height:44px; font-size:17px; border-radius:12px; padding:0;}
   .drawer nav{display:flex; flex-direction:column; gap:6px;}
   .drawer-item{display:flex; align-items:center; width:100%; min-height:52px; padding:12px 14px; background:transparent; color:var(--txt); border:0; border-radius:12px; text-align:left; font-weight:700; font-size:16px;}
@@ -65,6 +67,7 @@
   .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
   .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:700;}
   .tabbtn.on{background:var(--cyan); color:#0b0a18; border-color:var(--cyan);}
+  .nav-icon{display:inline-block; margin-right:7px;}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   @media(max-width:720px){
     header{padding:10px 12px; gap:8px; position:sticky; top:0;}
@@ -132,7 +135,7 @@
 </head>
 <body>
 <header>
-  <img class="logoimg" src="logo-j2l.png" alt="J2L Impressão 3D">
+  <img class="logoimg" src="logo-j2l-header.png" alt="J2L Impressão 3D">
   <button id="menu-btn" class="menu-btn hidden" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="drawer" onclick="toggleMobileMenu(event)"><span class="burger" aria-hidden="true">&#9776;</span><span>Menu</span></button>
   <div class="header-actions">
     <span id="who" class="pill hidden"></span>
@@ -142,17 +145,17 @@
 <div id="drawer-overlay" class="drawer-overlay" onclick="closeMobileMenu()"></div>
 <aside id="drawer" class="drawer" aria-label="Navegação principal" aria-hidden="true">
   <div class="drawer-head">
-    <img src="logo-j2l.png" alt="J2L Impressão 3D">
+    <img src="logo-j2l-header.png" alt="J2L Impressão 3D">
     <button class="drawer-close" type="button" aria-label="Fechar menu" onclick="closeMobileMenu()">&#10005;</button>
   </div>
   <nav>
-    <button class="drawer-item on" type="button" data-menu-tab="financas" onclick="menuGo('financas')">Finanças</button>
-    <button class="drawer-item" type="button" data-menu-tab="materiais" onclick="menuGo('materiais')">Materiais</button>
-    <button class="drawer-item" type="button" data-menu-tab="calculadora" onclick="menuGo('calculadora')">Calculadora</button>
-    <button class="drawer-item" type="button" data-menu-tab="produtos" onclick="menuGo('produtos')">Produtos</button>
-    <button class="drawer-item" type="button" data-menu-tab="lojas" onclick="menuGo('lojas')">Lojas</button>
-    <button class="drawer-item" type="button" data-menu-tab="equipe" onclick="menuGo('equipe')">Equipe</button>
-    <button class="drawer-item" type="button" data-menu-tab="pedidos" onclick="menuGo('pedidos')">Pedidos</button>
+    <button class="drawer-item on" type="button" data-menu-tab="financas" onclick="menuGo('financas')"><span class="nav-icon" aria-hidden="true">💰</span>Finanças</button>
+    <button class="drawer-item" type="button" data-menu-tab="materiais" onclick="menuGo('materiais')"><span class="nav-icon" aria-hidden="true">📦</span>Materiais</button>
+    <button class="drawer-item" type="button" data-menu-tab="calculadora" onclick="menuGo('calculadora')"><span class="nav-icon" aria-hidden="true">🧮</span>Calculadora</button>
+    <button class="drawer-item" type="button" data-menu-tab="produtos" onclick="menuGo('produtos')"><span class="nav-icon" aria-hidden="true">🏷️</span>Produtos</button>
+    <button class="drawer-item" type="button" data-menu-tab="lojas" onclick="menuGo('lojas')"><span class="nav-icon" aria-hidden="true">🏪</span>Lojas</button>
+    <button class="drawer-item" type="button" data-menu-tab="equipe" onclick="menuGo('equipe')"><span class="nav-icon" aria-hidden="true">👥</span>Equipe</button>
+    <button class="drawer-item" type="button" data-menu-tab="pedidos" onclick="menuGo('pedidos')"><span class="nav-icon" aria-hidden="true">🧾</span>Pedidos</button>
   </nav>
   <div class="drawer-foot">
     <div class="drawer-who" id="drawer-who"></div>
@@ -198,13 +201,13 @@
   <!-- MASTER -->
   <section id="view-master" class="hidden">
     <nav class="tabs">
-      <button class="tabbtn on" data-tab="financas" onclick="showTab('financas')">Finanças</button>
-      <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')">Materiais</button>
-      <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')">Calculadora</button>
-      <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')">Produtos</button>
-      <button class="tabbtn" data-tab="lojas" onclick="showTab('lojas')">Lojas</button>
-      <button class="tabbtn" data-tab="equipe" onclick="showTab('equipe')">Equipe</button>
-      <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')">Pedidos</button>
+      <button class="tabbtn on" data-tab="financas" onclick="showTab('financas')"><span class="nav-icon" aria-hidden="true">💰</span>Finanças</button>
+      <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')"><span class="nav-icon" aria-hidden="true">📦</span>Materiais</button>
+      <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')"><span class="nav-icon" aria-hidden="true">🧮</span>Calculadora</button>
+      <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')"><span class="nav-icon" aria-hidden="true">🏷️</span>Produtos</button>
+      <button class="tabbtn" data-tab="lojas" onclick="showTab('lojas')"><span class="nav-icon" aria-hidden="true">🏪</span>Lojas</button>
+      <button class="tabbtn" data-tab="equipe" onclick="showTab('equipe')"><span class="nav-icon" aria-hidden="true">👥</span>Equipe</button>
+      <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')"><span class="nav-icon" aria-hidden="true">🧾</span>Pedidos</button>
     </nav>
 
     <!-- FINANÇAS -->
@@ -501,23 +504,49 @@
     <!-- EQUIPE -->
     <div id="tab-equipe" class="tabpage hidden">
       <div class="card">
-        <h2>Masters</h2>
-        <p class="mut" style="margin-bottom:8px;">Quem tem acesso master ao app. O e-mail de cada pessoa fica guardado na conta de autenticação dela: ele aparece aqui quando o acesso foi criado deste aparelho; nos outros casos, ele pode ser conferido no painel do Supabase.</p>
-        <div id="equipe-list"></div>
-        <h3>Adicionar master</h3>
+        <h2>Criar acesso</h2>
         <div class="cols">
-          <div><label>E-mail</label><input id="eq-email" type="email" placeholder="Ex.: joao@exemplo.com.br"></div>
-          <div><label>Nome</label><input id="eq-name" type="text" placeholder="Ex.: João"></div>
+          <div><label>Nome</label><input id="ac-name" type="text" placeholder="Ex.: João" autocomplete="name"></div>
+          <div><label>E-mail</label><input id="ac-email" type="email" placeholder="Ex.: joao@exemplo.com.br" autocomplete="email"></div>
+        </div>
+        <label>Tipo de acesso</label>
+        <select id="ac-role" onchange="accessRoleChange()">
+          <option value="master">Master</option>
+          <option value="store">Loja</option>
+        </select>
+        <div id="ac-store-wrap" class="hidden">
+          <div id="ac-store-field">
+            <label>Loja</label>
+            <select id="ac-store"></select>
+          </div>
+          <div id="ac-no-stores" class="hidden">
+            <p class="mut" style="margin-bottom:8px;">Nenhuma loja cadastrada ainda.</p>
+            <div class="btnrow" style="margin-top:0;"><button class="ghost btn-sm" type="button" onclick="goCreateStore()">+ Criar loja</button></div>
+          </div>
         </div>
         <div class="btnrow">
-          <button class="btn-sm" onclick="addMaster()">Enviar convite de master</button>
+          <button onclick="createAccess()">✉️ Enviar convite</button>
         </div>
-        <p class="mut">A pessoa recebe um e-mail, define a própria senha pelo link e entra como master, igual a você. É assim que se cria o acesso do João.</p>
       </div>
       <div class="card">
-        <h2>Acessos das lojas</h2>
-        <p class="mut" style="margin-bottom:8px;">O acesso de cada loja é criado no cadastro da própria loja, na aba Lojas: ao salvar a loja com o e-mail de acesso, o convite é enviado e a loja define a própria senha pelo link que recebe.</p>
-        <div id="equipe-stores"></div>
+        <h2>Quem tem acesso</h2>
+        <div class="cols">
+          <div>
+            <label>Tipo de usuário</label>
+            <select id="acc-filter-role" onchange="S.accRoleFilter = this.value; renderEquipe();">
+              <option value="">Todos os tipos</option>
+              <option value="master">Master</option>
+              <option value="store">Loja</option>
+            </select>
+          </div>
+          <div>
+            <label>Loja</label>
+            <select id="acc-filter-store" onchange="S.accStoreFilter = this.value; renderEquipe();">
+              <option value="">Todas as lojas</option>
+            </select>
+          </div>
+        </div>
+        <div id="access-list"></div>
       </div>
     </div>
 
@@ -708,7 +737,8 @@ const S = {
   orders: [], orderItems: [], restocks: [],
   storeSearch: '', currentStore: null, displaySearch: '', editingStore: null,
   orderLines: [],
-  profiles: [], setPassMode: false
+  profiles: [], setPassMode: false,
+  accRoleFilter: '', accStoreFilter: ''
 };
 let P = null; // estado da produção em edição no modal
 
@@ -760,7 +790,7 @@ async function route(){
   $('who').textContent = session.user.email;
   $('who').classList.remove('hidden'); $('btn-out').classList.remove('hidden');
   if(S.setPassMode){ rtUnsubscribe(); show('view-setpass'); return; }
-  const { data: profile } = await sb.from('profiles').select('role, store_id, display_name').eq('id', session.user.id).single();
+  const { data: profile } = await sb.from('profiles').select('id, role, store_id, display_name').eq('id', session.user.id).single();
   S.profile = profile;
   if(profile && profile.role === 'master'){
     show('view-master');
@@ -2982,6 +3012,7 @@ async function doSetOrderStatus(id, st, post){
 /* ---------------- Etapa C: acessos, equipe, visão da loja, tempo real ---------------- */
 function knownEmails(){ try { return JSON.parse(localStorage.getItem('j2l_known_emails') || '{}'); } catch(e){ return {}; } }
 function rememberEmail(profileId, email){ try { const m = knownEmails(); m[profileId] = email; localStorage.setItem('j2l_known_emails', JSON.stringify(m)); } catch(e){} }
+function forgetEmail(profileId){ try { const m = knownEmails(); delete m[profileId]; localStorage.setItem('j2l_known_emails', JSON.stringify(m)); } catch(e){} }
 function knownEmail(profileId){ return knownEmails()[profileId] || ''; }
 
 async function invokeCreateUser(payload){
@@ -3000,44 +3031,148 @@ async function invokeCreateUser(payload){
   return { ok: false, error: (data && data.error) || 'resposta inesperada da função de criar acesso' };
 }
 
-/* ---------------- Equipe (master) ---------------- */
-function renderEquipe(){
-  const el = $('equipe-list');
-  if(el){
-    const masters = (S.profiles || []).filter(p => p.role === 'master');
-    el.innerHTML = masters.map(p => {
-      const email = knownEmail(p.id);
-      return `<div class="row"><span style="flex:1;">${esc(p.display_name || 'Sem nome')}
-        <div class="mut">Acesso master${email ? ' · ' + esc(email) : ''}</div></span>
-        <span class="badge stprod">Master</span></div>`;
-    }).join('') || '<p class="mut">Nenhum acesso master criado ainda.</p>';
-  }
-  const stEl = $('equipe-stores');
-  if(stEl){
-    stEl.innerHTML = (S.stores || []).map(st => {
-      const prof = (S.profiles || []).find(p => p.store_id === st.id && p.role === 'store');
-      if(prof){
-        const email = knownEmail(prof.id);
-        return `<div class="row"><span style="flex:1;">${esc(st.name)}
-          <div class="mut">Login: ${esc(prof.display_name || 'sem nome')}${email ? ' · ' + esc(email) : ''}</div></span>
-          <span class="badge stent">Com acesso</span></div>`;
+async function invokeDeleteUser(userId){
+  const { data, error } = await sb.functions.invoke('delete-user', { body: { user_id: userId } });
+  if(error){
+    let msg = error.message || 'a função de retirar acesso falhou';
+    try {
+      if(error.context && typeof error.context.json === 'function'){
+        const body = await error.context.json();
+        if(body && body.error) msg = body.error;
       }
-      return `<div class="row"><span style="flex:1;">${esc(st.name)}
-        <div class="mut">Nenhum login criado para esta loja.</div></span>
-        <span class="badge stcanc">Sem acesso ainda</span></div>`;
-    }).join('') || '<p class="mut">Nenhuma loja cadastrada ainda.</p>';
+    } catch(e){ /* segue com a mensagem genérica */ }
+    return { ok: false, error: msg };
   }
+  if(data && data.ok) return { ok: true };
+  return { ok: false, error: (data && data.error) || 'resposta inesperada da função de retirar acesso' };
 }
-async function addMaster(){
-  const email = $('eq-email').value.trim();
-  const name = $('eq-name').value.trim();
-  if(!email || email.indexOf('@') < 0){ toast('Informe um e-mail válido para o novo master.', true); return; }
-  const res = await invokeCreateUser({ email: email, role: 'master', display_name: name });
+
+/* ---------------- Equipe (master) ---------------- */
+function renderAccessStoreOptions(){
+  const sel = $('ac-store');
+  if(!sel) return;
+  const current = sel.value;
+  const stores = S.stores || [];
+  sel.innerHTML = stores.map(st => {
+    const hasAccess = (S.profiles || []).some(p => p.role === 'store' && String(p.store_id) === String(st.id));
+    return `<option value="${st.id}">${esc(st.name)}${hasAccess ? ' (já tem acesso)' : ''}</option>`;
+  }).join('') || '<option value="">Nenhuma loja cadastrada</option>';
+  if(current && stores.some(st => String(st.id) === String(current))) sel.value = current;
+}
+function accessRoleChange(){
+  const wrap = $('ac-store-wrap');
+  if(!wrap) return;
+  const isStore = $('ac-role') && $('ac-role').value === 'store';
+  wrap.classList.toggle('hidden', !isStore);
+  if(!isStore) return;
+  renderAccessStoreOptions();
+  const hasStores = (S.stores || []).length > 0;
+  const field = $('ac-store-field');
+  const empty = $('ac-no-stores');
+  if(field) field.classList.toggle('hidden', !hasStores);
+  if(empty) empty.classList.toggle('hidden', hasStores);
+}
+function goCreateStore(){
+  showTab('lojas');
+  openStoreForm();
+}
+async function createAccess(){
+  const nameEl = $('ac-name');
+  const emailEl = $('ac-email');
+  const roleEl = $('ac-role');
+  if(!nameEl || !emailEl || !roleEl) return;
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  const role = roleEl.value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Informe um e-mail válido para o novo acesso.', true); return; }
+  const payload = { email: email, role: role, display_name: name };
+  if(role === 'store'){
+    if(!(S.stores || []).length){ toast('Cadastre uma loja antes de criar um acesso de loja.', true); return; }
+    const storeId = Number($('ac-store') ? $('ac-store').value : 0);
+    const st = storeById(storeId);
+    if(!storeId || !st){ toast('Escolha a loja que receberá este acesso.', true); return; }
+    payload.store_id = storeId;
+    payload.display_name = name || st.name;
+  }
+  const res = await invokeCreateUser(payload);
   if(!res.ok){ toast('Não consegui criar o acesso: ' + res.error, true); return; }
   if(res.userId) rememberEmail(res.userId, email);
-  $('eq-email').value = ''; $('eq-name').value = '';
+  nameEl.value = '';
+  emailEl.value = '';
   await fetchAll(); renderAll();
   toast('Convite enviado para ' + email + '. A pessoa define a própria senha pelo link do e-mail.');
+}
+function renderEquipe(){
+  accessRoleChange();
+  const roleFilter = $('acc-filter-role');
+  if(roleFilter) roleFilter.value = S.accRoleFilter || '';
+  const storeFilter = $('acc-filter-store');
+  if(storeFilter){
+    if(S.accStoreFilter && !(S.stores || []).some(st => String(st.id) === String(S.accStoreFilter))) S.accStoreFilter = '';
+    const current = S.accStoreFilter || '';
+    storeFilter.innerHTML = '<option value="">Todas as lojas</option>' + (S.stores || []).map(st => `<option value="${st.id}">${esc(st.name)}</option>`).join('');
+    storeFilter.value = current;
+  }
+  const el = $('access-list');
+  if(!el) return;
+  const profiles = S.profiles || [];
+  if(!profiles.length){
+    el.innerHTML = '<p class="mut">Nenhum acesso criado ainda.</p>';
+    return;
+  }
+  let list = profiles.slice();
+  if(S.accStoreFilter){
+    list = list.filter(p => p.role === 'store' && String(p.store_id) === String(S.accStoreFilter));
+  } else if(S.accRoleFilter){
+    list = list.filter(p => p.role === S.accRoleFilter);
+  }
+  const displayName = p => p.display_name || knownEmail(p.id) || 'Sem nome';
+  const storeName = p => {
+    const st = storeById(p.store_id);
+    return st ? st.name : 'Loja removida';
+  };
+  const rank = p => p.role === 'master' ? 0 : (p.role === 'store' ? 1 : 2);
+  list.sort((a, b) => {
+    if(rank(a) !== rank(b)) return rank(a) - rank(b);
+    if(a.role === 'store' && b.role === 'store'){
+      const byStore = storeName(a).localeCompare(storeName(b), 'pt-BR');
+      if(byStore) return byStore;
+    }
+    return displayName(a).localeCompare(displayName(b), 'pt-BR');
+  });
+  if(!list.length){
+    el.innerHTML = '<p class="mut">Nenhum acesso encontrado com esses filtros.</p>';
+    return;
+  }
+  const myId = S.profile && S.profile.id ? S.profile.id : '';
+  el.innerHTML = list.map(p => {
+    const email = knownEmail(p.id);
+    const name = displayName(p);
+    const isMaster = p.role === 'master';
+    const badge = isMaster ? '<span class="badge stprod">Master</span>' : '<span class="badge link">Loja</span>';
+    const storeLine = !isMaster ? `<div class="mut">Loja: ${esc(storeName(p))}</div>` : '';
+    const emailLine = email ? `<div class="mut">${esc(email)}</div>` : '';
+    const own = myId && String(p.id) === String(myId);
+    const removeBtn = own
+      ? '<button class="danger btn-sm" type="button" disabled title="Seu próprio acesso">Retirar acesso</button>'
+      : `<button class="danger btn-sm" type="button" data-name="${esc(name)}" onclick="removeAccess('${p.id}', this.dataset.name)">Retirar acesso</button>`;
+    return `<div class="row"><span style="flex:1;">${esc(name)}${emailLine}${storeLine}</span>
+      <span class="btnrow" style="margin-top:0; justify-content:flex-end;">${badge}${removeBtn}</span></div>`;
+  }).join('');
+}
+async function removeAccess(profileId, displayName){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session && session.user && String(session.user.id) === String(profileId)){
+    toast('Você não pode retirar o seu próprio acesso.', true);
+    return;
+  }
+  const label = displayName || 'esta pessoa';
+  if(!confirm('Retirar o acesso de ' + label + '? A pessoa não conseguirá mais entrar no app.')) return;
+  const res = await invokeDeleteUser(profileId);
+  if(!res.ok){ toast('Não consegui retirar o acesso: ' + res.error, true); return; }
+  forgetEmail(profileId);
+  await fetchAll(); renderAll();
+  toast('Acesso retirado.');
 }
 
 /* ---------------- Acesso da loja (no detalhe, visão master) ---------------- */
