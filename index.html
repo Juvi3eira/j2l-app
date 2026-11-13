@@ -1686,7 +1686,99 @@ function slicerMinutes(text){
   if(model) return model;
   return findIn(s);
 }
+function normGramToken(raw){
+  let t = String(raw || '').replace(/[^0-9.,]/g, '');
+  if(!t) return null;
+  if(/^\d{1,3}(\.\d{3})+,\d+$/.test(t)) t = t.replace(/\./g, '');
+  const withSep = sep => {
+    const parts = t.split(sep);
+    const frac = parts.pop();
+    const intp = parts.join('') || '0';
+    const v = parseFloat(intp + '.' + (frac.length > 2 ? frac.slice(0, 2) : frac));
+    return isFinite(v) ? r2(v) : null;
+  };
+  if(t.indexOf(',') >= 0) return withSep(',');
+  if(t.indexOf('.') >= 0) return withSep('.');
+  const v = parseInt(t, 10) / 100;
+  return isFinite(v) ? r2(v) : null;
+}
+function slicerLineTokens(line){
+  const out = [];
+  const re = /(\d+(?:[.,]\d+)*)\s*[¢"'º°&]*\s*([gm])?/gi;
+  let m;
+  while((m = re.exec(line)) !== null) out.push({ raw: m[1], unit: (m[2] || '').toLowerCase() });
+  return out;
+}
+function parseSlicerTextLines(text){
+  const res = { rows: [], total: null, minutes: slicerMinutes(text), changes: null };
+  const gramsLines = [];
+  let inTable = false, afterTotalMeters = false, lastMeters = 0;
+  String(text || '').split(/\n/).forEach(rawLine => {
+    const line = rawLine.trim();
+    if(!line) return;
+    const low = norm(line);
+    if(low.indexOf('troca') >= 0){
+      const mm = line.replace(/[Oo]/g, '0').match(/(\d{1,5})\s*$/);
+      if(mm) res.changes = parseInt(mm[1], 10);
+      return;
+    }
+    if(low.indexOf('tempo') >= 0 || low.indexOf('custo') >= 0 || low.indexOf('estimativa') >= 0 || low.indexOf('quantidade') >= 0 || low.indexOf('opcoes') >= 0) return;
+    const toks = slicerLineTokens(line);
+    if(!toks.length) return;
+    const gToks = toks.filter(t => t.unit === 'g');
+    const mToks = toks.filter(t => t.unit === 'm');
+    if(/(^|[^a-z])total([^a-z]|$)/.test(low) && mToks.length){
+      afterTotalMeters = true;
+      inTable = true;
+      lastMeters = metersValue(mToks[mToks.length - 1].raw);
+      return;
+    }
+    let isGrams = false;
+    if(gToks.length >= 2) isGrams = true;
+    else if(toks.length >= 3 && gToks.length >= 1 && !mToks.length) isGrams = true;
+    else if(toks.length >= 3 && !gToks.length && !mToks.length && inTable) isGrams = true;
+    if(isGrams){
+      inTable = true;
+      const lastVal = normGramToken(toks[toks.length - 1].raw);
+      if(lastVal == null) return;
+      gramsLines.push({ value: lastVal, meters: lastMeters, isTotal: afterTotalMeters });
+      return;
+    }
+    if(mToks.length && !gToks.length){
+      inTable = true;
+      lastMeters = metersValue(mToks[mToks.length - 1].raw);
+    }
+  });
+  let totalLine = null;
+  for(let i = 0; i < gramsLines.length; i++){ if(gramsLines[i].isTotal){ totalLine = gramsLines[i]; break; } }
+  if(!totalLine && gramsLines.length >= 2){
+    const last = gramsLines[gramsLines.length - 1];
+    const sumPrev = gramsLines.slice(0, -1).reduce((s, g) => s + g.value, 0);
+    if(Math.abs(last.value - sumPrev) <= Math.max(0.06, last.value * 0.02)) totalLine = last;
+  }
+  gramsLines.forEach(g => {
+    if(g === totalLine){ res.total = g.value; return; }
+    res.rows.push({ index: res.rows.length + 1, grams: g.value, meters: g.meters || 0 });
+  });
+  if(res.total == null){
+    String(text || '').split(/\n/).forEach(rawLine => {
+      if(res.total != null) return;
+      const line = rawLine.trim();
+      const low = norm(line);
+      if(low.indexOf('tempo') >= 0) return;
+      if(!/(^|[^a-z])total([^a-z]|$)/.test(low)) return;
+      const gToks = slicerLineTokens(line).filter(t => t.unit === 'g');
+      if(gToks.length){ const v = normGramToken(gToks[gToks.length - 1].raw); if(v != null) res.total = v; }
+    });
+  }
+  return res;
+}
 function parseSlicerText(text){
+  const lineRes = parseSlicerTextLines(text);
+  if(lineRes.rows.length) return lineRes;
+  return parseSlicerTextSegments(text);
+}
+function parseSlicerTextSegments(text){
   const res = { rows: [], total: null, minutes: slicerMinutes(text), changes: null };
   const tokenize = str => {
     const out = [];
@@ -1785,6 +1877,10 @@ function parseSlicerText(text){
   return res;
 }
 function mergeSlicerResults(a, b){
+  const sumRows = r => r.rows.reduce((s, x) => s + x.grams, 0);
+  const consistent = r => !!r && r.rows.length > 0 && r.total != null && Math.abs(sumRows(r) - r.total) <= Math.max(0.06, r.total * 0.02);
+  if(consistent(a)) return { rows: a.rows.slice(), total: a.total, minutes: a.minutes || b.minutes, changes: a.changes || b.changes };
+  if(consistent(b)) return { rows: b.rows.slice(), total: b.total, minutes: b.minutes || a.minutes, changes: b.changes || a.changes };
   const out = { rows: a.rows.slice(), total: a.total != null ? a.total : b.total, minutes: a.minutes || b.minutes, changes: a.changes || b.changes };
   b.rows.forEach(r => { if(!out.rows.some(x => x.index === r.index)) out.rows.push(r); });
   out.rows.sort((x, y) => x.index - y.index);
