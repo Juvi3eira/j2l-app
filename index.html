@@ -53,6 +53,9 @@
   .btn-sm{padding:7px 11px; font-size:12px; border-radius:8px;}
   .row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:0;}
+  .tx-ico{flex:none; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-family:'Bungee','Nunito',sans-serif; font-size:20px; line-height:1; color:var(--navy);}
+  .tx-ico.exp{background:var(--pink);}
+  .tx-ico.inc{background:var(--ok);}
   .mut{color:var(--mut); font-size:13px;}
   .big{font-family:'Bungee','Nunito',sans-serif; font-size:23px; font-weight:400;}
   .fin-hero{font-family:'Bungee','Nunito',sans-serif; font-size:34px; font-weight:400; text-align:center; line-height:1.15;}
@@ -932,12 +935,8 @@ function renderFinancas(){
   $('fin-list').innerHTML = monthTxs.map(t => {
     const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
     const notes = t.notes ? `<div class="mut">${esc(t.notes)}</div>` : '';
-    return `<div class="row"><span style="flex:1;">${esc(t.description)}${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
-      <span style="text-align:right;"><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b>
-      <div class="btnrow" style="justify-content:flex-end; margin-top:4px;">
-        <button class="ghost btn-sm" onclick="txEdit(${t.id})">Editar</button>
-        <button class="danger btn-sm" onclick="txDel(${t.id})">Excluir</button>
-      </div></span></div>`;
+    return `<div class="row" style="cursor:pointer;" onclick="txEdit(${t.id})"><span class="tx-ico ${t.kind === 'income' ? 'inc' : 'exp'}">${t.kind === 'income' ? '+' : '−'}</span><span style="flex:1;"><b>${esc(t.description)}</b>${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
+      <span style="text-align:right;"><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b></span></div>`;
   }).join('') || '<p class="mut">Nenhum lançamento neste mês.</p>';
   renderFinChart();
 }
@@ -982,6 +981,7 @@ function txFormHtml(){
     <button id="tx-save-btn" style="width:100%;" onclick="txSave()">Salvar lançamento</button>
     <div class="btnrow">
       <button class="ghost" onclick="txCancel()">Cancelar</button>
+      <button class="danger hidden" id="tx-del-btn" onclick="txDelFromModal()">Excluir</button>
     </div>`;
 }
 function setTxKind(kind){
@@ -992,6 +992,7 @@ function setTxKind(kind){
 function openTxModal(){
   S.editingTx = null;
   openBox(txFormHtml());
+  if($('tx-del-btn')) $('tx-del-btn').classList.add('hidden');
   setTxKind('expense');
   $('tx-date').value = todayStr();
 }
@@ -1004,6 +1005,7 @@ function txEdit(id){
   if(!t) return;
   S.editingTx = id;
   openBox(txFormHtml());
+  if($('tx-del-btn')) $('tx-del-btn').classList.remove('hidden');
   $('tx-form-title').textContent = 'Editar lançamento';
   setTxKind(t.kind);
   $('tx-desc').value = t.description; $('tx-cat').value = t.category || '';
@@ -1045,6 +1047,10 @@ async function txDel(id){
   if(S.editingTx === id) txCancel();
   await fetchAll(); renderAll();
   toast('Lançamento excluído.');
+}
+function txDelFromModal(){
+  if(S.editingTx == null) return;
+  txDel(S.editingTx);
 }
 
 /* ---------------- Materiais ---------------- */
