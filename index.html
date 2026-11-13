@@ -57,6 +57,9 @@
   .sw{display:inline-block; width:14px; height:14px; border-radius:4px; margin-right:8px; vertical-align:-2px; border:1px solid rgba(255,255,255,.25);}
   .err{color:var(--bad); font-size:14px; min-height:20px; margin-top:6px;}
   .center{max-width:400px; margin:6vh auto 0;}
+  .passwrap{position:relative;}
+  .passwrap input{padding-right:88px;}
+  .passwrap .passtoggle{position:absolute; top:6px; right:6px; min-height:34px; padding:6px 10px; font-size:13px; border-radius:9px; background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:700;}
   .hidden{display:none !important;}
   .pill{font-size:11px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--mut);}
   .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
@@ -134,8 +137,7 @@
     <button class="drawer-close" type="button" aria-label="Fechar menu" onclick="closeMobileMenu()">&#10005;</button>
   </div>
   <nav>
-    <button class="drawer-item on" type="button" data-menu-tab="inicio" onclick="menuGo('inicio')">Início</button>
-    <button class="drawer-item" type="button" data-menu-tab="financas" onclick="menuGo('financas')">Finanças</button>
+    <button class="drawer-item on" type="button" data-menu-tab="financas" onclick="menuGo('financas')">Finanças</button>
     <button class="drawer-item" type="button" data-menu-tab="materiais" onclick="menuGo('materiais')">Materiais</button>
     <button class="drawer-item" type="button" data-menu-tab="calculadora" onclick="menuGo('calculadora')">Calculadora</button>
     <button class="drawer-item" type="button" data-menu-tab="produtos" onclick="menuGo('produtos')">Produtos</button>
@@ -157,11 +159,13 @@
     <div class="card">
       <h2>Entrar</h2>
       <input id="in-email" type="email" placeholder="Seu e-mail" autocomplete="username">
-      <input id="in-pass" type="password" placeholder="Sua senha" autocomplete="current-password">
+      <div class="passwrap">
+        <input id="in-pass" type="password" placeholder="Sua senha" autocomplete="current-password">
+        <button type="button" class="passtoggle" aria-label="Mostrar senha" aria-pressed="false" onclick="togglePass(this, ['in-pass'])">Mostrar</button>
+      </div>
       <button id="btn-login" style="width:100%;">Entrar</button>
       <div id="login-err" class="err"></div>
       <p style="text-align:right;"><a href="#" onclick="forgotPassword(); return false;" style="color:var(--cyan); font-size:13px;">Esqueci minha senha</a></p>
-      <p class="mut">Master e lojas entram aqui. A loja só enxerga o próprio expositor.</p>
     </div>
   </section>
 
@@ -172,7 +176,10 @@
     <div class="card">
       <h2>Criar sua senha</h2>
       <p class="mut" style="margin-bottom:10px;">Você entrou por um convite ou por um link de recuperação. Defina a sua senha para continuar: é ela que você vai usar nos próximos acessos.</p>
-      <input id="np-pass" type="password" placeholder="Nova senha" autocomplete="new-password">
+      <div class="passwrap">
+        <input id="np-pass" type="password" placeholder="Nova senha" autocomplete="new-password">
+        <button type="button" class="passtoggle" aria-label="Mostrar senha" aria-pressed="false" onclick="togglePass(this, ['np-pass','np-pass2'])">Mostrar</button>
+      </div>
       <input id="np-pass2" type="password" placeholder="Repita a nova senha" autocomplete="new-password">
       <button id="btn-setpass" style="width:100%;" onclick="saveNewPassword()">Salvar senha e entrar</button>
       <div id="np-err" class="err"></div>
@@ -182,8 +189,7 @@
   <!-- MASTER -->
   <section id="view-master" class="hidden">
     <nav class="tabs">
-      <button class="tabbtn on" data-tab="inicio" onclick="showTab('inicio')">Início</button>
-      <button class="tabbtn" data-tab="financas" onclick="showTab('financas')">Finanças</button>
+      <button class="tabbtn on" data-tab="financas" onclick="showTab('financas')">Finanças</button>
       <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')">Materiais</button>
       <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')">Calculadora</button>
       <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')">Produtos</button>
@@ -192,33 +198,8 @@
       <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')">Pedidos</button>
     </nav>
 
-    <!-- INÍCIO -->
-    <div id="tab-inicio" class="tabpage">
-      <div class="card">
-        <h2>Finanças do mês</h2>
-        <div class="mut" id="ini-month"></div>
-        <div style="display:flex; gap:24px; margin-top:10px; flex-wrap:wrap;">
-          <div><div class="mut">Ganhos</div><div class="big pos" id="ini-in">R$ 0,00</div></div>
-          <div><div class="mut">Despesas</div><div class="big neg" id="ini-out">R$ 0,00</div></div>
-          <div><div class="mut">Resultado</div><div class="big" id="ini-res">R$ 0,00</div></div>
-          <div><div class="mut">Saldo acumulado</div><div class="big" id="ini-acc">R$ 0,00</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Materiais</h2>
-        <h3>Filamentos</h3>
-        <div id="ini-fil"></div>
-        <h3>Insumos</h3>
-        <div id="ini-sup"></div>
-      </div>
-      <div class="card">
-        <h2>Últimos lançamentos</h2>
-        <div id="ini-tx"></div>
-      </div>
-    </div>
-
     <!-- FINANÇAS -->
-    <div id="tab-financas" class="tabpage hidden">
+    <div id="tab-financas" class="tabpage">
       <div class="card">
         <h2>Finanças</h2>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
@@ -246,23 +227,73 @@
       <div class="card">
         <h2 id="tx-form-title">Novo lançamento</h2>
         <label>Tipo</label>
-        <select id="tx-kind">
+        <select id="tx-kind" onchange="txKindChange()">
           <option value="expense">Despesa</option>
           <option value="income">Ganho</option>
+          <option value="material">Compra de material</option>
         </select>
-        <label>Descrição</label>
-        <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
-        <label>Categoria</label>
-        <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Filamento, Insumos, Equipamentos">
-        <datalist id="cat-list"></datalist>
+        <div id="tx-generic-fields">
+          <label>Descrição</label>
+          <input id="tx-desc" type="text" placeholder="Ex.: Venda de chaveiros">
+          <label>Categoria</label>
+          <input id="tx-cat" type="text" list="cat-list" placeholder="Ex.: Filamento, Insumos, Equipamentos">
+          <datalist id="cat-list"></datalist>
+        </div>
+        <div id="tx-material-fields" class="hidden">
+          <div class="btnrow" style="margin:0 0 12px;">
+            <button class="btn-sm" id="mat-type-f" onclick="setMatType('filament')">Filamento</button>
+            <button class="btn-sm ghost" id="mat-type-s" onclick="setMatType('supply')">Insumo</button>
+          </div>
+          <div id="mat-form-fil">
+            <label>Nome do filamento</label>
+            <input id="mf-name" type="text" placeholder="Ex.: PLA Velvet Preto">
+            <div class="cols">
+              <div><label>Marca</label><input id="mf-brand" type="text" placeholder="Ex.: Voolt3D"></div>
+              <div><label>Material</label><input id="mf-material" type="text" value="PLA"></div>
+            </div>
+            <div class="cols">
+              <div><label>Cor</label><input id="mf-color" type="text" placeholder="Ex.: Preto"></div>
+              <div><label>Peso do rolo (g)</label><input id="mf-weight" type="text" inputmode="decimal" value="1000"></div>
+            </div>
+            <label>Preço pago (R$)</label>
+            <input id="mf-price" type="text" inputmode="decimal" placeholder="0,00">
+          </div>
+          <div id="mat-form-sup" class="hidden">
+            <label>Nome do insumo</label>
+            <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
+            <label>Como você sabe o custo?</label>
+            <select id="ms-mode" onchange="setSupplyMode(this.value)">
+              <option value="package">Pelo pacote: quantidade e preço total</option>
+              <option value="unit">Pelo custo de cada unidade</option>
+            </select>
+            <div id="ms-package">
+              <div class="cols">
+                <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+                <div><label>Preço total pago (R$)</label><input id="ms-price" type="text" inputmode="decimal" placeholder="0,00"></div>
+              </div>
+              <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
+            </div>
+            <div id="ms-unitmode" class="hidden">
+              <div class="cols">
+                <div><label>Quantidade em estoque</label><input id="ms-uqty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
+                <div><label>Custo por unidade (R$)</label><input id="ms-unitcost" type="text" inputmode="decimal" placeholder="Ex.: 0,32"></div>
+              </div>
+            </div>
+            <label>Unidade</label>
+            <input id="ms-unit" type="text" value="un">
+          </div>
+          <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
+        </div>
         <div class="cols">
-          <div><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
+          <div id="tx-amount-cell"><label>Valor (R$)</label><input id="tx-amount" type="text" inputmode="decimal" placeholder="0,00"></div>
           <div><label>Data</label><input id="tx-date" type="date"></div>
         </div>
-        <label>Observações</label>
-        <input id="tx-notes" type="text" placeholder="Opcional">
+        <div id="tx-notes-wrap">
+          <label>Observações</label>
+          <input id="tx-notes" type="text" placeholder="Opcional">
+        </div>
         <div class="btnrow">
-          <button onclick="txSave()">Salvar lançamento</button>
+          <button id="tx-save-btn" onclick="txSave()">Salvar lançamento</button>
           <button class="ghost hidden" id="tx-cancel" onclick="txCancel()">Cancelar edição</button>
         </div>
       </div>
@@ -275,55 +306,10 @@
     <!-- MATERIAIS -->
     <div id="tab-materiais" class="tabpage hidden">
       <div class="card">
-        <h2>Comprar material</h2>
-        <div class="btnrow" style="margin:0 0 12px;">
-          <button class="btn-sm" id="mat-type-f" onclick="setMatType('filament')">Filamento</button>
-          <button class="btn-sm ghost" id="mat-type-s" onclick="setMatType('supply')">Insumo</button>
+        <div class="btnrow" style="margin:0;">
+          <button style="flex:1;" onclick="openMaterialPurchase()">Comprar material</button>
         </div>
-        <div id="mat-form-fil">
-          <label>Nome do filamento</label>
-          <input id="mf-name" type="text" placeholder="Ex.: PLA Velvet Preto">
-          <div class="cols">
-            <div><label>Marca</label><input id="mf-brand" type="text" placeholder="Ex.: Voolt3D"></div>
-            <div><label>Material</label><input id="mf-material" type="text" value="PLA"></div>
-          </div>
-          <div class="cols">
-            <div><label>Cor</label><input id="mf-color" type="text" placeholder="Ex.: Preto"></div>
-            <div><label>Peso do rolo (g)</label><input id="mf-weight" type="text" inputmode="decimal" value="1000"></div>
-          </div>
-          <label>Preço pago (R$)</label>
-          <input id="mf-price" type="text" inputmode="decimal" placeholder="0,00">
-        </div>
-        <div id="mat-form-sup" class="hidden">
-          <label>Nome do insumo</label>
-          <input id="ms-name" type="text" placeholder="Ex.: Argola de chaveiro">
-          <label>Como você sabe o custo?</label>
-          <select id="ms-mode" onchange="setSupplyMode(this.value)">
-            <option value="package">Pelo pacote: quantidade e preço total</option>
-            <option value="unit">Pelo custo de cada unidade</option>
-          </select>
-          <div id="ms-package">
-            <div class="cols">
-              <div><label>Quantidade comprada</label><input id="ms-qty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
-              <div><label>Preço total pago (R$)</label><input id="ms-price" type="text" inputmode="decimal" placeholder="0,00"></div>
-            </div>
-            <p class="mut">O custo por unidade é calculado sozinho: preço total dividido pela quantidade.</p>
-          </div>
-          <div id="ms-unitmode" class="hidden">
-            <div class="cols">
-              <div><label>Quantidade em estoque</label><input id="ms-uqty" type="text" inputmode="decimal" placeholder="Ex.: 100"></div>
-              <div><label>Custo por unidade (R$)</label><input id="ms-unitcost" type="text" inputmode="decimal" placeholder="Ex.: 0,32"></div>
-            </div>
-          </div>
-          <label>Unidade</label>
-          <input id="ms-unit" type="text" value="un">
-        </div>
-        <label>Data da compra</label>
-        <input id="mat-date" type="date">
-        <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
-        <div class="btnrow">
-          <button onclick="savePurchase()">Salvar compra</button>
-        </div>
+        <p class="mut" style="margin-top:10px;">A compra é feita no formulário de Finanças, no modo "Compra de material", e já pode entrar como despesa vinculada.</p>
       </div>
       <div class="card hidden" id="mat-edit-card">
         <h2>Editar material</h2>
@@ -802,6 +788,15 @@ async function route(){
     $('store-sub').textContent = 'Fale com a J2L para liberar o seu acesso.';
   }
 }
+function togglePass(btn, ids){
+  const list = ids.map(id => $(id)).filter(Boolean);
+  if(!list.length) return;
+  const show = list[0].type === 'password';
+  list.forEach(inp => { inp.type = show ? 'text' : 'password'; });
+  btn.textContent = show ? 'Ocultar' : 'Mostrar';
+  btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+}
 $('btn-login').addEventListener('click', async () => {
   $('login-err').textContent = '';
   const { error } = await sb.auth.signInWithPassword({ email: $('in-email').value.trim(), password: $('in-pass').value });
@@ -812,7 +807,7 @@ $('btn-out').addEventListener('click', async () => { await sb.auth.signOut(); ro
 $('btn-out-drawer').addEventListener('click', async () => { closeMobileMenu(); await sb.auth.signOut(); route(); });
 sb.auth.onAuthStateChange((event) => { if(event === 'PASSWORD_RECOVERY') S.setPassMode = true; route(); });
 
-let currentMasterTab = 'inicio';
+let currentMasterTab = 'financas';
 function syncMobileMenu(){
   document.querySelectorAll('.drawer-item').forEach(b => {
     const on = b.dataset.menuTab === currentMasterTab;
@@ -856,6 +851,7 @@ document.addEventListener('keydown', event => {
 });
 window.addEventListener('resize', () => { if(window.innerWidth > 720) closeMobileMenu(); });
 function showTab(name){
+  if(!document.getElementById('tab-' + name)) name = 'financas';
   currentMasterTab = name;
   document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
@@ -864,7 +860,6 @@ function showTab(name){
 function initMasterForms(){
   if($('fin-month') && !$('fin-month').value) $('fin-month').value = S.finMonth;
   if($('tx-date') && !$('tx-date').value) $('tx-date').value = todayStr();
-  if($('mat-date') && !$('mat-date').value) $('mat-date').value = todayStr();
   try {
     const saved = JSON.parse(localStorage.getItem('j2l_calc_settings') || 'null');
     if(saved){
@@ -914,7 +909,6 @@ async function fetchAll(){
   S.ps.forEach(r => { if(S.recipes[r.product_id]) S.recipes[r.product_id].sups.push(r); });
 }
 function renderAll(){
-  renderInicio();
   renderFinancas();
   renderMateriais();
   renderCalcLines();
@@ -924,35 +918,6 @@ function renderAll(){
   renderEquipe();
   renderPedidos();
   hydrateProductPhotos(document);
-}
-
-/* ---------------- Início ---------------- */
-function renderInicio(){
-  const ym = ymNow();
-  $('ini-month').textContent = 'Mês ' + ymLabel(ym);
-  let inc = 0, exp = 0, acc = 0;
-  S.txs.forEach(t => {
-    const v = t.kind === 'income' ? t.amount_cents : -t.amount_cents;
-    acc += v;
-    if(t.date.slice(0,7) === ym){ if(t.kind === 'income') inc += t.amount_cents; else exp += t.amount_cents; }
-  });
-  $('ini-in').textContent = BRL(inc);
-  $('ini-out').textContent = BRL(exp);
-  const res = $('ini-res'); res.textContent = BRL(inc - exp); res.className = 'big ' + (inc - exp < 0 ? 'neg' : 'pos');
-  const accEl = $('ini-acc'); accEl.textContent = BRL(acc); accEl.className = 'big ' + (acc < 0 ? 'neg' : 'pos');
-  $('ini-tx').innerHTML = S.txs.slice(0,10).map(txRowHtml).join('') || '<p class="mut">Nenhum lançamento.</p>';
-  $('ini-fil').innerHTML = S.filaments.map(f => {
-    const rem = filRemaining(f);
-    return `<div class="row"><span><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}<div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')}</div></span><span class="mut">${fmtN(rem)} g restantes</span></div>`;
-  }).join('') || '<p class="mut">Nenhum filamento.</p>';
-  $('ini-sup').innerHTML = S.supplies.map(s => {
-    const rem = supRemaining(s);
-    return `<div class="row"><span>${esc(s.name)} ${lowBadge(rem, s.stock_qty)}</span><span class="mut">${fmtN(rem)} ${esc(s.unit)} · ${BRL(s.unit_cost_cents)} cada</span></div>`;
-  }).join('') || '<p class="mut">Nenhum insumo.</p>';
-}
-function txRowHtml(t){
-  const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
-  return `<div class="row"><span>${esc(t.description)}${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div></span><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b></div>`;
 }
 
 /* ---------------- Finanças ---------------- */
@@ -1025,12 +990,29 @@ function renderFinChart(){
     </div><div class="mut">${ymLabel(k)}</div></div>`;
   }).join('');
 }
+function txKindChange(){
+  const material = $('tx-kind').value === 'material';
+  $('tx-generic-fields').classList.toggle('hidden', material);
+  $('tx-amount-cell').classList.toggle('hidden', material);
+  $('tx-notes-wrap').classList.toggle('hidden', material);
+  $('tx-material-fields').classList.toggle('hidden', !material);
+  $('tx-form-title').textContent = material ? 'Comprar material' : (S.editingTx ? 'Editar lançamento' : 'Novo lançamento');
+  $('tx-save-btn').textContent = material ? 'Salvar compra' : 'Salvar lançamento';
+}
+function openMaterialPurchase(){
+  if(S.editingTx) txCancel();
+  showTab('financas');
+  $('tx-kind').value = 'material';
+  txKindChange();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 function txCancel(){
   S.editingTx = null;
   $('tx-form-title').textContent = 'Novo lançamento';
   $('tx-cancel').classList.add('hidden');
   $('tx-kind').value = 'expense'; $('tx-desc').value = ''; $('tx-cat').value = '';
   $('tx-amount').value = ''; $('tx-notes').value = ''; $('tx-date').value = todayStr();
+  txKindChange();
 }
 function txEdit(id){
   const t = S.txs.find(x => x.id === id);
@@ -1040,9 +1022,14 @@ function txEdit(id){
   $('tx-cancel').classList.remove('hidden');
   $('tx-kind').value = t.kind; $('tx-desc').value = t.description; $('tx-cat').value = t.category || '';
   $('tx-amount').value = moneyStr(t.amount_cents); $('tx-notes').value = t.notes || ''; $('tx-date').value = t.date;
+  txKindChange();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 async function txSave(){
+  if($('tx-kind').value === 'material'){
+    if(!S.editingTx) await savePurchase();
+    return;
+  }
   const desc = $('tx-desc').value.trim();
   const amount = parseMoney($('tx-amount').value);
   const date = $('tx-date').value || todayStr();
@@ -1118,7 +1105,7 @@ function setSupplyMode(v){
 }
 async function savePurchase(){
   const toFinance = $('mat-fin').checked;
-  const date = $('mat-date').value || todayStr();
+  const date = $('tx-date').value || todayStr();
   let matId = null, price = 0, name = '', desc = '', table = '', linkedType = '';
   if(S.matType === 'filament'){
     name = $('mf-name').value.trim();
