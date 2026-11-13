@@ -369,11 +369,15 @@
             <div id="slicer-status" class="mut"></div>
             <div id="slicer-summary" class="hidden" style="margin-top:8px;"></div>
           </div>
+          <label class="check"><input type="checkbox" class="switch" id="calc-lotmode" onchange="recomputeCalc()"> Modo lote (totais do fatiador)</label>
+          <div id="calc-lotqty-wrap" class="hidden">
+            <label>Peças por lote</label>
+            <input id="calc-lotqty" type="text" inputmode="numeric" value="10" oninput="recomputeCalc()">
+          </div>
         </div>
-        <label class="check"><input type="checkbox" class="switch" id="calc-lotmode" onchange="recomputeCalc()"> Modo lote (totais do fatiador)</label>
-        <div id="calc-lotqty-wrap" class="hidden">
-          <label>Peças por lote</label>
-          <input id="calc-lotqty" type="text" inputmode="numeric" value="10" oninput="recomputeCalc()">
+        <div id="calc-manualqty-wrap">
+          <label>Quantidade a produzir</label>
+          <input id="calc-manualqty" type="text" inputmode="numeric" value="1" oninput="recomputeCalc()">
         </div>
         <h3 class="sec-h sec-fil">Filamentos</h3>
         <div id="calc-fils"></div>
@@ -1299,6 +1303,8 @@ function setCalcFillMode(m){
   if(sm) sm.classList.toggle('on', calcFillMode === 'manual');
   if(sp) sp.classList.toggle('on', calcFillMode === 'print');
   if(at) at.classList.toggle('hidden', calcFillMode !== 'print');
+  const mq = $('calc-manualqty-wrap'); if(mq) mq.classList.toggle('hidden', calcFillMode !== 'manual');
+  recomputeCalc();
 }
 function toggleCalcEnergy(){
   const body = $('calc-energy-body');
@@ -1314,9 +1320,11 @@ function recomputeCalc(){
   S.settings.wear = parseMoney($('calc-wear').value);
   S.settings.margin = parseNum($('calc-margin').value) || 0;
   try { localStorage.setItem('j2l_calc_settings', JSON.stringify(S.settings)); } catch(e) {}
-  const lotMode = $('calc-lotmode').checked;
+  const lotMode = calcFillMode === 'print' && $('calc-lotmode').checked;
   const lotQty = Math.max(1, Math.round(parseNum($('calc-lotqty').value) || 1));
-  const lqw = $('calc-lotqty-wrap'); if(lqw) lqw.classList.toggle('hidden', !lotMode);
+  const manQty = Math.max(1, Math.round(parseNum($('calc-manualqty') ? $('calc-manualqty').value : '') || 1));
+  const effQty = calcFillMode === 'print' ? (lotMode ? lotQty : 1) : manQty;
+  const lqw = $('calc-lotqty-wrap'); if(lqw) lqw.classList.toggle('hidden', !$('calc-lotmode').checked);
   const timeTotal = parsePrintTime($('calc-time').value);
   const timePP = lotMode ? timeTotal / lotQty : timeTotal;
   let filCost = 0;
@@ -1348,8 +1356,16 @@ function recomputeCalc(){
   const profit = priceUsed - cost;
   S.calcResult = {
     cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP),
-    lotQty: lotQty, filDetail: filDetail, supDetail: supDetail
+    lotQty: lotQty, effQty: effQty, filDetail: filDetail, supDetail: supDetail
   };
+  let totalRow = '';
+  if(calcFillMode === 'print'){
+    if(lotMode) totalRow = `
+    <div class="row"><span>Lucro no lote de ${lotQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * lotQty))}</b></div>`;
+  } else if(manQty >= 2){
+    totalRow = `
+    <div class="row"><span>Lucro em ${manQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * manQty))}</b></div>`;
+  }
   $('calc-out').innerHTML = `
     <div class="row"><span>Filamentos por peça</span><b>${BRL(Math.round(filCost))}</b></div>
     <div class="row"><span>Insumos por peça</span><b>${BRL(Math.round(supCost))}</b></div>
@@ -1357,8 +1373,7 @@ function recomputeCalc(){
     <div class="row"><span><b>Custo por peça</b></span><span class="big">${BRL(Math.round(cost))}</span></div>
     <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>
     <div class="row"><span>Preço usado no cálculo ${typedPrice > 0 ? '(o digitado)' : '(o sugerido)'}</span><b>${BRL(Math.round(priceUsed))}</b></div>
-    <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>
-    <div class="row"><span>Lucro no lote de ${lotQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * lotQty))}</b></div>`;
+    <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>${totalRow}`;
 }
 function resetCalcForm(){
   S.editingProduct = null;
@@ -1366,6 +1381,7 @@ function resetCalcForm(){
   $('calc-save-btn').textContent = 'Salvar produto';
   $('calc-cancel-edit').classList.add('hidden');
   ['calc-name','calc-desc','calc-price','calc-time','calc-client','calc-ordercontact','calc-ordernotes'].forEach(id => { if($(id)) $(id).value = ''; });
+  if($('calc-manualqty')) $('calc-manualqty').value = '1';
   if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
   $('calc-asorder').checked = false;
   toggleOrderFields();
@@ -1397,6 +1413,7 @@ function loadProductIntoCalc(id){
   $('calc-wear').value = moneyStr(Math.round(prm.wear));
   $('calc-time').value = p.print_time_minutes ? fmtTime(p.print_time_minutes) : '';
   $('calc-lotmode').checked = false;
+  if($('calc-manualqty')) $('calc-manualqty').value = '1';
   S.calc.fils = rec.fils.map(r => ({ filamentId: r.filament_id, gramsStr: numStr(r.grams) }));
   S.calc.sups = rec.sups.map(r => ({ supplyId: r.supply_id, qtyStr: numStr(r.qty_per_piece) }));
   $('calc-asorder').checked = false;
@@ -1469,7 +1486,7 @@ async function saveProductCalc(){
   let extra = '';
   if($('calc-asorder').checked){
     const client = $('calc-client').value.trim();
-    const oqty = $('calc-lotmode').checked ? Math.max(1, Math.round(parseNum($('calc-lotqty').value) || 1)) : 1;
+    const oqty = Math.max(1, Math.round(R.effQty || 1));
     if(!client){ toast('Produto salvo, mas o pedido não: falta o nome do cliente.', true); await fetchAll(); renderAll(); return; }
     const { data: ord, error: e3 } = await sb.from('orders').insert({
       client_name: client, status: 'pendente', post_to_finance: false,
