@@ -512,6 +512,7 @@
 
     <!-- PEDIDOS -->
     <div id="tab-pedidos" class="tabpage hidden">
+      <div class="btnrow" style="margin:0 0 14px;"><button onclick="openOrderModal()">+ Pedido</button></div>
       <div class="card">
         <h2>Pra fazer agora</h2>
         <div id="todo-now"></div>
@@ -519,24 +520,6 @@
       <div class="card">
         <h2>Reposições pedidas pelas lojas</h2>
         <div id="ped-restock"></div>
-      </div>
-      <div class="card">
-        <h2 id="ord-form-title">Novo pedido avulso</h2>
-        <label>Nome do cliente</label>
-        <input id="ord-client" type="text" placeholder="Ex.: Maria Silva">
-        <div class="cols">
-          <div><label>Data do pedido</label><input id="ord-date" type="date"></div>
-          <div><label>Contato do cliente</label><input id="ord-contact" type="text" placeholder="Ex.: WhatsApp (11) 90000-0000"></div>
-        </div>
-        <label>Observações</label>
-        <input id="ord-notes" type="text" placeholder="Opcional">
-        <h3>Itens do pedido</h3>
-        <div id="ord-lines"></div>
-        <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
-        <div class="btnrow">
-          <button id="ord-save-btn" onclick="saveOrder()">Salvar pedido</button>
-          <button class="ghost hidden" id="ord-cancel-edit" onclick="cancelOrderEdit()">Cancelar edição</button>
-        </div>
       </div>
       <div class="card">
         <h2>Pedidos</h2>
@@ -2717,25 +2700,28 @@ function orderProductOptions(selId){
   const opts = act.map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${esc(p.name)} (${BRL(p.sale_price_cents)})</option>`).join('');
   return `<option value="" ${selId ? '' : 'selected'}>Escolher produto...</option>` + opts;
 }
-function blankOrderLine(){ return { mode: 'catalog', productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '' }; }
+function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false }; }
 function renderOrderLines(){
+  const box = $('ord-lines');
+  if(!box) return;
   if(!S.orderLines.length) S.orderLines = [blankOrderLine()];
   S.orderLines = S.orderLines.map(l => Object.assign(blankOrderLine(), l));
-  $('ord-lines').innerHTML = S.orderLines.map((l, i) => {
+  box.innerHTML = S.orderLines.map((l, i) => {
+    if(l.frozen){
+      const q = Math.round(parseNum(l.qtyStr) || 0);
+      const pr = Math.max(0, parseMoney(l.priceStr));
+      return `<div class="linebox">
+        <div><b>${esc(l.description || 'Item avulso')}</b> <span class="badge stcanc">Item avulso antigo</span></div>
+        <div class="mut" style="margin-top:6px;">${q} × ${BRL(pr)} = ${BRL(q * pr)} · item de um pedido antigo, mantido como está (não dá para editar nem converter).</div>
+      </div>`;
+    }
     const p = l.productId ? prodById(l.productId) : null;
     const priceVal = l.priceStr !== '' ? l.priceStr : (p ? moneyStr(p.sale_price_cents) : '');
     const costVal = l.costStr !== '' ? l.costStr : (p ? moneyStr(Math.round(unitCostCents(p))) : '');
     return `<div class="linebox">
-      <label>Tipo do item</label>
-      <select onchange="orderLineMode(${i}, this.value)">
-        <option value="catalog" ${l.mode !== 'free' ? 'selected' : ''}>Produto do catálogo</option>
-        <option value="free" ${l.mode === 'free' ? 'selected' : ''}>Item avulso</option>
-      </select>
-      ${l.mode === 'free' ? `<label>Descrição do item avulso</label>
-      <input type="text" value="${esc(l.description)}" placeholder="Ex.: Bonequinho personalizado" oninput="orderLineField(${i}, 'description', this.value)">`
-      : `<label>Produto</label>
+      <label>Produto</label>
       <select onchange="orderLineProduct(${i}, this.value)">${orderProductOptions(l.productId)}</select>
-      <div class="mut">${p ? 'Em casa: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>`}
+      <div class="mut">${p ? 'Em casa: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>
       <div class="cols">
         <div><label>Quantidade</label><input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)"></div>
         <div><label>Preço unitário (R$)</label><input type="text" inputmode="decimal" value="${esc(priceVal)}" oninput="orderLineField(${i}, 'priceStr', this.value)"></div>
@@ -2746,7 +2732,6 @@ function renderOrderLines(){
     </div>`;
   }).join('');
 }
-function orderLineMode(i, v){ S.orderLines[i].mode = v; renderOrderLines(); }
 function orderLineField(i, field, v){ S.orderLines[i][field] = v; }
 function orderLineProduct(i, v){
   S.orderLines[i].productId = v ? parseInt(v, 10) : null;
@@ -2756,16 +2741,52 @@ function orderLineProduct(i, v){
 }
 function addOrderLine(){ S.orderLines.push(blankOrderLine()); renderOrderLines(); }
 function removeOrderLine(i){ S.orderLines.splice(i, 1); renderOrderLines(); }
+function orderFormHtml(){
+  const editing = !!S.editingOrder;
+  return `
+    <h2>${editing ? 'Editar pedido' : 'Novo pedido'}</h2>
+    <label>Nome do cliente</label>
+    <input id="ord-client" type="text" placeholder="Ex.: Maria Silva">
+    <div class="cols">
+      <div><label>Data do pedido</label><input id="ord-date" type="date"></div>
+      <div><label>Contato do cliente</label><input id="ord-contact" type="text" placeholder="Ex.: WhatsApp (11) 90000-0000"></div>
+    </div>
+    <label>Observações</label>
+    <input id="ord-notes" type="text" placeholder="Opcional">
+    <h3>Itens do pedido</h3>
+    <div id="ord-lines"></div>
+    <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
+    <div class="btnrow">
+      <button class="ghost" onclick="orderViaCalculator()">Item novo? Criar pela Calculadora</button>
+    </div>
+    <div class="btnrow">
+      <button onclick="saveOrder()">${editing ? 'Salvar alterações do pedido' : 'Salvar pedido'}</button>
+      <button class="ghost" onclick="closeOrderModal()">Cancelar</button>
+    </div>`;
+}
+function openOrderModal(){
+  S.editingOrder = null;
+  S.orderLines = [blankOrderLine()];
+  openBox(orderFormHtml());
+  $('ord-date').value = todayStr();
+  renderOrderLines();
+  if($('ord-client')) $('ord-client').focus();
+}
+function closeOrderModal(){ resetOrderForm(); closeBox(); }
+function orderViaCalculator(){
+  closeOrderModal();
+  showTab('calculadora');
+  $('calc-asorder').checked = true;
+  toggleOrderFields();
+  if($('calc-name')) $('calc-name').focus();
+}
 function resetOrderForm(){
   S.editingOrder = null;
-  $('ord-form-title').textContent = 'Novo pedido avulso';
-  $('ord-save-btn').textContent = 'Salvar pedido';
-  $('ord-cancel-edit').classList.add('hidden');
-  $('ord-client').value = '';
-  $('ord-date').value = todayStr();
-  $('ord-contact').value = '';
-  $('ord-notes').value = '';
   S.orderLines = [blankOrderLine()];
+  if($('ord-client')) $('ord-client').value = '';
+  if($('ord-date')) $('ord-date').value = todayStr();
+  if($('ord-contact')) $('ord-contact').value = '';
+  if($('ord-notes')) $('ord-notes').value = '';
 }
 function startEditOrder(id){
   const o = orderById(id);
@@ -2773,22 +2794,18 @@ function startEditOrder(id){
   if(o.status === 'entregue' || o.status === 'cancelado'){ toast('Pedido entregue ou cancelado fica travado. Reabra o pedido antes de editar.', true); return; }
   const items = orderItemsOf(id);
   S.editingOrder = id;
-  $('ord-form-title').textContent = 'Editar pedido';
-  $('ord-save-btn').textContent = 'Salvar alterações do pedido';
-  $('ord-cancel-edit').classList.remove('hidden');
+  S.orderLines = items.length ? items.map(i => ({
+    productId: i.product_id || null, qtyStr: String(i.qty), frozen: !i.product_id,
+    description: i.description || '', priceStr: moneyStr(i.unit_price_cents), costStr: moneyStr(i.unit_cost_cents || 0)
+  })) : [blankOrderLine()];
+  openBox(orderFormHtml());
   $('ord-client').value = o.client_name || '';
   $('ord-date').value = o.order_date || String(o.created_at || '').slice(0, 10);
   $('ord-contact').value = o.customer_contact || '';
   $('ord-notes').value = o.notes || '';
-  S.orderLines = items.length ? items.map(i => ({
-    mode: i.product_id ? 'catalog' : 'free', productId: i.product_id || null, qtyStr: String(i.qty),
-    description: i.description || '', priceStr: moneyStr(i.unit_price_cents), costStr: moneyStr(i.unit_cost_cents || 0)
-  })) : [blankOrderLine()];
   renderOrderLines();
-  showTab('pedidos');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-function cancelOrderEdit(){ resetOrderForm(); renderOrderLines(); }
+function cancelOrderEdit(){ closeOrderModal(); }
 async function deleteOrder(id){
   const o = orderById(id);
   if(!o) return;
@@ -2812,18 +2829,17 @@ async function saveOrder(){
   for(const l of S.orderLines){
     const qty = Math.round(parseNum(l.qtyStr) || 0);
     if(qty <= 0) continue;
-    if(l.mode === 'free'){
-      const desc = (l.description || '').trim();
-      if(!desc){ toast('Um item avulso está sem descrição. Escreva a descrição ou remova a linha.', true); return; }
+    if(l.frozen){
+      const desc = (l.description || '').trim() || 'Item avulso';
       lines.push({ product: null, description: desc, qty: qty, unitPrice: Math.max(0, parseMoney(l.priceStr)), unitCost: Math.max(0, parseMoney(l.costStr)) });
-    } else {
-      if(!l.productId) continue;
-      const p = prodById(l.productId);
-      if(!p) continue;
-      const unitPrice = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
-      const unitCost = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
-      lines.push({ product: p, description: p.name, qty: qty, unitPrice: unitPrice, unitCost: unitCost });
+      continue;
     }
+    if(!l.productId) continue;
+    const p = prodById(l.productId);
+    if(!p) continue;
+    const unitPrice = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
+    const unitCost = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
+    lines.push({ product: p, description: p.name, qty: qty, unitPrice: unitPrice, unitCost: unitCost });
   }
   if(!lines.length){ toast('Adicione pelo menos um item com quantidade ao pedido.', true); return; }
   const warnings = [];
@@ -2847,6 +2863,7 @@ async function saveOrder(){
   const rows = lines.map(l => ({ order_id: orderId, product_id: l.product ? l.product.id : null, description: l.description, qty: l.qty, unit_price_cents: l.unitPrice, unit_cost_cents: l.unitCost }));
   const { error: e2 } = await sb.from('order_items').insert(rows);
   if(e2) return toastErr(e2);
+  closeBox();
   resetOrderForm();
   await fetchAll(); renderAll();
   toast('Pedido de ' + client + (editing ? ' atualizado.' : ' salvo como pendente.') + (warnings.length ? ' ' + warnings.join(' ') : ''));
