@@ -276,7 +276,7 @@
         <div class="btnrow">
           <button onclick="saveMatEdit()">Salvar edição</button>
           <button class="danger" onclick="delMat(S.editingMat.type, S.editingMat.id)">Excluir</button>
-          <button class="ghost" onclick="cancelMatEdit()">Cancelar</button>
+          <button class="ghost" onclick="cancelMatEdit()">Fechar</button>
         </div>
       </div>
       <h2>Materiais em estoque</h2>
@@ -422,7 +422,7 @@
           <label class="check"><input type="checkbox" id="st-restock" checked> A loja pode pedir reposição</label>
           <div class="btnrow">
             <button onclick="saveStore()">Salvar loja</button>
-            <button class="ghost hidden" id="st-cancel" onclick="closeStoreForm()">Cancelar</button>
+            <button class="ghost hidden" id="st-cancel" onclick="closeStoreForm()">Fechar</button>
           </div>
         </div>
         <div class="stores-head">
@@ -473,7 +473,7 @@
         </div>
         <div class="btnrow">
           <button onclick="createAccess()">✉️ Enviar convite</button>
-          <button class="ghost" type="button" onclick="closeAccessFormModal()">Cancelar</button>
+          <button class="ghost" type="button" onclick="closeAccessFormModal()">Fechar</button>
         </div>
       </div>
       <div class="card">
@@ -621,7 +621,7 @@
     <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
     <div class="btnrow">
       <button id="calc-info-save" onclick="saveProductCalc()">Salvar</button>
-      <button class="ghost" onclick="cancelCalcInfo()">Cancelar</button>
+      <button class="ghost" onclick="cancelCalcInfo()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1031,7 +1031,7 @@ function txFormHtml(){
     <input id="tx-notes" type="text" placeholder="Opcional">
     <button id="tx-save-btn" style="width:100%;" onclick="txSave()">Salvar lançamento</button>
     <div class="btnrow">
-      <button class="ghost" onclick="txCancel()">Cancelar</button>
+      <button class="ghost" onclick="txCancel()">Fechar</button>
       <button class="danger hidden" id="tx-del-btn" onclick="txDelFromModal()">Excluir</button>
     </div>`;
 }
@@ -1155,7 +1155,7 @@ function purchaseFormHtml(){
     <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
     <div class="btnrow">
       <button onclick="savePurchase()">Salvar compra</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`;
 }
 function openPurchaseModal(type){
@@ -2247,7 +2247,7 @@ function renderProdutos(){
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
         <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Lucro por peça: ${BRL(Math.round(p.sale_price_cents - unitCostCents(p)))} · Margem: ${p.sale_price_cents > 0 ? fmtN((p.sale_price_cents - unitCostCents(p)) / p.sale_price_cents * 100) : '0'}% · Tempo: ${fmtTime(p.print_time_minutes)}</div>
-        <div class="mut">Estoque em casa: <b style="color:var(--txt);">${st.available}</b> · Produzidas: ${st.produced} · Em expositores: ${st.in_displays} · Em pedidos: ${st.in_orders}</div>
+        <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Produzidas: ${st.produced} · Em expositores: ${st.in_displays} · Em pedidos: ${st.in_orders}</div>
         ${histHtml}</span></span>
       <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
         <button class="ghost btn-sm" onclick="loadProductIntoCalc(${p.id})">Editar</button>
@@ -2314,7 +2314,7 @@ function purgeProduct(id){
     <p class="mut" style="margin-bottom:8px;">Excluir o produto "<b style="color:var(--txt);">${esc(p.name)}</b>" de vez? As produções dele serão desfeitas e os materiais voltam ao estoque. Esta ação não tem volta.</p>
     <div class="btnrow">
       <button class="danger" onclick="doPurgeProduct('${p.id}')">Excluir de vez</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function doPurgeProduct(id){
@@ -2376,7 +2376,7 @@ function renderProdModal(){
     <label class="check"><input type="checkbox" ${P.saveRecipe ? 'checked' : ''} onchange="P.saveRecipe = this.checked"> Salvar esta prévia como a nova receita do produto</label>
     <div class="btnrow">
       <button onclick="confirmProduction()">Confirmar produção</button>
-      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="ghost" onclick="closeModal()">Fechar</button>
     </div>`;
 }
 function prodQtyChange(v){
@@ -2783,7 +2783,7 @@ function activeProductOptions(){
   const q = norm(S.mountSearch);
   const act = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0));
   if(!act.length) return '<option value="">Nenhum produto ativo</option>';
-  return act.map(p => `<option value="${p.id}">${esc(p.name)} (em casa: ${homeAvail(p.id)})</option>`).join('');
+  return act.map(p => `<option value="${p.id}">${esc(p.name)} (estoque: ${homeAvail(p.id)})</option>`).join('');
 }
 function refreshMountOptions(){
   const sel = $('disp-product');
@@ -2798,7 +2798,7 @@ function updateDispHint(){
   const hint = $('disp-hint');
   if(!sel || !hint) return;
   const pid = parseInt(sel.value, 10);
-  hint.textContent = pid ? ('Em casa agora: ' + homeAvail(pid) + ' peças. Mandar além disso é recusado.') : '';
+  hint.textContent = pid ? ('Estoque agora: ' + homeAvail(pid) + ' peças. Mandar além disso é recusado.') : '';
 }
 function renderStoreDetail(){
   const st = storeById(S.currentStore);
@@ -2910,7 +2910,7 @@ async function mountDisplay(){
   if(!p){ toast('Escolha um produto.', true); return; }
   if(qty <= 0){ toast('Informe uma quantidade maior que zero.', true); return; }
   const avail = homeAvail(pid);
-  if(qty > avail){ toast('Não dá para mandar ' + qty + ' de "' + p.name + '": só há ' + avail + ' em casa. Nada foi enviado.', true); return; }
+  if(qty > avail){ toast('Não dá para mandar ' + qty + ' de "' + p.name + '": só há ' + avail + ' em estoque. Nada foi enviado.', true); return; }
   try { await addToDisplay(st.id, pid, qty); } catch(e){ return toastErr(e); }
   await fetchAll(); renderAll();
   toast(qty + ' peças de "' + p.name + '" foram para o expositor da ' + st.name + '.');
@@ -2927,7 +2927,7 @@ function openCorrectTotal(rowId){
     <input id="ct-total" type="text" inputmode="numeric" value="${r.delivered_qty}">
     <div class="btnrow">
       <button onclick="saveCorrectTotal()">Salvar correção</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function saveCorrectTotal(){
@@ -2950,13 +2950,13 @@ function openRestock(storeId){
   RS = { storeId: storeId };
   openBox(`
     <h2>Repor estoque: ${esc(st.name)}</h2>
-    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto para mandar ao expositor. Tudo é conferido contra o estoque em casa antes de aplicar: se algo passar do disponível, nada é reposto.</p>
-    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Em casa: ${homeAvail(p.id)}</div></span>
+    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto para mandar ao expositor. Tudo é conferido contra o estoque antes de aplicar: se algo passar do disponível, nada é reposto.</p>
+    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Estoque: ${homeAvail(p.id)}</div></span>
       <input type="text" inputmode="numeric" id="rs-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')
-      : '<p class="mut">Nenhum produto com estoque em casa agora.</p>'}
+      : '<p class="mut">Nenhum produto em estoque agora.</p>'}
     <div class="btnrow">
       <button class="pinkbtn" onclick="applyRestock()">Repor estoque</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function applyRestock(){
@@ -2973,7 +2973,7 @@ async function applyRestock(){
   if(!lines.length){ toast('Digite a quantidade de pelo menos um produto.', true); return; }
   for(const l of lines){
     const avail = homeAvail(l.product.id);
-    if(l.qty > avail){ toast('Não dá para repor ' + l.qty + ' de "' + l.product.name + '": só há ' + avail + ' em casa. Nada foi reposto.', true); return; }
+    if(l.qty > avail){ toast('Não dá para repor ' + l.qty + ' de "' + l.product.name + '": só há ' + avail + ' em estoque. Nada foi reposto.', true); return; }
   }
   try { for(const l of lines) await addToDisplay(st.id, l.product.id, l.qty); } catch(e){ return toastErr(e); }
   const total = lines.reduce((a, l) => a + l.qty, 0);
@@ -3010,7 +3010,7 @@ function openSettlement(storeId){
     <p class="mut">Se o valor acertado for menor que o total, o restante vira saldo do próximo ciclo. Ao confirmar, os vendidos zeram e o que sobrou no expositor vira o estoque inicial do novo ciclo.</p>
     <div class="btnrow">
       <button onclick="confirmSettlement()">Confirmar acerto</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function confirmSettlement(){
@@ -3135,7 +3135,7 @@ function restockHtml(storeId){
     const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
     const lines = g.rows.map(r => {
       const p = prodById(r.product_id);
-      return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · em casa: ${homeAvail(r.product_id)}</span></div>`;
+      return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · estoque: ${homeAvail(r.product_id)}</span></div>`;
     }).join('');
     return `<div class="linebox">
       <div><b>${esc(st ? st.name : 'Loja')}</b> <span class="mut">· ${fmtDateTime(g.createdAt)} · ${totalQty} itens pedidos</span></div>
@@ -3182,7 +3182,7 @@ async function attendRestock(i){
     const avail = homeAvail(Number(pid));
     if(perProd[pid] > avail){
       const p = prodById(Number(pid));
-      toast('Não dá para atender tudo: "' + (p ? p.name : 'Produto') + '" pede ' + perProd[pid] + ' e só há ' + avail + ' em casa. O pedido continua pendente.', true);
+      toast('Não dá para atender tudo: "' + (p ? p.name : 'Produto') + '" pede ' + perProd[pid] + ' e só há ' + avail + ' em estoque. O pedido continua pendente.', true);
       return;
     }
   }
@@ -3218,10 +3218,10 @@ function renderPedidos(){
   renderOrderLines();
   renderOrders();
 }
-function orderProductOptions(selId){
+function orderProductDatalist(){
   const act = S.products.filter(p => !p.archived);
-  const opts = act.map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${esc(p.name)} (${BRL(p.sale_price_cents)})</option>`).join('');
-  return `<option value="" ${selId ? '' : 'selected'}>Escolher produto...</option>` + opts;
+  const opts = act.map(p => `<option value="${esc(p.name)}"></option>`).join('');
+  return `<datalist id="ord-product-list">${opts}<option value="+ Criar produto novo"></option></datalist>`;
 }
 function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false }; }
 function renderOrderLines(){
@@ -3243,8 +3243,8 @@ function renderOrderLines(){
     const costVal = l.costStr !== '' ? l.costStr : (p ? moneyStr(Math.round(unitCostCents(p))) : '');
     return `<div class="linebox">
       <label>Produto</label>
-      <select onchange="orderLineProduct(${i}, this.value)">${orderProductOptions(l.productId)}</select>
-      <div class="mut">${p ? 'Em casa: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>
+      <input type="text" list="ord-product-list" placeholder="Buscar ou digitar o item..." value="${esc(l.description || (p ? p.name : ''))}" onchange="orderLineProduct(${i}, this.value)">
+      <div class="mut">${p ? 'Estoque: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>
       <div class="cols">
         <div><label>Quantidade</label><input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)"></div>
         <div><label>Preço unitário (R$)</label><input type="text" inputmode="decimal" value="${esc(priceVal)}" oninput="orderLineField(${i}, 'priceStr', this.value)"></div>
@@ -3257,9 +3257,23 @@ function renderOrderLines(){
 }
 function orderLineField(i, field, v){ S.orderLines[i][field] = v; }
 function orderLineProduct(i, v){
-  S.orderLines[i].productId = v ? parseInt(v, 10) : null;
-  const p = S.orderLines[i].productId ? prodById(S.orderLines[i].productId) : null;
-  if(p){ S.orderLines[i].priceStr = moneyStr(p.sale_price_cents); S.orderLines[i].costStr = moneyStr(Math.round(unitCostCents(p))); }
+  const val = (v || '').trim();
+  if(val === '+ Criar produto novo'){
+    S.orderLines[i] = blankOrderLine();
+    renderOrderLines();
+    orderViaCalculator();
+    return;
+  }
+  const p = val ? S.products.find(x => !x.archived && x.name.toLowerCase() === val.toLowerCase()) : null;
+  if(p){
+    S.orderLines[i].productId = p.id;
+    S.orderLines[i].description = p.name;
+    S.orderLines[i].priceStr = moneyStr(p.sale_price_cents);
+    S.orderLines[i].costStr = moneyStr(Math.round(unitCostCents(p)));
+  } else {
+    S.orderLines[i].productId = null;
+    S.orderLines[i].description = val;
+  }
   renderOrderLines();
 }
 function addOrderLine(){ S.orderLines.push(blankOrderLine()); renderOrderLines(); }
@@ -3279,18 +3293,16 @@ function orderFormHtml(){
     </div>
     <label>Observações</label>
     <input id="ord-notes" type="text" placeholder="Opcional">
+    ${editing ? `<div class="mut" style="margin-top:16px;">Total: <b style="color:var(--txt);">${BRL(ordTotal)}</b>${ordCost > 0 ? ' · Custo: ' + BRL(ordCost) + ' · Lucro: ' + BRL(ordTotal - ordCost) : ''}</div>` : ''}
     <h3>Itens do pedido</h3>
+    ${orderProductDatalist()}
     <div id="ord-lines"></div>
     <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
     <div class="btnrow">
-      <button class="ghost" onclick="orderViaCalculator()">Item novo? Criar pela Calculadora</button>
-    </div>
-    <div class="btnrow">
       <button onclick="saveOrder()">${editing ? 'Salvar' : 'Salvar pedido'}</button>
-      <button class="ghost" onclick="closeOrderModal()">Cancelar</button>
+      <button class="ghost" onclick="closeOrderModal()">Fechar</button>
     </div>
-    ${editing ? `<div class="mut" style="margin-top:16px;">Total: <b style="color:var(--txt);">${BRL(ordTotal)}</b>${ordCost > 0 ? ' · Custo: ' + BRL(ordCost) + ' · Lucro: ' + BRL(ordTotal - ordCost) : ''}</div>
-    <div class="btnrow" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
+    ${editing ? `<div class="btnrow" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
       ${ord && ord.status !== 'cancelado' ? `<button class="danger" onclick="cancelOrderFromEdit()">Cancelar pedido</button>` : ''}
       <button class="danger" onclick="deleteOrderFromEdit()">Excluir pedido</button>
     </div>` : ''}`;
@@ -3377,7 +3389,12 @@ async function saveOrder(){
       lines.push({ product: null, description: desc, qty: qty, unitPrice: Math.max(0, parseMoney(l.priceStr)), unitCost: Math.max(0, parseMoney(l.costStr)) });
       continue;
     }
-    if(!l.productId) continue;
+    if(!l.productId){
+      const desc = (l.description || '').trim();
+      if(!desc) continue;
+      lines.push({ product: null, description: desc, qty: qty, unitPrice: Math.max(0, parseMoney(l.priceStr)), unitCost: Math.max(0, parseMoney(l.costStr)) });
+      continue;
+    }
     const p = prodById(l.productId);
     if(!p) continue;
     const unitPrice = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
@@ -3389,7 +3406,7 @@ async function saveOrder(){
   lines.forEach(l => {
     if(!l.product) return;
     const avail = homeAvail(l.product.id);
-    if(l.qty > avail) warnings.push('Faltam ' + (l.qty - avail) + ' peças de "' + l.product.name + '" (pedido de ' + l.qty + ', em casa ' + avail + ').');
+    if(l.qty > avail) warnings.push('Faltam ' + (l.qty - avail) + ' peças de "' + l.product.name + '" (pedido de ' + l.qty + ', em estoque ' + avail + ').');
   });
   if(warnings.length && !confirm(warnings.join('\n') + '\n\nSalvar o pedido mesmo assim?')) return;
   let orderId = S.editingOrder;
@@ -3447,7 +3464,7 @@ function restockCardHtml(g, i){
   const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
   const lines = g.rows.map(r => {
     const p = prodById(r.product_id);
-    return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · em casa: ${homeAvail(r.product_id)}</span></div>`;
+    return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · estoque: ${homeAvail(r.product_id)}</span></div>`;
   }).join('');
   return `<div class="item-card" style="align-items:flex-start;">
     <span style="flex:1;"><b>${esc(st ? st.name : 'Loja')}</b> <span class="badge link">reposição</span>
@@ -3532,7 +3549,7 @@ function openDeliverModal(id){
     <label class="check"><input type="checkbox" id="dl-finance" checked> Lançar o valor nas Finanças como ganho</label>
     <div class="btnrow">
       <button onclick="confirmDeliver()">Confirmar entrega</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function confirmDeliver(){
@@ -4033,7 +4050,7 @@ function renderStoreRestock(){
   if(!card || !st) return;
   if(st.restock_requests_enabled){
     card.innerHTML = `<h2>Reposição</h2>
-      <p class="mut" style="margin-bottom:8px;">Faltou produto no expositor? Peça para a J2L o que ela tem em casa, tudo de uma vez só.</p>
+      <p class="mut" style="margin-bottom:8px;">Faltou produto no expositor? Peça para a J2L o que ela tem em estoque, tudo de uma vez só.</p>
       <div class="btnrow"><button class="pinkbtn" onclick="openStoreRestock()"${S.previewStoreId ? ' disabled' : ''}>Pedir reposição pra J2L</button></div>`;
   } else {
     card.innerHTML = `<h2>Reposição</h2><p class="mut">A reposição desta loja é combinada direto com a J2L.</p>`;
@@ -4061,15 +4078,15 @@ function openStoreRestock(){
   const prods = SV.products.filter(p => (SV.gs[p.id] || 0) > 0).sort((a, b) => a.name.localeCompare(b.name));
   openBox(`
     <h2>Pedir reposição pra J2L</h2>
-    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto. Se algum pedido passar do que a J2L tem em casa, nada é enviado: ajuste e tente de novo.</p>
-    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Em casa na J2L: ${SV.gs[p.id]}</div></span>
+    <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto. Se algum pedido passar do que a J2L tem em estoque, nada é enviado: ajuste e tente de novo.</p>
+    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Estoque na J2L: ${SV.gs[p.id]}</div></span>
       <input type="text" inputmode="numeric" id="svr-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')
-      : '<p class="mut">A J2L não tem produtos em casa agora.</p>'}
+      : '<p class="mut">A J2L não tem produtos em estoque agora.</p>'}
     <label>Mensagem (opcional)</label>
     <input id="svr-msg" type="text" placeholder="Ex.: o chaveiro está acabando">
     <div class="btnrow">
       <button class="pinkbtn" onclick="submitStoreRestock()">Enviar pedido</button>
-      <button class="ghost" onclick="closeBox()">Cancelar</button>
+      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function submitStoreRestock(){
@@ -4084,7 +4101,7 @@ async function submitStoreRestock(){
   if(!lines.length){ toast('Digite a quantidade de pelo menos um produto.', true); return; }
   for(const l of lines){
     const avail = SV.gs[l.product.id] || 0;
-    if(l.qty > avail){ toast('Você pediu ' + l.qty + ' de "' + l.product.name + '" e a J2L só tem ' + avail + ' em casa. Nada foi enviado.', true); return; }
+    if(l.qty > avail){ toast('Você pediu ' + l.qty + ' de "' + l.product.name + '" e a J2L só tem ' + avail + ' em estoque. Nada foi enviado.', true); return; }
   }
   const gid = newUuid();
   const msg = $('svr-msg') ? $('svr-msg').value.trim() : '';
