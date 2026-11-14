@@ -39,6 +39,8 @@
   @media(min-width:721px){ .drawer,.drawer-overlay{display:none !important;} }
   main{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px;}
+  .mat-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer;}
+  .mat-price{font-family:'Nunito',sans-serif; font-weight:800; font-size:16px; color:var(--cyan); white-space:nowrap;}
   h2{font-family:'Bungee','Nunito',sans-serif; font-size:16px; font-weight:400; letter-spacing:.4px; margin-bottom:12px;}
   h3{font-size:14px; color:var(--mut); margin:14px 0 8px; text-transform:uppercase; letter-spacing:1px;}
   input,button,select,textarea{font-size:15px; border-radius:12px;}
@@ -273,41 +275,23 @@
           <button class="ghost" onclick="cancelMatEdit()">Cancelar</button>
         </div>
       </div>
-      <div class="card">
-        <h2>Materiais em estoque</h2>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <h3 style="margin:0;">Filamentos</h3>
-          <button class="btn-sm" onclick="openPurchaseModal('filament')">+ Filamento</button>
-        </div>
-        <div id="mat-fil"></div>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <h3 style="margin:0;">Insumos</h3>
-          <button class="btn-sm" onclick="openPurchaseModal('supply')">+ Insumo</button>
-        </div>
-        <div id="mat-sup"></div>
+      <h2>Materiais em estoque</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+        <h3 style="margin:0;">Filamentos</h3>
+        <button class="btn-sm" onclick="openPurchaseModal('filament')">+ Filamento</button>
       </div>
+      <div id="mat-fil"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; margin-bottom:10px;">
+        <h3 style="margin:0;">Insumos</h3>
+        <button class="btn-sm" onclick="openPurchaseModal('supply')">+ Insumo</button>
+      </div>
+      <div id="mat-sup"></div>
     </div>
 
     <!-- CALCULADORA -->
     <div id="tab-calculadora" class="tabpage hidden">
       <div class="card">
         <h2 id="calc-form-title">Calculadora de produto</h2>
-        <label>Nome do produto</label>
-        <input id="calc-name" type="text" placeholder="Ex.: Chaveiro logo redondo">
-        <label>Foto do produto</label>
-        <div class="photo-box" style="display:flex; gap:12px; align-items:flex-start;">
-          <span id="calc-photo-preview"></span>
-          <span style="flex:1;">
-            <input id="calc-photo-file" type="file" accept="image/*" onchange="onCalcPhotoFile(this)">
-            <div class="mut" id="calc-photo-info">A foto é comprimida no aparelho (até 1200 px, JPEG).</div>
-            <div class="btnrow hidden" id="calc-photo-actions">
-              <button type="button" class="ghost btn-sm" onclick="document.getElementById('calc-photo-file').click()">Trocar foto</button>
-              <button type="button" class="danger btn-sm" onclick="removeCalcPhoto()">Remover foto</button>
-            </div>
-          </span>
-        </div>
-        <label>Descrição</label>
-        <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
         <div class="seg">
           <button type="button" id="seg-manual" class="on" onclick="setCalcFillMode('manual')">Manual</button>
           <button type="button" id="seg-print" onclick="setCalcFillMode('print')">Print do fatiador</button>
@@ -366,7 +350,7 @@
           <input id="calc-ordernotes" type="text" placeholder="Opcional">
         </div>
         <div class="btnrow">
-          <button id="calc-save-btn" onclick="saveProductCalc()">Salvar produto</button>
+          <button id="calc-save-btn" onclick="openCalcInfo()">Salvar produto</button>
           <button class="ghost hidden" id="calc-cancel-edit" onclick="cancelProductEdit()">Cancelar edição</button>
         </div>
       </div>
@@ -578,6 +562,33 @@
   <div class="box" id="modal-box"></div>
 </div>
 
+<!-- MODAL DE DADOS DO PRODUTO (Calculadora: abre ao salvar o produto) -->
+<div id="calc-info-modal" class="modal hidden">
+  <div class="box">
+    <h2 id="calc-info-title">Dados do produto</h2>
+    <label>Nome do produto</label>
+    <input id="calc-name" type="text" placeholder="Ex.: Chaveiro logo redondo">
+    <label>Foto do produto</label>
+    <div class="photo-box" style="display:flex; gap:12px; align-items:flex-start;">
+      <span id="calc-photo-preview"></span>
+      <span style="flex:1;">
+        <input id="calc-photo-file" type="file" accept="image/*" onchange="onCalcPhotoFile(this)">
+        <div class="mut" id="calc-photo-info">A foto é comprimida no aparelho (até 1200 px, JPEG).</div>
+        <div class="btnrow hidden" id="calc-photo-actions">
+          <button type="button" class="ghost btn-sm" onclick="document.getElementById('calc-photo-file').click()">Trocar foto</button>
+          <button type="button" class="danger btn-sm" onclick="removeCalcPhoto()">Remover foto</button>
+        </div>
+      </span>
+    </div>
+    <label>Descrição</label>
+    <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
+    <div class="btnrow">
+      <button id="calc-info-save" onclick="saveProductCalc()">Salvar</button>
+      <button class="ghost" onclick="cancelCalcInfo()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="hidden"></div>
 
 <script src="config.js"></script>
@@ -677,7 +688,7 @@ const S = {
   stock: {}, recipes: {}, txs: [],
   settings: { watts: 200, kwh: 100, wear: 100, margin: 30 },
   finMonth: ymNow(), editingTx: null,
-  matType: 'filament', editingMat: null,
+  matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
   calc: { fils: [], sups: [] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   histOpen: {}, editingProduct: null, editingOrder: null, mountSearch: '',
@@ -1118,21 +1129,60 @@ function setMatType(t){
   $('mat-type-f').className = 'btn-sm' + (t === 'filament' ? '' : ' ghost');
   $('mat-type-s').className = 'btn-sm' + (t === 'supply' ? '' : ' ghost');
 }
+function filCardHtml(f, finished){
+  const rem = filRemaining(f);
+  const repor = finished ? `<button class="btn-sm" onclick="event.stopPropagation(); reporMat('filament', ${f.id})">Repor</button>` : '';
+  return `<div class="mat-card" onclick="editMat('filament', ${f.id})"><span style="flex:1;"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}
+    <div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')} · comprou por ${BRL(f.price_cents)} · ${BRL(Math.round(filCostPerGram(f)*100)/100)} por grama</div></span>
+    <span style="text-align:right;"><b>${fmtN(rem)} g</b><div class="mut">de ${fmtN(f.weight_grams)} g</div></span>${repor}</div>`;
+}
+function supCardHtml(s, finished){
+  const rem = supRemaining(s);
+  const repor = finished ? `<button class="btn-sm" onclick="event.stopPropagation(); reporMat('supply', ${s.id})">Repor</button>` : '';
+  return `<div class="mat-card" onclick="editMat('supply', ${s.id})"><span style="flex:1;"><b>${esc(s.name)}</b> ${lowBadge(rem, s.stock_qty)}
+    <div class="mut">Restam ${fmtN(rem)} ${esc(s.unit)}</div></span>
+    <span class="mat-price">${BRL(s.unit_cost_cents)}/${esc((s.unit || 'un').toUpperCase())}</span>${repor}</div>`;
+}
+function finishedSectionHtml(kind, items, open){
+  if(!items.length) return '';
+  const cards = open ? `<div style="margin-top:10px;">${items.map(x => kind === 'fil' ? filCardHtml(x, true) : supCardHtml(x, true)).join('')}</div>` : '';
+  return `<button class="ghost btn-sm" onclick="toggleFinished('${kind}')">Acabados (${items.length}) ${open ? '▾' : '▸'}</button>${cards}`;
+}
+function toggleFinished(kind){
+  if(kind === 'fil') S.showFinishedFils = !S.showFinishedFils;
+  else S.showFinishedSups = !S.showFinishedSups;
+  renderMateriais();
+}
 function renderMateriais(){
-  $('mat-fil').innerHTML = S.filaments.map(f => {
-    const rem = filRemaining(f);
-    const link = f.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
-    return `<div class="row" style="cursor:pointer;" onclick="editMat('filament', ${f.id})"><span style="flex:1;"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)} ${lowBadge(rem, f.weight_grams)}${link}
-      <div class="mut">${esc(f.brand || '')} · ${esc(f.material)} · ${esc(f.color || '')} · comprou por ${BRL(f.price_cents)} · ${BRL(Math.round(filCostPerGram(f)*100)/100)} por grama</div></span>
-      <span style="text-align:right;"><b>${fmtN(rem)} g</b><div class="mut">de ${fmtN(f.weight_grams)} g</div></span></div>`;
-  }).join('') || '<p class="mut">Nenhum filamento.</p>';
-  $('mat-sup').innerHTML = S.supplies.map(s => {
-    const rem = supRemaining(s);
-    const link = s.purchase_transaction_id ? ' <span class="badge link">despesa vinculada</span>' : '';
-    return `<div class="row" style="cursor:pointer;" onclick="editMat('supply', ${s.id})"><span style="flex:1;">${esc(s.name)} ${lowBadge(rem, s.stock_qty)}${link}
-      <div class="mut">${BRL(s.unit_cost_cents)} cada · comprados: ${fmtN(s.stock_qty)} ${esc(s.unit)}</div></span>
-      <span style="text-align:right;"><b>${fmtN(rem)} ${esc(s.unit)}</b><div class="mut">restantes</div></span></div>`;
-  }).join('') || '<p class="mut">Nenhum insumo.</p>';
+  const filsOk = S.filaments.filter(f => filRemaining(f) > 0);
+  const filsOut = S.filaments.filter(f => filRemaining(f) <= 0);
+  $('mat-fil').innerHTML = (filsOk.map(f => filCardHtml(f, false)).join('')
+    || (filsOut.length ? '<p class="mut">Nenhum filamento em estoque.</p>' : '<p class="mut">Nenhum filamento.</p>'))
+    + finishedSectionHtml('fil', filsOut, S.showFinishedFils);
+  const supsOk = S.supplies.filter(s => supRemaining(s) > 0);
+  const supsOut = S.supplies.filter(s => supRemaining(s) <= 0);
+  $('mat-sup').innerHTML = (supsOk.map(s => supCardHtml(s, false)).join('')
+    || (supsOut.length ? '<p class="mut">Nenhum insumo em estoque.</p>' : '<p class="mut">Nenhum insumo.</p>'))
+    + finishedSectionHtml('sup', supsOut, S.showFinishedSups);
+}
+function reporMat(type, id){
+  if(type === 'filament'){
+    const f = filById(id); if(!f) return;
+    openPurchaseModal('filament');
+    $('mf-name').value = f.name || '';
+    $('mf-brand').value = f.brand || '';
+    $('mf-material').value = f.material || 'PLA';
+    $('mf-color').value = f.color || '';
+    $('mf-weight').value = numStr(f.weight_grams);
+    $('mf-price').value = moneyStr(f.price_cents);
+  } else {
+    const s = supById(id); if(!s) return;
+    openPurchaseModal('supply');
+    $('ms-name').value = s.name || '';
+    $('ms-unit').value = s.unit || 'un';
+    $('ms-qty').value = numStr(s.stock_qty);
+    $('ms-price').value = moneyStr(Math.round(s.stock_qty * s.unit_cost_cents));
+  }
 }
 function setSupplyMode(v){
   $('ms-package').classList.toggle('hidden', v === 'unit');
@@ -1473,6 +1523,37 @@ function cancelProductEdit(){
   renderCalcLines();
   recomputeCalc();
 }
+/* ------- Dados do produto: popup que abre ao salvar pela Calculadora ------- */
+let calcInfoSnapshot = null;
+function openCalcInfo(){
+  recomputeCalc();
+  calcInfoSnapshot = {
+    name: $('calc-name').value, desc: $('calc-desc').value,
+    photo: { blob: S.calcPhoto.blob, removed: S.calcPhoto.removed, sizes: S.calcPhoto.sizes }
+  };
+  $('calc-info-title').textContent = S.editingProduct ? 'Editar produto' : 'Dados do produto';
+  $('calc-info-save').textContent = S.editingProduct ? 'Salvar alterações' : 'Salvar produto';
+  const fi = $('calc-photo-file'); if(fi) fi.value = '';
+  renderCalcPhotoPreview('');
+  $('calc-info-modal').classList.remove('hidden');
+}
+function closeCalcInfo(){
+  $('calc-info-modal').classList.add('hidden');
+  calcInfoSnapshot = null;
+}
+function cancelCalcInfo(){
+  if(calcInfoSnapshot){
+    $('calc-name').value = calcInfoSnapshot.name;
+    $('calc-desc').value = calcInfoSnapshot.desc;
+    if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
+    const snap = calcInfoSnapshot.photo;
+    S.calcPhoto = { blob: snap.blob, removed: snap.removed, sizes: snap.sizes,
+      previewUrl: snap.blob ? URL.createObjectURL(snap.blob) : undefined };
+    const fi = $('calc-photo-file'); if(fi) fi.value = '';
+    renderCalcPhotoPreview('');
+  }
+  closeCalcInfo();
+}
 async function saveProductCalc(){
   recomputeCalc();
   const name = $('calc-name').value.trim();
@@ -1524,11 +1605,23 @@ async function saveProductCalc(){
     if(e2) return toastErr(e2);
   }
   if(isStoragePath(oldPhoto) && oldPhoto !== finalPhoto){ try { await sb.storage.from('product-photos').remove([oldPhoto]); } catch(e) {} }
+  let producedQty = 0;
+  let prodFailed = false;
+  let prodEnded = [];
+  if(!S.editingProduct){
+    const pqty = Math.max(1, Math.round(R.effQty || 1));
+    const pres = await insertProductionAndDeduct(prod.id, pqty,
+      R.filDetail.map(d => ({ filamentId: d.filamentId, perPiece: d.grams, grams: r2(d.grams * pqty) })),
+      R.supDetail.map(d => ({ supplyId: d.supplyId, perPiece: d.qty, qty: r2(d.qty * pqty) })),
+      'Produção inicial da Calculadora');
+    if(pres.error) prodFailed = true;
+    else { producedQty = pqty; prodEnded = pres.ended || []; }
+  }
   let extra = '';
   if($('calc-asorder').checked){
     const client = $('calc-client').value.trim();
     const oqty = Math.max(1, Math.round(R.effQty || 1));
-    if(!client){ toast('Produto salvo, mas o pedido não: falta o nome do cliente.', true); await fetchAll(); renderAll(); return; }
+    if(!client){ toast('Produto salvo, mas o pedido não: falta o nome do cliente.', true); await fetchAll(); renderAll(); closeCalcInfo(); return; }
     const { data: ord, error: e3 } = await sb.from('orders').insert({
       client_name: client, status: 'pendente', post_to_finance: false,
       order_date: $('calc-orderdate').value || todayStr(),
@@ -1549,7 +1642,12 @@ async function saveProductCalc(){
   S.calc.sups = [];
   renderCalcLines();
   await fetchAll(); renderAll();
-  toast((wasEditing ? 'Produto "' + name + '" atualizado.' : 'Produto "' + name + '" salvo.') + extra);
+  closeCalcInfo();
+  let doneMsg;
+  if(wasEditing) doneMsg = 'Produto "' + name + '" atualizado.';
+  else if(prodFailed) doneMsg = 'Produto "' + name + '" salvo, mas a produção inicial não foi registrada.';
+  else doneMsg = 'Produto "' + name + '" salvo e ' + (producedQty === 1 ? '1 peça produzida' : producedQty + ' peças produzidas') + '.' + (prodEnded.length ? ' Atenção, acabou o estoque de: ' + prodEnded.join(', ') + '.' : '');
+  toast(doneMsg + extra);
 }
 /* ---------------- Foto do produto (upload com compressão) ---------------- */
 function fmtBytes(b){
@@ -2238,23 +2336,22 @@ function prodFilSel(i, v){ P.fils[i].filamentId = parseInt(v, 10); const f = fil
 function prodFilGrams(i, v){ P.fils[i].grams = parseNum(v) || 0; }
 function prodSupSel(i, v){ P.sups[i].supplyId = parseInt(v, 10); }
 function prodSupQty(i, v){ P.sups[i].qty = parseNum(v) || 0; }
-async function confirmProduction(){
-  if(!P) return;
+async function insertProductionAndDeduct(productId, qty, fils, sups, note){
   const consumption = [];
-  P.fils.forEach(l => {
+  fils.forEach(l => {
     if(l.grams > 0){
       const f = filById(l.filamentId);
       consumption.push({ kind: 'filament', id: l.filamentId, name: f ? f.name : '', grams: r2(l.grams) });
     }
   });
-  P.sups.forEach(l => {
+  sups.forEach(l => {
     if(l.qty > 0){
       const s = supById(l.supplyId);
       consumption.push({ kind: 'supply', id: l.supplyId, name: s ? s.name : '', qty: r2(l.qty) });
     }
   });
-  const { error } = await sb.from('productions').insert({ product_id: P.productId, qty: P.qty, consumption: consumption, note: P.note || '' });
-  if(error) return toastErr(error);
+  const { error } = await sb.from('productions').insert({ product_id: productId, qty: qty, consumption: consumption, note: note || '' });
+  if(error) return { error: error };
   const ended = [];
   for(const c of consumption){
     if(c.kind === 'filament'){
@@ -2262,7 +2359,7 @@ async function confirmProduction(){
       if(f){
         const nu = r2(f.used_grams + c.grams);
         const { error: e } = await sb.from('filaments').update({ used_grams: nu }).eq('id', f.id);
-        if(e) return toastErr(e);
+        if(e) return { error: e };
         f.used_grams = nu;
         if(filRemaining(f) <= 0) ended.push(f.name);
       }
@@ -2271,12 +2368,19 @@ async function confirmProduction(){
       if(s){
         const nu = r2(s.used_qty + c.qty);
         const { error: e } = await sb.from('supplies').update({ used_qty: nu }).eq('id', s.id);
-        if(e) return toastErr(e);
+        if(e) return { error: e };
         s.used_qty = nu;
         if(supRemaining(s) <= 0) ended.push(s.name);
       }
     }
   }
+  return { ended: ended };
+}
+async function confirmProduction(){
+  if(!P) return;
+  const pres = await insertProductionAndDeduct(P.productId, P.qty, P.fils, P.sups, P.note);
+  if(pres.error) return toastErr(pres.error);
+  const ended = pres.ended;
   if(P.saveRecipe){
     const pid = P.productId, q = P.qty;
     await sb.from('product_filaments').delete().eq('product_id', pid);
