@@ -1,4 +1,4 @@
-// J2L Financas e Consignado: configuracao do app de producao.
+// J2L Impressao 3D: configuracao do app de producao.
 // SUPABASE_ANON_KEY: chave publica (anon) do projeto, pega no painel do Supabase
 // em Settings > API. Ela e segura para ficar no front-end: quem protege os dados
 // e o RLS do banco (master ve tudo, loja so o proprio expositor).
