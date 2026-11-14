@@ -167,7 +167,7 @@
 </head>
 <body>
 <header id="app-header">
-  <img class="logoimg" src="logo-j2l-header.png" alt="J2L Impressão 3D">
+  <img class="logoimg" src="logo-j2l-header.png" alt="J2L Impressão 3D" style="cursor:pointer" title="Ir para Finanças" onclick="logoHome()">
   <div class="header-actions">
     <span id="who" class="pill hidden"></span>
     <button id="btn-out" class="ghost hidden" style="padding:8px 12px;">Sair</button>
@@ -177,7 +177,7 @@
 <div id="drawer-overlay" class="drawer-overlay" onclick="closeMobileMenu()"></div>
 <aside id="drawer" class="drawer" aria-label="Navegação principal" aria-hidden="true">
   <div class="drawer-head">
-    <img src="logo-j2l-header.png" alt="J2L Impressão 3D">
+    <img src="logo-j2l-header.png" alt="J2L Impressão 3D" style="cursor:pointer" title="Ir para Finanças" onclick="menuGo('financas')">
     <button class="drawer-close" type="button" aria-label="Fechar menu" onclick="closeMobileMenu()">&#10005;</button>
   </div>
   <nav>
@@ -866,6 +866,10 @@ function closeMobileMenu(){ setMobileMenu(false); }
 function menuGo(name){
   showTab(name);
   closeMobileMenu();
+}
+function logoHome(){
+  const btn = $('menu-btn');
+  if(btn && !btn.classList.contains('hidden')) menuGo('financas');
 }
 document.addEventListener('keydown', event => {
   if(event.key !== 'Escape') return;
