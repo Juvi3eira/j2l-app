@@ -499,7 +499,7 @@
             </div>
           </div>
           <div class="btnrow" style="margin-top:0;">
-            <button class="ghost btn-sm" type="button" onclick="clearAccessFilters()">Limpar filtros</button>
+            <button id="acc-clear-filters" class="ghost btn-sm hidden" type="button" onclick="clearAccessFilters()">Limpar filtros</button>
           </div>
         </div>
         <div id="access-list"></div>
@@ -3745,6 +3745,8 @@ function renderEquipe(){
   }
   const filterStoreWrap = $('acc-filter-store-wrap');
   if(filterStoreWrap) filterStoreWrap.classList.toggle('hidden', S.accRoleFilter !== 'store');
+  const clearFiltersBtn = $('acc-clear-filters');
+  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !(S.accRoleFilter || S.accStoreFilter));
   const el = $('access-list');
   if(!el) return;
   const profiles = S.profiles || [];
