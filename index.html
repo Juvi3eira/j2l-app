@@ -21,11 +21,11 @@
   header img.logoimg{height:46px; width:auto; max-width:34vw; object-fit:contain; display:block; flex:0 0 auto;}
   .header-actions{margin-left:auto; display:flex; gap:8px; align-items:center; min-width:0;}
   #who{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .menu-btn{display:none; align-items:center; gap:8px; min-height:44px; padding:10px 13px; background:transparent; color:var(--txt); border:1px solid var(--line); font-weight:800;}
+  .menu-btn{display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 13px; background:transparent; color:var(--txt); border:1px solid var(--line); font-weight:800;}
   .menu-btn .burger{font-size:20px; line-height:1;}
   .drawer-overlay{position:fixed; inset:0; background:rgba(5,4,15,.62); opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:80;}
   .drawer-overlay.open{opacity:1; pointer-events:auto;}
-  .drawer{position:fixed; top:0; left:0; height:100dvh; width:min(300px, 84vw); background:var(--navy); border-right:2px solid var(--line); z-index:90; transform:translateX(-105%); visibility:hidden; transition:transform .28s ease, visibility 0s linear .28s; display:flex; flex-direction:column; padding:18px 14px; box-shadow:16px 0 36px rgba(0,0,0,.48);}
+  .drawer{position:fixed; top:0; right:0; height:100dvh; width:min(300px, 84vw); background:var(--navy); border-left:2px solid var(--line); z-index:90; transform:translateX(105%); visibility:hidden; transition:transform .28s ease, visibility 0s linear .28s; display:flex; flex-direction:column; padding:18px 14px; box-shadow:-16px 0 36px rgba(0,0,0,.48);}
   .drawer.open{transform:translateX(0); visibility:visible; transition:transform .28s ease, visibility 0s;}
   .drawer-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
   .drawer-head img{height:48px; width:auto; display:block;}
@@ -36,11 +36,35 @@
   .drawer-foot{margin-top:auto; border-top:1px solid var(--line); padding-top:14px;}
   .drawer-who{color:var(--mut); font-size:13px; word-break:break-all; margin-bottom:10px;}
   .drawer-foot button{width:100%;}
-  @media(min-width:721px){ .drawer,.drawer-overlay{display:none !important;} }
   main{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px;}
   .mat-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer;}
+  .item-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .item-card.click{cursor:pointer;}
+  .sub-card{background:#1a1730; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .sec-actions{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .sec-actions h2{margin:0;}
+  .sec-label{font-family:'Bungee','Nunito',sans-serif; font-size:12px; letter-spacing:.6px; color:var(--mut); text-transform:uppercase; margin:0 0 10px;}
+  .acerto-hero{font-family:'Bungee','Nunito',sans-serif; font-size:30px; font-weight:400; color:var(--yellow); line-height:1.1;}
+  .restock-alert{border-color:var(--yellow);}
+  .restock-alert h2{color:var(--yellow);}
+  .detail-head-actions{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  #modal-box #store-form-card{background:transparent; border:0; border-radius:0; padding:0; margin:0;}
   .mat-price{font-family:'Nunito',sans-serif; font-weight:800; font-size:16px; color:var(--cyan); white-space:nowrap;}
+  .stores-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .stores-search{display:flex; gap:8px; align-items:stretch; margin-bottom:14px;}
+  .stores-search input{flex:1; margin-bottom:0;}
+  .store-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; cursor:pointer; text-align:left;}
+  .store-card:active{background:#262052;}
+  .sc-top{display:flex; align-items:baseline; justify-content:space-between; gap:12px;}
+  .sc-name{font-family:'Bungee','Nunito',sans-serif; font-size:15px; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sc-line{margin-top:8px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; color:var(--mut); font-size:13px;}
+  .sc-val{font-family:'Nunito',sans-serif; font-weight:800;}
+  .sc-restock{font-family:'Bungee','Nunito',sans-serif; font-size:10px; letter-spacing:.4px; padding:3px 8px; border-radius:99px; background:var(--yellow); color:var(--navy);}
+  .store-empty{border:1px dashed var(--line); border-radius:16px; padding:32px 20px; text-align:center;}
+  .store-empty-title{font-family:'Bungee','Nunito',sans-serif; font-size:14px; letter-spacing:.4px;}
+  .store-empty p{max-width:320px; margin:8px auto 0;}
+  .store-empty .btnrow{justify-content:center;}
   h2{font-family:'Bungee','Nunito',sans-serif; font-size:16px; font-weight:400; letter-spacing:.4px; margin-bottom:12px;}
   h3{font-size:14px; color:var(--mut); margin:14px 0 8px; text-transform:uppercase; letter-spacing:1px;}
   input,button,select,textarea{font-size:15px; border-radius:12px;}
@@ -71,16 +95,13 @@
   .passwrap input{padding-right:88px;}
   .passwrap .passtoggle{position:absolute; top:6px; right:6px; min-height:34px; padding:6px 10px; font-size:13px; border-radius:9px; background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:700;}
   .hidden{display:none !important;}
+  .preview-banner{display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--yellow); color:var(--navy); border-radius:12px; padding:12px 16px; margin-bottom:14px; font-weight:800;}
+  .preview-banner button{background:var(--navy); color:var(--txt); border:0; padding:9px 20px; border-radius:999px; font-weight:800; cursor:pointer; margin-left:auto; font-family:'Bungee',cursive;}
   .pill{font-size:11px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--mut);}
-  .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
-  .tabbtn{background:transparent; color:var(--mut); border:1px solid var(--line); padding:10px 14px; font-weight:400; font-size:13px;}
-  .tabbtn.on{background:var(--cyan); color:#0b0a18; border-color:var(--cyan);}
   .nav-icon{display:inline-block; margin-right:7px;}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   @media(max-width:720px){
     header{padding:10px 12px; gap:8px; position:sticky; top:0;}
-    .tabs{display:none;}
-    .menu-btn{display:inline-flex;}
     #who{max-width:29vw; font-size:10px; padding:3px 7px;}
     #btn-out{padding:8px 9px !important;}
   }
@@ -106,7 +127,7 @@
   .thumb{width:52px; height:52px; object-fit:cover; border-radius:10px; border:1px solid var(--line); background:#141126;}
   .linebox{border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; background:#1a1730;}
   .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
-  .loginlogo{display:block; max-width:220px; width:70%; margin:0 auto 10px;}
+  .loginlogo{display:block; max-width:220px; width:70%; margin:0 auto 16px;}
   .loginsub{font-family:'Bungee','Nunito',sans-serif; text-align:center; font-size:19px; font-weight:400; letter-spacing:.4px; margin-bottom:16px;}
   .badge.stp{background:#5a3b12; color:var(--yellow);}
   .badge.stprod{background:#14424f; color:var(--cyan);}
@@ -144,13 +165,13 @@
 </style>
 </head>
 <body>
-<header>
+<header id="app-header">
   <img class="logoimg" src="logo-j2l-header.png" alt="J2L Impressão 3D">
-  <button id="menu-btn" class="menu-btn hidden" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="drawer" onclick="toggleMobileMenu(event)"><span class="burger" aria-hidden="true">&#9776;</span><span>Menu</span></button>
   <div class="header-actions">
     <span id="who" class="pill hidden"></span>
     <button id="btn-out" class="ghost hidden" style="padding:8px 12px;">Sair</button>
   </div>
+  <button id="menu-btn" class="menu-btn hidden" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="drawer" onclick="toggleMobileMenu(event)"><span class="burger" aria-hidden="true">&#9776;</span><span>Menu</span></button>
 </header>
 <div id="drawer-overlay" class="drawer-overlay" onclick="closeMobileMenu()"></div>
 <aside id="drawer" class="drawer" aria-label="Navegação principal" aria-hidden="true">
@@ -176,8 +197,7 @@
 <main>
   <!-- LOGIN -->
   <section id="view-login" class="center hidden">
-    <img class="loginlogo" src="logo-j2l.png" alt="J2L Impressão 3D">
-    <div class="loginsub">Finanças e Consignado</div>
+    <img class="loginlogo" src="logo-j2l-transparente.png" alt="J2L Impressão 3D">
     <div class="card">
       <h2>Entrar</h2>
       <input id="in-email" type="email" placeholder="Seu e-mail" autocomplete="username">
@@ -210,16 +230,6 @@
 
   <!-- MASTER -->
   <section id="view-master" class="hidden">
-    <nav class="tabs">
-      <button class="tabbtn on" data-tab="financas" onclick="showTab('financas')"><span class="nav-icon" aria-hidden="true">💰</span>Finanças</button>
-      <button class="tabbtn" data-tab="materiais" onclick="showTab('materiais')"><span class="nav-icon" aria-hidden="true">📦</span>Materiais</button>
-      <button class="tabbtn" data-tab="calculadora" onclick="showTab('calculadora')"><span class="nav-icon" aria-hidden="true">🧮</span>Calculadora</button>
-      <button class="tabbtn" data-tab="produtos" onclick="showTab('produtos')"><span class="nav-icon" aria-hidden="true">🏷️</span>Produtos</button>
-      <button class="tabbtn" data-tab="lojas" onclick="showTab('lojas')"><span class="nav-icon" aria-hidden="true">🏪</span>Lojas</button>
-      <button class="tabbtn" data-tab="equipe" onclick="showTab('equipe')"><span class="nav-icon" aria-hidden="true">👥</span>Equipe</button>
-      <button class="tabbtn" data-tab="pedidos" onclick="showTab('pedidos')"><span class="nav-icon" aria-hidden="true">🧾</span>Pedidos</button>
-    </nav>
-
     <!-- FINANÇAS -->
     <div id="tab-financas" class="tabpage">
       <div class="btnrow" style="margin:0 0 14px;">
@@ -258,10 +268,8 @@
         <h2>Resumo por categoria do mês</h2>
         <div id="fin-cat-summary"></div>
       </div>
-      <div class="card">
-        <h2>Lançamentos do mês</h2>
-        <div id="fin-list"></div>
-      </div>
+      <h2>Lançamentos do mês</h2>
+      <div id="fin-list"></div>
     </div>
 
     <!-- MATERIAIS -->
@@ -358,15 +366,13 @@
 
     <!-- PRODUTOS -->
     <div id="tab-produtos" class="tabpage hidden">
-      <div class="card">
+      <div class="sec-actions">
         <h2>Produtos</h2>
-        <div class="btnrow" style="margin:0 0 10px;"><button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button></div>
-        <div id="prod-list"></div>
+        <button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button>
       </div>
-      <div class="card">
-        <h2>Arquivados</h2>
-        <div id="prod-arch"></div>
-      </div>
+      <div id="prod-list"></div>
+      <h2 style="margin-top:20px;">Arquivados</h2>
+      <div id="prod-arch"></div>
     </div>
 
     <!-- LOJAS -->
@@ -408,8 +414,13 @@
           <label>E-mail de acesso da loja</label>
           <input id="st-email" type="email" placeholder="Ex.: loja@exemplo.com.br">
           <p class="mut">Se a loja ainda não tiver login, ao salvar com o e-mail preenchido o app cria o acesso e envia o convite: a loja define a própria senha pelo link do e-mail. O e-mail em si fica na conta de autenticação da loja, não neste cadastro.</p>
-          <label>Contrato (caminho do arquivo)</label>
-          <input id="st-contract" type="text" placeholder="Opcional. O envio de arquivos entra numa etapa seguinte">
+          <label>Contrato</label>
+          <input id="st-contract-file" type="file" accept=".pdf,image/*" onchange="onStoreContractFile(this)">
+          <div class="mut" id="st-contract-info">Nenhum contrato enviado. Envie um PDF ou uma imagem (até 10 MB).</div>
+          <div class="btnrow hidden" id="st-contract-actions" style="margin-top:6px;">
+            <button type="button" class="ghost btn-sm hidden" id="st-contract-view" onclick="openCurrentStoreContract()">Ver contrato</button>
+            <button type="button" class="danger btn-sm hidden" id="st-contract-remove" onclick="removeStoreContract()">Remover contrato</button>
+          </div>
           <label>Observações</label>
           <input id="st-notes" type="text" placeholder="Opcional">
           <label class="check"><input type="checkbox" id="st-restock" checked> A loja pode pedir reposição</label>
@@ -418,16 +429,23 @@
             <button class="ghost hidden" id="st-cancel" onclick="closeStoreForm()">Cancelar</button>
           </div>
         </div>
-        <div class="card">
-          <h2>Lojas parceiras</h2>
-          <div class="btnrow" style="margin:0 0 10px;"><button class="btn-sm" onclick="openStoreForm()">+ Loja</button></div>
-          <input id="store-search" type="text" placeholder="Buscar loja (pode digitar sem acento)" oninput="S.storeSearch = this.value; renderStoreList();">
-          <div id="store-list"></div>
+        <div class="stores-head">
+          <h2 style="margin:0;">Lojas com expositor consignado</h2>
+          <button class="btn-sm" onclick="openStoreForm()">+ Loja</button>
         </div>
+        <div class="stores-search">
+          <input id="store-search" type="text" placeholder="Buscar loja pelo nome…" aria-label="Buscar loja pelo nome" oninput="S.storeSearch = this.value; renderStoreList();">
+          <button class="ghost hidden" id="store-search-clear" onclick="clearStoreSearch()">Limpar</button>
+        </div>
+        <div id="store-list"></div>
       </div>
       <div id="lojas-detail-wrap" class="hidden">
-        <div class="btnrow" style="margin:0 0 12px;">
-          <button class="ghost btn-sm" onclick="closeStore()">&#8592; Voltar para a lista de lojas</button>
+        <div class="detail-head-actions" style="margin:0 0 12px;">
+          <button class="ghost btn-sm" onclick="closeStore()">&#8249; Lojas</button>
+          <span class="btnrow" style="margin:0;">
+            <button class="ghost btn-sm" onclick="enterStorePreview(S.currentStore)">Ver como loja</button>
+            <button class="ghost btn-sm" onclick="editStore(S.currentStore, true)">Editar loja</button>
+          </span>
         </div>
         <div id="store-detail"></div>
       </div>
@@ -485,23 +503,21 @@
     <!-- PEDIDOS -->
     <div id="tab-pedidos" class="tabpage hidden">
       <div class="btnrow" style="margin:0 0 14px;"><button onclick="openOrderModal()">+ Pedido</button></div>
-      <div class="card">
-        <h2>Pra fazer agora</h2>
-        <div id="todo-now"></div>
-      </div>
-      <div class="card">
-        <h2>Reposições pedidas pelas lojas</h2>
-        <div id="ped-restock"></div>
-      </div>
-      <div class="card">
-        <h2>Pedidos</h2>
-        <div id="ord-list"></div>
-      </div>
+      <h2>Pra fazer agora</h2>
+      <div id="todo-now"></div>
+      <h2 style="margin-top:20px;">Reposições pedidas pelas lojas</h2>
+      <div id="ped-restock"></div>
+      <h2 style="margin-top:20px;">Pedidos</h2>
+      <div id="ord-list"></div>
     </div>
   </section>
 
   <!-- LOJA -->
   <section id="view-store" class="hidden">
+    <div id="sv-preview-banner" class="preview-banner hidden">
+      <span>Você está vendo como a loja <b id="sv-preview-name"></b>. Somente visualização.</span>
+      <button type="button" onclick="exitStorePreview()">Voltar</button>
+    </div>
     <div class="card">
       <h2 id="store-name">Meu expositor</h2>
       <div class="mut" id="store-sub"></div>
@@ -691,10 +707,11 @@ const S = {
   matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
   calc: { fils: [], sups: [] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
+  storeContract: { file: null, removed: false }, contractUrlCache: {},
   histOpen: {}, editingProduct: null, editingOrder: null, mountSearch: '',
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
-  storeSearch: '', currentStore: null, displaySearch: '', editingStore: null,
+  storeSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
   orderLines: [],
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: ''
@@ -741,13 +758,18 @@ function show(id){
   ['view-login','view-setpass','view-master','view-store'].forEach(v => $(v).classList.toggle('hidden', v !== id));
   const mbtn = $('menu-btn');
   if(mbtn) mbtn.classList.toggle('hidden', id !== 'view-master');
+  $('app-header').classList.toggle('hidden', id === 'view-login');
+  const storeHead = id === 'view-store';
+  $('who').classList.toggle('hidden', !storeHead);
+  $('btn-out').classList.toggle('hidden', !storeHead);
   if(id !== 'view-master') closeMobileMenu();
 }
 async function route(){
+  clearStorePreviewState();
   const { data:{ session } } = await sb.auth.getSession();
-  if(!session){ rtUnsubscribe(); show('view-login'); $('who').classList.add('hidden'); $('btn-out').classList.add('hidden'); return; }
+  if(!session){ rtUnsubscribe(); show('view-login'); return; }
   $('who').textContent = session.user.email;
-  $('who').classList.remove('hidden'); $('btn-out').classList.remove('hidden');
+  $('drawer-who').textContent = session.user.email;
   if(S.setPassMode){ rtUnsubscribe(); show('view-setpass'); return; }
   const { data: profile } = await sb.from('profiles').select('id, role, store_id, display_name').eq('id', session.user.id).single();
   S.profile = profile;
@@ -811,9 +833,6 @@ function setMobileMenu(open){
   document.body.style.overflow = open ? 'hidden' : '';
   if(open){
     syncMobileMenu();
-    const who = $('who');
-    const dwho = $('drawer-who');
-    if(who && dwho) dwho.textContent = who.textContent;
   }
 }
 function toggleMobileMenu(event){
@@ -833,11 +852,9 @@ document.addEventListener('keydown', event => {
   closeMobileMenu();
   if(wasOpen && $('menu-btn')) $('menu-btn').focus();
 });
-window.addEventListener('resize', () => { if(window.innerWidth > 720) closeMobileMenu(); });
 function showTab(name){
   if(!document.getElementById('tab-' + name)) name = 'financas';
   currentMasterTab = name;
-  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
   syncMobileMenu();
 }
@@ -944,7 +961,7 @@ function renderFinancas(){
   $('fin-list').innerHTML = monthTxs.map(t => {
     const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
     const notes = t.notes ? `<div class="mut">${esc(t.notes)}</div>` : '';
-    return `<div class="row" style="cursor:pointer;" onclick="txEdit(${t.id})"><span class="tx-ico ${t.kind === 'income' ? 'inc' : 'exp'}">${t.kind === 'income' ? '+' : '−'}</span><span style="flex:1;"><b>${esc(t.description)}</b>${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
+    return `<div class="item-card click" onclick="txEdit(${t.id})"><span class="tx-ico ${t.kind === 'income' ? 'inc' : 'exp'}">${t.kind === 'income' ? '+' : '−'}</span><span style="flex:1;"><b>${esc(t.description)}</b>${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
       <span style="text-align:right;"><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b></span></div>`;
   }).join('') || '<p class="mut">Nenhum lançamento neste mês.</p>';
   renderFinChart();
@@ -2198,10 +2215,10 @@ function renderProdutos(){
     const st = S.stock[p.id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
     const hist = S.prods.filter(x => x.product_id === p.id);
     const histHtml = S.histOpen[p.id] ? `<div style="margin:8px 0 4px;">
-      ${hist.length ? hist.map(h => `<div class="row"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
+      ${hist.length ? hist.map(h => `<div class="sub-card"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
         <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('') : '<p class="mut">Nenhuma produção registrada.</p>'}
     </div>` : '';
-    return `<div class="row" style="align-items:flex-start;">
+    return `<div class="item-card" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
         <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Lucro por peça: ${BRL(Math.round(p.sale_price_cents - unitCostCents(p)))} · Margem: ${p.sale_price_cents > 0 ? fmtN((p.sale_price_cents - unitCostCents(p)) / p.sale_price_cents * 100) : '0'}% · Tempo: ${fmtTime(p.print_time_minutes)}</div>
@@ -2215,7 +2232,7 @@ function renderProdutos(){
       </div></span></div>`;
   }).join('') || '<p class="mut">Nenhum produto ativo. Crie o primeiro na Calculadora.</p>';
   const arch = S.products.filter(p => p.archived);
-  $('prod-arch').innerHTML = arch.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div></span>
+  $('prod-arch').innerHTML = arch.map(p => `<div class="item-card"><span style="flex:1;">${esc(p.name)}<div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div></span>
     <span class="btnrow" style="margin-top:0;">
       <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, false)">Restaurar</button>
       <button class="danger btn-sm" onclick="purgeProduct(${p.id})">Excluir de vez</button>
@@ -2426,21 +2443,45 @@ function renderLojas(){
   $('lojas-detail-wrap').classList.toggle('hidden', !inDetail);
   if(inDetail) renderStoreDetail(); else renderStoreList();
 }
+function clearStoreSearch(){
+  S.storeSearch = '';
+  const inp = $('store-search');
+  if(inp) inp.value = '';
+  renderStoreList();
+  if(inp) inp.focus();
+}
 function renderStoreList(){
+  const clr = $('store-search-clear');
+  if(clr) clr.classList.toggle('hidden', !S.storeSearch.trim());
+  if(!S.stores.length){
+    $('store-list').innerHTML = `<div class="store-empty">
+      <div class="store-empty-title">Nenhuma loja cadastrada</div>
+      <p class="mut">Cadastre as lojas onde você deixa o expositor de chaveiros: dá para anexar o contrato, controlar quantas peças estão lá e quanto cada loja ainda deve em acertos.</p>
+      <div class="btnrow"><button class="btn-sm" onclick="openStoreForm()">+ Cadastrar loja</button></div>
+    </div>`;
+    return;
+  }
   const q = norm(S.storeSearch);
   const list = S.stores.filter(st => !q || norm(st.name + ' ' + (st.contact_name || '') + ' ' + (st.whatsapp || '') + ' ' + (st.address || '')).indexOf(q) >= 0);
+  if(!list.length){
+    $('store-list').innerHTML = `<div class="store-empty">
+      <div class="store-empty-title">Nenhuma loja encontrada</div>
+      <p class="mut">Nenhuma loja combina com "${esc(S.storeSearch.trim())}". Confira o nome ou limpe a busca pra ver todas.</p>
+      <div class="btnrow"><button class="btn-sm" onclick="clearStoreSearch()">Limpar busca</button></div>
+    </div>`;
+    return;
+  }
   $('store-list').innerHTML = list.map(st => {
     const rows = S.storeStock.filter(r => r.store_id === st.id);
     const inDisplay = rows.reduce((a, r) => a + (r.delivered_qty - r.sold_in_cycle), 0);
     const sold = rows.reduce((a, r) => a + r.sold_in_cycle, 0);
-    return `<div class="row"><span style="flex:1;">${esc(st.name)}
-      <div class="mut">${esc(st.contact_name || '')}${st.whatsapp ? ' · ' + esc(st.whatsapp) : ''}</div>
-      <div class="mut">Comissão: ${fmtN(st.commission_percent)}% · Acerto: ${esc(cycleText(st))} · No expositor: ${inDisplay} itens · Vendidos no ciclo: ${sold}</div></span>
-      <span class="btnrow" style="margin-top:0;">
-        <button class="btn-sm" onclick="openStore(${st.id})">Abrir</button>
-        <button class="ghost btn-sm" onclick="editStore(${st.id})">Editar</button>
-      </span></div>`;
-  }).join('') || '<p class="mut">Nenhuma loja encontrada.</p>';
+    const due = cycleInfo(st).due;
+    const pendRestock = S.restocks.some(r => r.store_id === st.id && r.status === 'pendente');
+    return `<div class="store-card" onclick="openStore(${st.id})">
+      <div class="sc-top"><span class="sc-name">${esc(st.name)}</span>${st.contract_file_path ? '<span class="badge link">contrato anexado</span>' : ''}</div>
+      <div class="sc-line"><span><span class="sc-val" style="color:var(--yellow);">${inDisplay}</span> no expositor</span><span><span class="sc-val" style="color:var(--txt);">${sold}</span> vendidas</span>${due > 0 ? `<span>a receber <span class="sc-val" style="color:var(--yellow);">${BRL(due)}</span></span>` : (sold > 0 ? '<span style="color:var(--ok);">acerto em dia</span>' : '')}${pendRestock ? '<span class="sc-restock">reposição pedida</span>' : ''}</div>
+    </div>`;
+  }).join('');
 }
 function openStore(id){
   S.currentStore = id;
@@ -2462,7 +2503,10 @@ function storeFormReset(scroll){
   S.editingStore = null;
   $('store-form-title').textContent = 'Nova loja';
   $('st-cancel').classList.add('hidden');
-  ['st-name','st-contact','st-whats','st-address','st-day','st-other','st-contract','st-notes','st-commission','st-email'].forEach(id => { $(id).value = ''; });
+  ['st-name','st-contact','st-whats','st-address','st-day','st-other','st-notes','st-commission','st-email'].forEach(id => { $(id).value = ''; });
+  S.storeContract = { file: null, removed: false };
+  const cfi = $('st-contract-file'); if(cfi) cfi.value = '';
+  renderStoreContract();
   $('st-cycle').value = 'mensal';
   $('st-restock').checked = true;
   toggleCycleFields();
@@ -2477,13 +2521,36 @@ function openStoreForm(){
   $('store-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function closeStoreForm(){
+  const wasModal = !!S.storeFormModal;
   storeFormReset(false);
-  $('store-form-card').classList.add('hidden');
+  if(wasModal) closeStoreFormModal();
+  else $('store-form-card').classList.add('hidden');
 }
-function editStore(id){
+let storeFormHome = null;
+function openStoreFormModal(){
+  const card = $('store-form-card');
+  if(!card) return;
+  if(!storeFormHome) storeFormHome = { parent: card.parentNode, next: card.nextSibling };
+  S.storeFormModal = true;
+  $('modal-box').innerHTML = '';
+  $('modal-box').appendChild(card);
+  card.classList.remove('hidden');
+  $('modal').classList.remove('hidden');
+}
+function closeStoreFormModal(){
+  const card = $('store-form-card');
+  S.storeFormModal = false;
+  $('modal').classList.add('hidden');
+  if(card && storeFormHome && storeFormHome.parent){
+    if(storeFormHome.next && storeFormHome.next.parentNode === storeFormHome.parent) storeFormHome.parent.insertBefore(card, storeFormHome.next);
+    else storeFormHome.parent.appendChild(card);
+  }
+  if(card) card.classList.add('hidden');
+}
+function editStore(id, fromDetail){
   const st = storeById(id);
   if(!st) return;
-  S.currentStore = null;
+  if(!fromDetail) S.currentStore = null;
   S.editingStore = id;
   $('store-form-title').textContent = 'Editar loja';
   $('st-cancel').classList.remove('hidden');
@@ -2495,21 +2562,123 @@ function editStore(id){
   $('st-cycle').value = st.settlement_cycle || 'mensal';
   $('st-day').value = st.settlement_day || '';
   $('st-other').value = st.settlement_other || '';
-  $('st-contract').value = st.contract_file_path || '';
+  S.storeContract = { file: null, removed: false };
+  const cfi2 = $('st-contract-file'); if(cfi2) cfi2.value = '';
+  renderStoreContract();
   $('st-notes').value = st.notes || '';
   $('st-restock').checked = !!st.restock_requests_enabled;
   const profLoja = (S.profiles || []).find(pr => pr.store_id === id && pr.role === 'store');
   $('st-email').value = profLoja ? knownEmail(profLoja.id) : '';
   toggleCycleFields();
-  $('store-form-card').classList.remove('hidden');
-  renderLojas();
-  $('store-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if(fromDetail){
+    openStoreFormModal();
+  } else {
+    $('store-form-card').classList.remove('hidden');
+    renderLojas();
+    $('store-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+/* ---------------- Contrato da loja (upload de arquivo) ---------------- */
+function isContractStoragePath(v){ return !!v && String(v).indexOf('contratos/') === 0; }
+function contractFileName(path){
+  const seg = String(path || '').split('/').pop() || '';
+  try { return decodeURIComponent(seg); } catch(e){ return seg; }
+}
+function sanitizeContractFileName(name){
+  let s = String(name || 'contrato').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  s = s.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  return s || 'contrato';
+}
+function renderStoreContract(){
+  const info = $('st-contract-info');
+  if(!info) return;
+  const act = $('st-contract-actions');
+  const viewBtn = $('st-contract-view');
+  const remBtn = $('st-contract-remove');
+  const st = S.editingStore ? storeById(S.editingStore) : null;
+  const cur = st ? (st.contract_file_path || '') : '';
+  const sc = S.storeContract || { file: null, removed: false };
+  let showView = false, showRemove = false;
+  if(sc.file){
+    info.textContent = 'Arquivo escolhido: ' + sc.file.name + ' (' + fmtBytes(sc.file.size) + '). Será enviado ao salvar a loja.';
+    showRemove = true;
+  } else if(sc.removed){
+    info.textContent = 'O contrato atual será removido ao salvar a loja.';
+  } else if(cur && isContractStoragePath(cur)){
+    info.textContent = 'Contrato atual: ' + contractFileName(cur) + '. Escolha um arquivo novo para trocar.';
+    showView = true; showRemove = true;
+  } else if(cur){
+    info.textContent = 'Contrato atual (texto antigo): ' + cur + '. Escolha um arquivo para enviar o contrato de verdade.';
+    showRemove = true;
+  } else {
+    info.textContent = 'Nenhum contrato enviado. Envie um PDF ou uma imagem (até 10 MB).';
+  }
+  if(viewBtn) viewBtn.classList.toggle('hidden', !showView);
+  if(remBtn) remBtn.classList.toggle('hidden', !showRemove);
+  if(act) act.classList.toggle('hidden', !(showView || showRemove));
+}
+function onStoreContractFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(file.size > 10 * 1024 * 1024){
+    input.value = '';
+    toast('O arquivo do contrato passa de 10 MB. Envie um arquivo menor.', true);
+    return;
+  }
+  S.storeContract = { file: file, removed: false };
+  renderStoreContract();
+}
+function removeStoreContract(){
+  if(S.storeContract && S.storeContract.file){
+    S.storeContract = { file: null, removed: false };
+  } else {
+    S.storeContract = { file: null, removed: true };
+  }
+  const fi = $('st-contract-file'); if(fi) fi.value = '';
+  renderStoreContract();
+}
+async function contractSignedUrl(path){
+  let hit = S.contractUrlCache[path];
+  if(!hit || hit.exp < Date.now()){
+    const { data, error } = await sb.storage.from('contracts').createSignedUrl(path, 3600);
+    if(error || !data || !data.signedUrl) throw (error || new Error('sem URL'));
+    hit = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+    S.contractUrlCache[path] = hit;
+  }
+  return hit.url;
+}
+async function openContractPath(path){
+  if(!isContractStoragePath(path)) return;
+  try {
+    const url = await contractSignedUrl(path);
+    window.open(url, '_blank');
+  } catch(e){ toast('Não consegui abrir o contrato agora.', true); }
+}
+function openStoreContract(id){
+  const st = storeById(id);
+  if(st) openContractPath(st.contract_file_path);
+}
+function openCurrentStoreContract(){
+  const st = S.editingStore ? storeById(S.editingStore) : null;
+  if(st) openContractPath(st.contract_file_path);
 }
 async function saveStore(){
   const name = $('st-name').value.trim();
   if(!name){ toast('Dê um nome à loja.', true); return; }
   const cycle = $('st-cycle').value;
   const day = parseInt($('st-day').value, 10);
+  const oldStore = S.editingStore ? storeById(S.editingStore) : null;
+  const oldContract = oldStore ? (oldStore.contract_file_path || null) : null;
+  const sc = S.storeContract || { file: null, removed: false };
+  let finalContract = sc.removed ? null : oldContract;
+  let uploadedPath = null;
+  if(sc.file){
+    const segment = S.editingStore ? String(S.editingStore) : newUuid();
+    uploadedPath = 'contratos/' + segment + '/' + sanitizeContractFileName(sc.file.name);
+    const up = await sb.storage.from('contracts').upload(uploadedPath, sc.file, { contentType: sc.file.type || 'application/octet-stream', upsert: true });
+    if(up.error){ toast('Não consegui enviar o arquivo do contrato: ' + up.error.message, true); return; }
+    finalContract = uploadedPath;
+  }
   const payload = {
     name: name,
     contact_name: $('st-contact').value.trim(),
@@ -2521,7 +2690,7 @@ async function saveStore(){
     settlement_day: cycle === 'outro' || isNaN(day) ? null : day,
     settlement_other: cycle === 'outro' ? $('st-other').value.trim() : '',
     restock_requests_enabled: $('st-restock').checked,
-    contract_file_path: $('st-contract').value.trim() || null
+    contract_file_path: finalContract
   };
   const email = $('st-email').value.trim();
   let savedId = S.editingStore;
@@ -2533,11 +2702,12 @@ async function saveStore(){
     error = ins.error;
     if(ins.data) savedId = ins.data.id;
   }
-  if(error) return toastErr(error);
+  if(error){ if(uploadedPath) await sb.storage.from('contracts').remove([uploadedPath]); return toastErr(error); }
+  if(isContractStoragePath(oldContract) && oldContract !== finalContract){ try { await sb.storage.from('contracts').remove([oldContract]); } catch(e) {} }
   closeStoreForm();
   await fetchAll(); renderAll();
   if(email && savedId){
-    if(email.indexOf('@') < 0){ toast('Loja salva: ' + name + '. O e-mail de acesso parece incompleto, então o convite não foi enviado. Confira no cartão Acesso da loja.', true); return; }
+    if(email.indexOf('@') < 0){ toast('Loja salva: ' + name + '. O e-mail de acesso parece incompleto, então o convite não foi enviado. Confira na aba Equipe.', true); return; }
     const linked = (S.profiles || []).some(pr => pr.store_id === savedId && pr.role === 'store');
     if(!linked){
       const res = await invokeCreateUser({ email: email, role: 'store', store_id: savedId, display_name: name });
@@ -2546,7 +2716,7 @@ async function saveStore(){
         await fetchAll(); renderAll();
         toast('Loja salva: ' + name + '. Convite de acesso enviado para ' + email + '.');
       } else {
-        toast('Loja salva: ' + name + '. Mas o acesso não foi criado (' + res.error + '). Abra a loja e tente de novo no cartão Acesso da loja.', true);
+        toast('Loja salva: ' + name + '. Mas o acesso não foi criado (' + res.error + '). Tente de novo na aba Equipe.', true);
       }
       return;
     }
@@ -2598,68 +2768,66 @@ function renderStoreDetail(){
   const st = storeById(S.currentStore);
   if(!st){ S.currentStore = null; renderLojas(); return; }
   const cyc = cycleInfo(st);
+  const hasPendingRestock = restockGroups().some(g => g.storeId === st.id);
+  const contractHtml = st.contract_file_path && isContractStoragePath(st.contract_file_path)
+    ? `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><span style="flex:1;">${esc(contractFileName(st.contract_file_path))}</span><button type="button" class="btn-sm" onclick="openStoreContract(${st.id})">Ver contrato</button></div>`
+    : (st.contract_file_path
+      ? `<div class="mut">${esc(st.contract_file_path)}</div>`
+      : `<p class="mut">Nenhum contrato anexado. Para anexar, trocar ou remover o contrato desta loja, abra o Editar loja: o campo Contrato guarda o PDF ou a foto do contrato de consignação.</p>`);
   $('store-detail').innerHTML = `
-    <div class="card">
-      <h2>${esc(st.name)}</h2>
+    <div style="margin-bottom:16px;">
+      <h2 style="font-size:19px; margin-bottom:6px;">${esc(st.name)}</h2>
       <div class="mut">${esc(st.contact_name || '')}${st.whatsapp ? ' · WhatsApp ' + esc(st.whatsapp) : ''}</div>
       ${st.address ? `<div class="mut">${esc(st.address)}</div>` : ''}
-      <div class="mut">Comissão: ${fmtN(st.commission_percent)}% · Acerto: ${esc(cycleText(st))} · Pedir reposição: ${st.restock_requests_enabled ? 'permitido' : 'desligado'}</div>
-      ${st.contract_file_path ? `<div class="mut">Contrato: ${esc(st.contract_file_path)}</div>` : ''}
       ${st.notes ? `<div class="mut">${esc(st.notes)}</div>` : ''}
-      <div class="btnrow">
-        <button class="pinkbtn" onclick="openRestock(${st.id})">Repor estoque</button>
-        <button onclick="openSettlement(${st.id})">Fazer acerto</button>
-        <button class="ghost" onclick="editStore(${st.id})">Editar cadastro</button>
-      </div>
+      <div class="mut">Comissão da loja: ${fmtN(st.commission_percent)}% sobre as vendas</div>
+      <div class="mut">Acerto: ${esc(cycleText(st))}</div>
+      <div class="mut">${esc(nextSettlementText(st))}</div>
+      <div class="mut">Pedidos de reposição da loja: ${st.restock_requests_enabled ? 'ativados' : 'desativados'} (muda em Editar loja)</div>
     </div>
     <div class="card">
-      <h2>Acesso da loja</h2>
-      <div id="store-access">${storeAccessHtml(st)}</div>
+      <div class="sec-label">Contrato</div>
+      ${contractHtml}
     </div>
     <div class="card">
-      <h2>Ciclo atual</h2>
-      <div class="row"><span>Itens vendidos no ciclo</span><b>${cyc.items}</b></div>
-      <div class="row"><span>Vendido (bruto)</span><b>${BRL(cyc.gross)}</b></div>
-      <div class="row"><span>Comissão da loja (${fmtN(st.commission_percent)}%)</span><b>${BRL(cyc.commission)}</b></div>
+      <div class="sec-label">Acerto</div>
+      <div class="acerto-hero">${BRL(cyc.due)}</div>
+      <div class="mut" style="margin-bottom:8px;">a receber desta loja</div>
+      <div class="row"><span>Vendido neste ciclo (${cyc.items} ${cyc.items === 1 ? 'peça' : 'peças'})</span><b>${BRL(cyc.gross)}</b></div>
+      <div class="row"><span>Comissão da loja (${fmtN(st.commission_percent)}%)</span><b>${cyc.commission ? '−' : ''}${BRL(cyc.commission)}</b></div>
       <div class="row"><span>Líquido para a J2L</span><b>${BRL(cyc.net)}</b></div>
-      <div class="row"><span>Saldo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>
-      <div class="row"><span><b>Total do acerto</b></span><span class="big">${BRL(cyc.due)}</span></div>
-      <p class="mut">${cyc.last ? 'Último acerto em ' + fmtDateTime(cyc.last.settled_at) + '.' : 'Ainda não houve acerto nesta loja.'} Acerto antecipado é permitido, não precisa esperar a data combinada.</p>
-      <p class="mut">${esc(nextSettlementText(st))}</p>
-    </div>
-    <div class="card">
-      <h2>Expositor</h2>
-      <input type="text" placeholder="Buscar produto no expositor (pode digitar sem acento)" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();">
-      <div class="linebox">
-        <label>Adicionar produto ao expositor</label>
-        <label>Buscar produto</label>
-        <input type="text" placeholder="Buscar produto (pode digitar sem acento)" value="${esc(S.mountSearch)}" oninput="S.mountSearch = this.value; refreshMountOptions();">
-        <select id="disp-product" onchange="updateDispHint()">${activeProductOptions()}</select>
-        <label>Quantidade</label>
-        <input id="disp-qty" type="text" inputmode="numeric" value="1">
-        <div class="mut" id="disp-hint"></div>
-        <div class="btnrow"><button class="btn-sm" onclick="mountDisplay()">Adicionar ao expositor</button></div>
-      </div>
-      <div id="display-list"></div>
-    </div>
-    <div class="card">
-      <h2>Reposições pendentes desta loja</h2>
-      <div>${restockHtml(st.id)}</div>
-    </div>
-    <div class="card">
-      <h2>Histórico de reposições</h2>
-      <div>${storeRestockHistoryHtml(st.id)}</div>
-    </div>
-    <div class="card">
-      <h2>Vendas da loja</h2>
-      <div id="sales-list">${salesHistoryHtml(st.id)}</div>
-    </div>
-    <div class="card">
-      <h2>Acertos</h2>
-      <div id="settle-list">${settlementHistoryHtml(st.id)}</div>
+      ${cyc.carriedIn ? `<div class="row"><span>Saldo vindo do ciclo anterior</span><b>${BRL(cyc.carriedIn)}</b></div>` : ''}
+      <p class="mut" style="margin-top:10px;">${cyc.last ? 'Último acerto em ' + fmtDateTime(cyc.last.settled_at) + '.' : 'Ainda não houve acerto nesta loja.'} Registrar o acerto fecha o ciclo desta loja: as vendas zeram e o total do expositor passa a ser só o que sobrou, como um estoque novo. O histórico de vendas e acertos fica salvo aqui. Acerto antecipado é permitido, não precisa esperar a data combinada.</p>
+      <div class="btnrow"><button style="flex:1;" onclick="openSettlement(${st.id})">Registrar acerto recebido</button></div>
+      <div id="settle-list" style="margin-top:12px;">${settlementHistoryHtml(st.id)}</div>
       <h3>Vendas e acertos por mês</h3>
       ${storeChartHtml(st.id)}
-    </div>`;
+    </div>
+    ${hasPendingRestock ? `<div class="card restock-alert">
+      <h2>Reposição pedida</h2>
+      <div>${restockHtml(st.id)}</div>
+      <p class="mut">Depois de levar as peças, toque em Repor estoque aqui embaixo para registrar as quantidades e depois marque o pedido como atendido.</p>
+    </div>` : ''}
+    <div class="sec-actions">
+      <h2>Estoque no expositor</h2>
+      <button class="btn-sm" onclick="openRestock(${st.id})">Repor estoque</button>
+    </div>
+    <input type="text" placeholder="Buscar produto no expositor (pode digitar sem acento)" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();" style="margin-bottom:12px;">
+    <div class="linebox">
+      <label>Adicionar produto ao expositor</label>
+      <label>Buscar produto</label>
+      <input type="text" placeholder="Buscar produto (pode digitar sem acento)" value="${esc(S.mountSearch)}" oninput="S.mountSearch = this.value; refreshMountOptions();">
+      <select id="disp-product" onchange="updateDispHint()">${activeProductOptions()}</select>
+      <label>Quantidade</label>
+      <input id="disp-qty" type="text" inputmode="numeric" value="1">
+      <div class="mut" id="disp-hint"></div>
+      <div class="btnrow"><button class="btn-sm" onclick="mountDisplay()">Adicionar ao expositor</button></div>
+    </div>
+    <div id="display-list"></div>
+    <h2 style="margin-top:20px;">Histórico de reposições</h2>
+    <div>${storeRestockHistoryHtml(st.id)}</div>
+    <h2 style="margin-top:20px;">Vendas registradas pela loja</h2>
+    <div id="sales-list">${salesHistoryHtml(st.id)}</div>`;
   renderDisplayList();
   updateDispHint();
 }
@@ -2677,7 +2845,7 @@ function renderDisplayList(){
   el.innerHTML = rows.map(x => {
     const r = x.row, p = x.prod;
     const inDisplay = r.delivered_qty - r.sold_in_cycle;
-    return `<div class="row" style="align-items:flex-start;">
+    return `<div class="item-card" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         <div class="mut">Preço na loja: ${BRL(p.sale_price_cents)}</div>
         <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle} (só leitura aqui, quem muda é a loja vendendo)</div>
@@ -2872,7 +3040,7 @@ function salesHistoryHtml(storeId){
   return rows.map(x => {
     const p = prodById(x.product_id);
     const corr = x.kind === 'correction';
-    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
+    return `<div class="item-card"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
       <div class="mut">${fmtDateTime(x.sold_at)} · ${corr ? 'Correção de venda' : 'Venda'} · ${BRL(x.unit_price_cents)} cada</div></span>
       <b class="${corr ? 'neg' : ''}">${corr ? '- ' : ''}${BRL(x.unit_price_cents)}</b></div>`;
   }).join('');
@@ -2880,7 +3048,7 @@ function salesHistoryHtml(storeId){
 function settlementHistoryHtml(storeId){
   const rows = S.settlements.filter(x => x.store_id === storeId);
   if(!rows.length) return '<p class="mut">Nenhum acerto registrado ainda.</p>';
-  return rows.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
+  return rows.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
 }
 function storeChartHtml(storeId){
   const byMonth = {};
@@ -3022,12 +3190,12 @@ function renderPraFazer(){
   let html = '';
   html += prod.map(o => {
     const items = orderItemsOf(o.id).map(i => esc(i.description) + ' ×' + i.qty).join(', ');
-    return `<div class="row"><span style="flex:1;"><b>${esc(o.client_name)}</b><div class="mut">${items || 'Sem itens'} · ${BRL(orderTotal(o.id))}</div></span>${statusBadge(o.status)}</div>`;
+    return `<div class="item-card"><span style="flex:1;"><b>${esc(o.client_name)}</b><div class="mut">${items || 'Sem itens'} · ${BRL(orderTotal(o.id))}</div></span>${statusBadge(o.status)}</div>`;
   }).join('');
   html += groups.map(g => {
     const st = storeById(g.storeId);
     const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
-    return `<div class="row"><span style="flex:1;"><b>Reposição: ${esc(st ? st.name : 'Loja')}</b><div class="mut">${totalQty} itens pedidos · atenda na seção de reposições aqui embaixo ou na aba Lojas</div></span><span class="badge stp">Pendente</span></div>`;
+    return `<div class="item-card"><span style="flex:1;"><b>Reposição: ${esc(st ? st.name : 'Loja')}</b><div class="mut">${totalQty} itens pedidos · atenda na seção de reposições aqui embaixo ou na aba Lojas</div></span><span class="badge stp">Pendente</span></div>`;
   }).join('');
   $('todo-now').innerHTML = html || '<p class="mut">Nada pendente para fazer agora.</p>';
 }
@@ -3217,7 +3385,7 @@ function renderOrders(){
     if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
     if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
     if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
-    return `<div class="row" style="align-items:flex-start;">
+    return `<div class="item-card" style="align-items:flex-start;">
       <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
         <div class="mut">${o.order_date ? fmtDate(o.order_date) : fmtDateTime(o.created_at)}${o.customer_contact ? ' · ' + esc(o.customer_contact) : ''}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
         ${o.notes ? `<div class="mut">Obs.: ${esc(o.notes)}</div>` : ''}
@@ -3481,7 +3649,7 @@ function renderEquipe(){
     const removeBtn = own
       ? '<button class="danger btn-sm" type="button" disabled title="Seu próprio acesso">Retirar acesso</button>'
       : `<button class="danger btn-sm" type="button" data-name="${esc(name)}" onclick="removeAccess('${p.id}', this.dataset.name)">Retirar acesso</button>`;
-    return `<div class="row"><span style="flex:1;">${esc(name)}${emailLine}${storeLine}${statusLine}</span>
+    return `<div class="sub-card"><span style="flex:1;">${esc(name)}${emailLine}${storeLine}${statusLine}</span>
       <span class="btnrow" style="margin-top:0; justify-content:flex-end;">${badge}${statusBadge}${removeBtn}</span></div>`;
   }).join('');
 }
@@ -3499,31 +3667,6 @@ async function removeAccess(profileId, displayName){
   accessStatusLoadedAt = 0;
   await fetchAll(); renderAll();
   toast('Acesso retirado.');
-}
-
-/* ---------------- Acesso da loja (no detalhe, visão master) ---------------- */
-function storeAccessHtml(st){
-  const prof = (S.profiles || []).find(p => p.store_id === st.id && p.role === 'store');
-  if(prof){
-    const email = knownEmail(prof.id);
-    return `<p>Login criado para esta loja${prof.display_name ? ' (' + esc(prof.display_name) + ')' : ''}${email ? ': <b>' + esc(email) + '</b>' : '.'}</p>
-      <p class="mut">A loja entra com o e-mail dela e a senha que ela mesma definiu pelo convite.${email ? '' : ' O e-mail fica guardado na conta de autenticação e aparece aqui quando o acesso é criado deste aparelho.'}</p>`;
-  }
-  return `<p class="mut" style="margin-bottom:8px;">Esta loja ainda não tem login. Informe o e-mail dela para criar o acesso e enviar o convite: ela define a própria senha pelo link que recebe.</p>
-    <label>E-mail de acesso da loja</label>
-    <input id="acc-email" type="email" placeholder="Ex.: loja@exemplo.com.br">
-    <div class="btnrow"><button class="btn-sm" onclick="createStoreAccess(${st.id})">Criar acesso e enviar convite</button></div>`;
-}
-async function createStoreAccess(storeId){
-  const st = storeById(storeId);
-  if(!st) return;
-  const email = $('acc-email') ? $('acc-email').value.trim() : '';
-  if(!email || email.indexOf('@') < 0){ toast('Informe um e-mail válido da loja.', true); return; }
-  const res = await invokeCreateUser({ email: email, role: 'store', store_id: storeId, display_name: st.name });
-  if(!res.ok){ toast('A loja está salva, mas o acesso não foi criado: ' + res.error + '. Tente de novo aqui em Acesso da loja.', true); return; }
-  if(res.userId) rememberEmail(res.userId, email);
-  await fetchAll(); renderAll();
-  toast('Convite enviado para ' + email + '. A loja define a própria senha pelo link do e-mail.');
 }
 
 /* ---------------- Visão da loja ---------------- */
@@ -3592,6 +3735,48 @@ function renderStoreView(){
   renderStoreRestock();
   renderStoreSales();
   hydrateProductPhotos(document);
+  applyPreviewChrome();
+}
+/* -------- Prévia "Ver como loja" (master, somente visualização) -------- */
+function applyPreviewChrome(){
+  const on = !!S.previewStoreId;
+  const banner = $('sv-preview-banner');
+  if(banner){
+    banner.classList.toggle('hidden', !on);
+    if(on && SV.store) $('sv-preview-name').textContent = SV.store.name;
+  }
+  document.querySelectorAll('#sv-body select, #sv-body input, #sv-body button, #sv-body textarea').forEach(el => {
+    if(el.id === 'sv-search') return;
+    el.disabled = on;
+  });
+}
+function clearStorePreviewState(){
+  S.previewStoreId = null;
+  SV.storeId = null; SV.store = null; SV.stock = []; SV.products = []; SV.sales = [];
+  SV.settlements = []; SV.restocks = []; SV.gs = {}; SV.search = '';
+}
+async function enterStorePreview(id){
+  const st = storeById(id);
+  if(!st) return;
+  clearStorePreviewState();
+  S.previewStoreId = id;
+  SV.storeId = id;
+  const si = $('sv-search'); if(si) si.value = '';
+  const corr = $('sv-correct'); if(corr) corr.classList.add('hidden');
+  show('view-store');
+  $('sv-body').classList.remove('hidden');
+  await loadStoreFull();
+  renderStoreView();
+  applyPreviewChrome();
+  window.scrollTo({ top: 0 });
+}
+function exitStorePreview(){
+  clearStorePreviewState();
+  applyPreviewChrome();
+  show('view-master');
+  showTab('lojas');
+  renderLojas();
+  window.scrollTo({ top: 0 });
 }
 function renderStoreCycle(){
   const c = svCycle();
@@ -3617,7 +3802,7 @@ function renderStoreDisplay(){
   el.innerHTML = rows.map(x => {
     const r = x.row, p = x.prod;
     const inDisplay = r.delivered_qty - r.sold_in_cycle;
-    return `<div class="row" style="align-items:flex-start;">
+    return `<div class="sub-card" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div>
         <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle}</div>
@@ -3639,6 +3824,7 @@ function renderStoreSaleOptions(){
 }
 function toggleStoreCorrect(){ $('sv-correct').classList.toggle('hidden'); }
 async function storeRegisterSale(){
+  if(S.previewStoreId){ toast('Somente visualização: na prévia da loja nada é registrado.', true); return; }
   const pid = parseInt($('sv-sale-product').value, 10);
   const qty = Math.round(parseNum($('sv-sale-qty').value) || 0);
   const row = SV.stock.find(r => r.product_id === pid);
@@ -3658,6 +3844,7 @@ async function storeRegisterSale(){
   toast('Venda registrada: ' + qty + ' × ' + prod.name + '.');
 }
 async function storeRegisterCorrection(){
+  if(S.previewStoreId){ toast('Somente visualização: na prévia da loja nada é registrado.', true); return; }
   const pid = parseInt($('sv-corr-product').value, 10);
   const qty = Math.round(parseNum($('sv-corr-qty').value) || 0);
   const row = SV.stock.find(r => r.product_id === pid);
@@ -3688,7 +3875,7 @@ function renderStoreRestock(){
   if(st.restock_requests_enabled){
     card.innerHTML = `<h2>Reposição</h2>
       <p class="mut" style="margin-bottom:8px;">Faltou produto no expositor? Peça para a J2L o que ela tem em casa, tudo de uma vez só.</p>
-      <div class="btnrow"><button class="pinkbtn" onclick="openStoreRestock()">Pedir reposição pra J2L</button></div>`;
+      <div class="btnrow"><button class="pinkbtn" onclick="openStoreRestock()"${S.previewStoreId ? ' disabled' : ''}>Pedir reposição pra J2L</button></div>`;
   } else {
     card.innerHTML = `<h2>Reposição</h2><p class="mut">A reposição desta loja é combinada direto com a J2L.</p>`;
   }
@@ -3696,7 +3883,7 @@ function renderStoreRestock(){
   if(list){
     list.innerHTML = SV.restocks.length ? SV.restocks.map(r => {
       const p = svProd(r.product_id);
-      return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${r.qty} peças · pedido em ${fmtDateTime(r.created_at)}</div></span>${restockStatusBadge(r.status)}</div>`;
+      return `<div class="sub-card"><span style="flex:1;">${esc(p ? p.name : 'Produto')}<div class="mut">${r.qty} peças · pedido em ${fmtDateTime(r.created_at)}</div></span>${restockStatusBadge(r.status)}</div>`;
     }).join('') : '<p class="mut">Você ainda não pediu reposição por aqui.</p>';
   }
 }
@@ -3709,6 +3896,7 @@ function newUuid(){
   });
 }
 function openStoreRestock(){
+  if(S.previewStoreId) return;
   const st = SV.store;
   if(!st || !st.restock_requests_enabled) return;
   const prods = SV.products.filter(p => (SV.gs[p.id] || 0) > 0).sort((a, b) => a.name.localeCompare(b.name));
@@ -3726,6 +3914,7 @@ function openStoreRestock(){
     </div>`);
 }
 async function submitStoreRestock(){
+  if(S.previewStoreId){ toast('Somente visualização: na prévia da loja nada é enviado.', true); return; }
   const lines = [];
   for(const p of SV.products){
     const inp = $('svr-qty-' + p.id);
@@ -3751,7 +3940,7 @@ function renderStoreSales(){
   const salesEl = $('sv-sales'); if(salesEl) salesEl.innerHTML = svSalesHistoryHtml();
   const setEl = $('sv-settlements');
   if(setEl) setEl.innerHTML = SV.settlements.length
-    ? SV.settlements.map(x => `<div class="row"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
+    ? SV.settlements.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
     : '<p class="mut">Nenhum acerto registrado ainda.</p>';
   const chartEl = $('sv-chart'); if(chartEl) chartEl.innerHTML = svChartHtml();
 }
@@ -3760,7 +3949,7 @@ function svSalesHistoryHtml(){
   return SV.sales.slice(0, 80).map(x => {
     const p = svProd(x.product_id);
     const corr = x.kind === 'correction';
-    return `<div class="row"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
+    return `<div class="sub-card"><span style="flex:1;">${esc(p ? p.name : 'Produto')}${corr ? ' <span class="badge out">correção</span>' : ''}
       <div class="mut">${fmtDateTime(x.sold_at)} · ${corr ? 'Correção de venda' : 'Venda'} · ${BRL(x.unit_price_cents)} cada</div></span>
       <b class="${corr ? 'neg' : ''}">${corr ? '- ' : ''}${BRL(x.unit_price_cents)}</b></div>`;
   }).join('');
