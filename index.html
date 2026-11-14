@@ -60,6 +60,7 @@
   .big{font-family:'Bungee','Nunito',sans-serif; font-size:23px; font-weight:400;}
   .fin-hero{font-family:'Bungee','Nunito',sans-serif; font-size:34px; font-weight:400; text-align:center; line-height:1.15;}
   .fin-box{border:1px solid var(--line); border-radius:12px; padding:10px; text-align:center;}
+  .fin-val{font-family:'Nunito',sans-serif; font-weight:800; font-size:17px;}
   .neg{color:var(--bad);} .pos{color:var(--ok);}
   .sw{display:inline-block; width:14px; height:14px; border-radius:4px; margin-right:8px; vertical-align:-2px; border:1px solid rgba(255,255,255,.25);}
   .err{color:var(--bad); font-size:14px; min-height:20px; margin-top:6px;}
@@ -227,7 +228,7 @@
         <h2>Finanças</h2>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
           <button class="ghost btn-sm" onclick="finNav(-1)">&#8592;</button>
-          <input type="month" id="fin-month" style="margin:0;" onchange="finMonthChange()">
+          <span id="fin-title" style="flex:1; text-align:center; font-family:'Bungee','Nunito',sans-serif; font-size:17px; letter-spacing:.4px;"></span>
           <button class="ghost btn-sm" onclick="finNav(1)">&#8594;</button>
         </div>
         <div style="text-align:center; margin-bottom:8px;">
@@ -235,15 +236,15 @@
           <div class="fin-hero pos" id="fin-t-hero">R$ 0,00</div>
           <p class="mut" style="margin-top:4px;">O saldo não zera: ele continua de um mês para o outro.</p>
         </div>
-        <div class="row"><span class="mut">Veio dos meses anteriores</span><span class="big" id="fin-t-prev">R$ 0,00</span></div>
-        <div class="row"><span class="mut">Resultado deste mês</span><span class="big" id="fin-t-res">R$ 0,00</span></div>
+        <div class="row"><span class="mut">Veio dos meses anteriores</span><span class="fin-val" id="fin-t-prev">R$ 0,00</span></div>
+        <div class="row"><span class="mut">Resultado deste mês</span><span class="fin-val" id="fin-t-res">R$ 0,00</span></div>
         <div class="row" style="border-top:1px solid var(--line); border-bottom:0; margin-top:6px; padding-top:14px;">
           <span style="font-family:'Bungee','Nunito',sans-serif; font-size:16px; letter-spacing:.4px;">SALDO FINAL DO MÊS</span>
-          <span class="big" id="fin-t-acc">R$ 0,00</span>
+          <span class="fin-val" id="fin-t-acc">R$ 0,00</span>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;">
-          <div class="fin-box"><div class="mut">Entradas do mês</div><div class="big pos" id="fin-t-in">R$ 0,00</div></div>
-          <div class="fin-box"><div class="mut">Saídas do mês</div><div class="big neg" id="fin-t-out">R$ 0,00</div></div>
+          <div class="fin-box"><div class="mut">Entradas do mês</div><div class="fin-val pos" id="fin-t-in">R$ 0,00</div></div>
+          <div class="fin-box"><div class="mut">Saídas do mês</div><div class="fin-val neg" id="fin-t-out">R$ 0,00</div></div>
         </div>
       </div>
       <div class="card">
@@ -830,7 +831,6 @@ function showTab(name){
   syncMobileMenu();
 }
 function initMasterForms(){
-  if($('fin-month') && !$('fin-month').value) $('fin-month').value = S.finMonth;
   if($('tx-date') && !$('tx-date').value) $('tx-date').value = todayStr();
   try {
     const saved = JSON.parse(localStorage.getItem('j2l_calc_settings') || 'null');
@@ -898,27 +898,25 @@ function finNav(dir){
   const parts = S.finMonth.split('-').map(Number);
   const d = new Date(parts[0], parts[1] - 1 + dir, 1);
   S.finMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  $('fin-month').value = S.finMonth;
-  renderFinancas();
-}
-function finMonthChange(){
-  if($('fin-month').value) S.finMonth = $('fin-month').value;
   renderFinancas();
 }
 function renderFinancas(){
   const ym = S.finMonth;
+  const MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const titleEl = $('fin-title');
+  if(titleEl){ const pp = ym.split('-'); titleEl.textContent = MESES[Number(pp[1]) - 1] + ' DE ' + pp[0]; }
   let inc = 0, exp = 0, prev = 0;
   S.txs.forEach(t => {
     const m = t.date.slice(0,7);
     if(m === ym){ if(t.kind === 'income') inc += t.amount_cents; else exp += t.amount_cents; }
     else if(m < ym){ prev += t.kind === 'income' ? t.amount_cents : -t.amount_cents; }
   });
-  $('fin-t-in').textContent = BRL(inc);
-  $('fin-t-out').textContent = BRL(exp);
-  const resEl = $('fin-t-res'); resEl.textContent = BRL(inc - exp); resEl.className = 'big ' + (inc - exp < 0 ? 'neg' : 'pos');
-  const prevEl = $('fin-t-prev'); prevEl.textContent = BRL(prev); prevEl.className = 'big ' + (prev < 0 ? 'neg' : 'pos');
+  const inEl = $('fin-t-in'); inEl.textContent = BRL(inc); inEl.className = 'fin-val pos';
+  const outEl = $('fin-t-out'); outEl.textContent = BRL(exp); outEl.className = 'fin-val neg';
+  const resEl = $('fin-t-res'); resEl.textContent = BRL(inc - exp); resEl.className = 'fin-val ' + (inc - exp < 0 ? 'neg' : 'pos');
+  const prevEl = $('fin-t-prev'); prevEl.textContent = BRL(prev); prevEl.className = 'fin-val ' + (prev < 0 ? 'neg' : 'pos');
   const accEl = $('fin-t-acc'); const acc = prev + inc - exp;
-  accEl.textContent = BRL(acc); accEl.className = 'big ' + (acc < 0 ? 'neg' : 'pos');
+  accEl.textContent = BRL(acc); accEl.className = 'fin-val ' + (acc < 0 ? 'neg' : 'pos');
   const heroEl = $('fin-t-hero'); heroEl.textContent = BRL(acc); heroEl.className = 'fin-hero ' + (acc < 0 ? 'neg' : 'pos');
   const cats = Array.from(new Set(S.txs.map(t => t.category).filter(Boolean)));
   $('cat-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
