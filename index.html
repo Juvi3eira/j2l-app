@@ -719,7 +719,7 @@ let P = null; // estado da produção em edição no modal
 
 const filById = id => S.filaments.find(f => f.id === id);
 const supById = id => S.supplies.find(s => s.id === id);
-const prodById = id => S.products.find(p => p.id === id);
+const prodById = id => S.products.find(p => String(p.id) === String(id));
 const filRemaining = f => r2(f.weight_grams - f.used_grams);
 const supRemaining = s => r2(s.stock_qty - s.used_qty);
 const filCostPerGram = f => f.weight_grams > 0 ? f.price_cents / f.weight_grams : 0;
@@ -2234,7 +2234,7 @@ function renderProdutos(){
   $('prod-arch').innerHTML = arch.map(p => `<div class="item-card"><span style="flex:1;">${esc(p.name)}<div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div></span>
     <span class="btnrow" style="margin-top:0;">
       <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, false)">Restaurar</button>
-      <button class="danger btn-sm" onclick="purgeProduct(${p.id})">Excluir de vez</button>
+      <button class="danger btn-sm" onclick="purgeProduct('${p.id}')">Excluir de vez</button>
     </span></div>`).join('') || '<p class="mut">Nenhum produto arquivado.</p>';
 }
 function consumptionSummary(consumption){
@@ -2280,11 +2280,22 @@ async function deleteProduction(id){
   await fetchAll(); renderAll();
   toast('Produção excluída e materiais devolvidos.');
 }
-async function purgeProduct(id){
+function purgeProduct(id){
   const p = prodById(id);
   if(!p) return;
-  if(!confirm('Excluir o produto "' + p.name + '" de vez? As produções dele serão desfeitas e os materiais voltam ao estoque. Esta ação não tem volta.')) return;
-  const prods = S.prods.filter(x => x.product_id === id);
+  openBox(`
+    <h2>Excluir de vez?</h2>
+    <p class="mut" style="margin-bottom:8px;">Excluir o produto "<b style="color:var(--txt);">${esc(p.name)}</b>" de vez? As produções dele serão desfeitas e os materiais voltam ao estoque. Esta ação não tem volta.</p>
+    <div class="btnrow">
+      <button class="danger" onclick="doPurgeProduct('${p.id}')">Excluir de vez</button>
+      <button class="ghost" onclick="closeBox()">Cancelar</button>
+    </div>`);
+}
+async function doPurgeProduct(id){
+  const p = prodById(id);
+  if(!p){ closeBox(); return; }
+  closeBox();
+  const prods = S.prods.filter(x => String(x.product_id) === String(id));
   for(const pr of prods) await reverseConsumption(pr.consumption);
   if(prods.length) await sb.from('productions').delete().eq('product_id', id);
   const { error } = await sb.from('products').delete().eq('id', id);
