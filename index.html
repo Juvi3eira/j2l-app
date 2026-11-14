@@ -3282,7 +3282,7 @@ function orderFormHtml(){
       <button class="ghost" onclick="orderViaCalculator()">Item novo? Criar pela Calculadora</button>
     </div>
     <div class="btnrow">
-      <button onclick="saveOrder()">${editing ? 'Salvar alterações do pedido' : 'Salvar pedido'}</button>
+      <button onclick="saveOrder()">${editing ? 'Salvar' : 'Salvar pedido'}</button>
       <button class="ghost" onclick="closeOrderModal()">Cancelar</button>
     </div>
     ${editing ? `<div class="mut" style="margin-top:16px;">Total: <b style="color:var(--txt);">${BRL(ordTotal)}</b>${ordCost > 0 ? ' · Custo: ' + BRL(ordCost) + ' · Lucro: ' + BRL(ordTotal - ordCost) : ''}</div>
