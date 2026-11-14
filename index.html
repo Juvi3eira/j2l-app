@@ -248,13 +248,9 @@
           <p class="mut" style="margin-top:4px;">O saldo não zera: ele continua de um mês para o outro.</p>
         </div>
         <div class="row"><span class="mut">Veio dos meses anteriores</span><span class="fin-val" id="fin-t-prev">R$ 0,00</span></div>
-        <div class="row"><span class="mut">Resultado deste mês</span><span class="fin-val" id="fin-t-res">R$ 0,00</span></div>
-        <div class="row" style="border-top:1px solid var(--line); border-bottom:0; margin-top:6px; padding-top:14px;">
-          <span style="font-family:'Bungee','Nunito',sans-serif; font-size:16px; letter-spacing:.4px;">SALDO FINAL DO MÊS</span>
-          <span class="fin-val" id="fin-t-acc">R$ 0,00</span>
-        </div>
+        <div class="row"><span class="mut">Ganho líquido do mês</span><span class="fin-val" id="fin-t-res">R$ 0,00</span></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;">
-          <div class="fin-box"><div class="mut">Entradas do mês</div><div class="fin-val pos" id="fin-t-in">R$ 0,00</div></div>
+          <div class="fin-box"><div class="mut">Ganho bruto do mês</div><div class="fin-val pos" id="fin-t-in">R$ 0,00</div></div>
           <div class="fin-box"><div class="mut">Saídas do mês</div><div class="fin-val neg" id="fin-t-out">R$ 0,00</div></div>
         </div>
       </div>
@@ -942,8 +938,7 @@ function renderFinancas(){
   const outEl = $('fin-t-out'); outEl.textContent = BRL(exp); outEl.className = 'fin-val neg';
   const resEl = $('fin-t-res'); resEl.textContent = BRL(inc - exp); resEl.className = 'fin-val ' + (inc - exp < 0 ? 'neg' : 'pos');
   const prevEl = $('fin-t-prev'); prevEl.textContent = BRL(prev); prevEl.className = 'fin-val ' + (prev < 0 ? 'neg' : 'pos');
-  const accEl = $('fin-t-acc'); const acc = prev + inc - exp;
-  accEl.textContent = BRL(acc); accEl.className = 'fin-val ' + (acc < 0 ? 'neg' : 'pos');
+  const acc = prev + inc - exp;
   const heroEl = $('fin-t-hero'); heroEl.textContent = BRL(acc); heroEl.className = 'fin-hero ' + (acc < 0 ? 'neg' : 'pos');
   const cats = Array.from(new Set(S.txs.map(t => t.category).filter(Boolean)));
   $('cat-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
