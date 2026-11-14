@@ -509,12 +509,27 @@
     <!-- PEDIDOS -->
     <div id="tab-pedidos" class="tabpage hidden">
       <div class="btnrow" style="margin:0 0 14px;"><button onclick="openOrderModal()">+ Pedido</button></div>
-      <h2>Pra fazer agora</h2>
-      <div id="todo-now"></div>
-      <h2 style="margin-top:20px;">Reposições pedidas pelas lojas</h2>
-      <div id="ped-restock"></div>
-      <h2 style="margin-top:20px;">Pedidos</h2>
+      <div class="stores-head">
+        <h2 style="margin:0;">Pedidos</h2>
+        <button class="ghost btn-sm" type="button" onclick="togglePedFilters()">Filtrar</button>
+      </div>
+      <div class="stores-search">
+        <input id="ped-search" type="text" placeholder="Buscar pedido ou reposição…" aria-label="Buscar pedido ou reposição" oninput="S.pedSearch = this.value; renderOrders();">
+        <button class="ghost hidden" id="ped-search-clear" onclick="clearPedSearch()">Limpar</button>
+      </div>
+      <div id="ped-filter-panel" class="hidden">
+        <label>Tipo</label>
+        <select id="ped-filter-tipo" onchange="S.pedTipoFilter = this.value; renderOrders();">
+          <option value="">Todos</option>
+          <option value="pedidos">Pedidos</option>
+          <option value="reposicoes">Reposições</option>
+        </select>
+        <div class="btnrow" style="margin-top:0;">
+          <button class="ghost btn-sm" type="button" onclick="clearPedFilters()">Limpar filtros</button>
+        </div>
+      </div>
       <div id="ord-list"></div>
+      <div id="ord-done"></div>
     </div>
   </section>
 
@@ -720,7 +735,8 @@ const S = {
   storeSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
   orderLines: [],
   profiles: [], setPassMode: false,
-  accRoleFilter: '', accStoreFilter: ''
+  accRoleFilter: '', accStoreFilter: '',
+  pedSearch: '', pedTipoFilter: '', pedShowDone: false
 };
 let P = null; // estado da produção em edição no modal
 
@@ -3064,7 +3080,7 @@ function salesHistoryHtml(storeId){
 function settlementHistoryHtml(storeId){
   const rows = S.settlements.filter(x => x.store_id === storeId);
   if(!rows.length) return '<p class="mut">Nenhum acerto registrado ainda.</p>';
-  return rows.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
+  return rows.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('');
 }
 function storeChartHtml(storeId){
   const byMonth = {};
@@ -3195,25 +3211,8 @@ function statusBadge(st){
   return `<span class="badge ${m[0]}">${m[1]}</span>`;
 }
 function renderPedidos(){
-  renderPraFazer();
-  $('ped-restock').innerHTML = restockHtml();
   renderOrderLines();
   renderOrders();
-}
-function renderPraFazer(){
-  const prod = S.orders.filter(o => o.status === 'em_producao');
-  const groups = restockGroups();
-  let html = '';
-  html += prod.map(o => {
-    const items = orderItemsOf(o.id).map(i => esc(i.description) + ' ×' + i.qty).join(', ');
-    return `<div class="item-card"><span style="flex:1;"><b>${esc(o.client_name)}</b><div class="mut">${items || 'Sem itens'} · ${BRL(orderTotal(o.id))}</div></span>${statusBadge(o.status)}</div>`;
-  }).join('');
-  html += groups.map(g => {
-    const st = storeById(g.storeId);
-    const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
-    return `<div class="item-card"><span style="flex:1;"><b>Reposição: ${esc(st ? st.name : 'Loja')}</b><div class="mut">${totalQty} itens pedidos · atenda na seção de reposições aqui embaixo ou na aba Lojas</div></span><span class="badge stp">Pendente</span></div>`;
-  }).join('');
-  $('todo-now').innerHTML = html || '<p class="mut">Nada pendente para fazer agora.</p>';
 }
 function orderProductOptions(selId){
   const act = S.products.filter(p => !p.archived);
@@ -3388,29 +3387,115 @@ async function saveOrder(){
   await fetchAll(); renderAll();
   toast('Pedido de ' + client + (editing ? ' atualizado.' : ' salvo como pendente.') + (warnings.length ? ' ' + warnings.join(' ') : ''));
 }
+function togglePedFilters(){
+  const panel = $('ped-filter-panel');
+  if(panel) panel.classList.toggle('hidden');
+}
+function clearPedFilters(){
+  S.pedTipoFilter = '';
+  renderOrders();
+}
+function clearPedSearch(){
+  S.pedSearch = '';
+  const inp = $('ped-search');
+  if(inp) inp.value = '';
+  renderOrders();
+  if(inp) inp.focus();
+}
+function orderCardHtml(o){
+  const items = orderItemsOf(o.id);
+  const total = orderTotal(o.id);
+  const cost = orderCost(o.id);
+  const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} × ${BRL(i.unit_price_cents)} = ${BRL(i.qty * i.unit_price_cents)}</div>`).join('');
+  const btns = [];
+  if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="startEditOrder(${o.id})">Editar</button>`);
+  btns.push(`<button class="danger btn-sm" onclick="deleteOrder(${o.id})">Excluir</button>`);
+  if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
+  if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
+  if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
+  if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
+  return `<div class="item-card" style="align-items:flex-start;">
+    <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
+      <div class="mut">${o.order_date ? fmtDate(o.order_date) : fmtDateTime(o.created_at)}${o.customer_contact ? ' · ' + esc(o.customer_contact) : ''}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
+      ${o.notes ? `<div class="mut">Obs.: ${esc(o.notes)}</div>` : ''}
+      ${itemsHtml || '<div class="mut">Sem itens.</div>'}
+      <div class="mut">Total: <b style="color:var(--txt);">${BRL(total)}</b>${cost > 0 ? ' · Custo: ' + BRL(cost) + ' · Lucro: ' + BRL(total - cost) : ''}</div>
+    </span>
+    <span class="btnrow" style="margin-top:0;">${btns.join('')}</span>
+  </div>`;
+}
+function restockCardHtml(g, i){
+  const st = storeById(g.storeId);
+  const totalQty = g.rows.reduce((a, r) => a + r.qty, 0);
+  const lines = g.rows.map(r => {
+    const p = prodById(r.product_id);
+    return `<div class="row"><span>${esc(p ? p.name : 'Produto')}</span><span class="mut">${r.qty} peças · em casa: ${homeAvail(r.product_id)}</span></div>`;
+  }).join('');
+  return `<div class="item-card" style="align-items:flex-start;">
+    <span style="flex:1;"><b>${esc(st ? st.name : 'Loja')}</b> <span class="badge link">reposição</span>
+      <div class="mut">${fmtDateTime(g.createdAt)} · ${totalQty} itens pedidos</div>
+      ${g.message ? `<div class="mut" style="margin-top:4px;">${esc(g.message)}</div>` : ''}
+      ${lines}
+    </span>
+    <span class="btnrow" style="margin-top:0;">
+      <button class="btn-sm" onclick="attendRestock(${i})">Atender</button>
+      <button class="ghost btn-sm" onclick="ignoreRestock(${i})">Ignorar</button>
+    </span>
+  </div>`;
+}
+function togglePedDone(){
+  S.pedShowDone = !S.pedShowDone;
+  renderOrders();
+}
+function pedDoneSectionHtml(doneEntries){
+  if(!doneEntries.length) return '';
+  const open = !!S.pedShowDone;
+  const cards = open ? `<div style="margin-top:10px;">${doneEntries.map(e => e.html).join('')}</div>` : '';
+  return `<div style="margin-top:20px;"><button class="ghost btn-sm" onclick="togglePedDone()">Entregues (${doneEntries.length}) ${open ? '▾' : '▸'}</button>${cards}</div>`;
+}
 function renderOrders(){
-  $('ord-list').innerHTML = S.orders.map(o => {
-    const items = orderItemsOf(o.id);
-    const total = orderTotal(o.id);
-    const cost = orderCost(o.id);
-    const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} × ${BRL(i.unit_price_cents)} = ${BRL(i.qty * i.unit_price_cents)}</div>`).join('');
-    const btns = [];
-    if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="startEditOrder(${o.id})">Editar</button>`);
-    btns.push(`<button class="danger btn-sm" onclick="deleteOrder(${o.id})">Excluir</button>`);
-    if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
-    if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
-    if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
-    if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
-    return `<div class="item-card" style="align-items:flex-start;">
-      <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
-        <div class="mut">${o.order_date ? fmtDate(o.order_date) : fmtDateTime(o.created_at)}${o.customer_contact ? ' · ' + esc(o.customer_contact) : ''}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
-        ${o.notes ? `<div class="mut">Obs.: ${esc(o.notes)}</div>` : ''}
-        ${itemsHtml || '<div class="mut">Sem itens.</div>'}
-        <div class="mut">Total: <b style="color:var(--txt);">${BRL(total)}</b>${cost > 0 ? ' · Custo: ' + BRL(cost) + ' · Lucro: ' + BRL(total - cost) : ''}${o.finance_transaction_id ? ' · <span class="badge link">lançado nas Finanças</span>' : ''}</div>
-      </span>
-      <span class="btnrow" style="margin-top:0;">${btns.join('')}</span>
-    </div>`;
-  }).join('') || '<p class="mut">Nenhum pedido ainda.</p>';
+  const clr = $('ped-search-clear');
+  if(clr) clr.classList.toggle('hidden', !(S.pedSearch || '').trim());
+  const tipoSel = $('ped-filter-tipo');
+  if(tipoSel) tipoSel.value = S.pedTipoFilter || '';
+  const q = norm(S.pedSearch || '');
+  const tipo = S.pedTipoFilter || '';
+  const groups = restockGroups();
+  const mainEntries = [];
+  const doneEntries = [];
+  if(tipo !== 'reposicoes'){
+    S.orders.forEach(o => {
+      const items = orderItemsOf(o.id);
+      const hay = norm(o.client_name + ' ' + items.map(i => i.description).join(' ') + ' ' + (o.notes || ''));
+      if(q && hay.indexOf(q) < 0) return;
+      const entry = { key: String(o.order_date || o.created_at || ''), html: orderCardHtml(o) };
+      if(o.status === 'entregue') doneEntries.push(entry); else mainEntries.push(entry);
+    });
+  }
+  if(tipo !== 'pedidos'){
+    groups.forEach((g, i) => {
+      const st = storeById(g.storeId);
+      const hay = norm((st ? st.name : 'Loja') + ' ' + g.rows.map(r => { const p = prodById(r.product_id); return p ? p.name : ''; }).join(' ') + ' ' + (g.message || ''));
+      if(q && hay.indexOf(q) < 0) return;
+      mainEntries.push({ key: String(g.createdAt || ''), html: restockCardHtml(g, i) });
+    });
+  }
+  const byKey = (a, b) => {
+    if(!a.key && !b.key) return 0;
+    if(!a.key) return 1;
+    if(!b.key) return -1;
+    return a.key.localeCompare(b.key);
+  };
+  mainEntries.sort(byKey);
+  doneEntries.sort(byKey);
+  if(!mainEntries.length){
+    $('ord-list').innerHTML = (q || tipo)
+      ? '<p class="mut">Nada encontrado com essa busca ou filtro.</p>'
+      : (S.orders.length ? '<p class="mut">Nenhum pedido em aberto.</p>' : '<p class="mut">Nenhum pedido ainda.</p>');
+  } else {
+    $('ord-list').innerHTML = mainEntries.map(e => e.html).join('');
+  }
+  $('ord-done').innerHTML = pedDoneSectionHtml(doneEntries);
 }
 function setOrderStatus(id, st){
   const o = orderById(id);
@@ -3994,7 +4079,7 @@ function renderStoreSales(){
   const salesEl = $('sv-sales'); if(salesEl) salesEl.innerHTML = svSalesHistoryHtml();
   const setEl = $('sv-settlements');
   if(setEl) setEl.innerHTML = SV.settlements.length
-    ? SV.settlements.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.finance_transaction_id ? ' <span class="badge link">lançado nas Finanças</span>' : ''}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
+    ? SV.settlements.map(x => `<div class="sub-card"><span>${fmtDateTime(x.settled_at)}${x.notes ? `<div class="mut">${esc(x.notes)}</div>` : ''}</span><b>${BRL(x.amount_cents)}</b></div>`).join('')
     : '<p class="mut">Nenhum acerto registrado ainda.</p>';
   const chartEl = $('sv-chart'); if(chartEl) chartEl.innerHTML = svChartHtml();
 }
