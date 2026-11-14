@@ -3262,6 +3262,7 @@ function addOrderLine(){ S.orderLines.push(blankOrderLine()); renderOrderLines()
 function removeOrderLine(i){ S.orderLines.splice(i, 1); renderOrderLines(); }
 function orderFormHtml(){
   const editing = !!S.editingOrder;
+  const ord = editing ? orderById(S.editingOrder) : null;
   return `
     <h2>${editing ? 'Editar pedido' : 'Novo pedido'}</h2>
     <label>Nome do cliente</label>
@@ -3281,7 +3282,11 @@ function orderFormHtml(){
     <div class="btnrow">
       <button onclick="saveOrder()">${editing ? 'Salvar alterações do pedido' : 'Salvar pedido'}</button>
       <button class="ghost" onclick="closeOrderModal()">Cancelar</button>
-    </div>`;
+    </div>
+    ${editing ? `<div class="btnrow" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
+      ${ord && ord.status !== 'cancelado' ? `<button class="danger" onclick="cancelOrderFromEdit()">Cancelar pedido</button>` : ''}
+      <button class="danger" onclick="deleteOrderFromEdit()">Excluir pedido</button>
+    </div>` : ''}`;
 }
 function openOrderModal(){
   S.editingOrder = null;
@@ -3325,6 +3330,18 @@ function startEditOrder(id){
   renderOrderLines();
 }
 function cancelOrderEdit(){ closeOrderModal(); }
+function cancelOrderFromEdit(){
+  const id = S.editingOrder;
+  if(!id) return;
+  closeOrderModal();
+  setOrderStatus(id, 'cancelado');
+}
+async function deleteOrderFromEdit(){
+  const id = S.editingOrder;
+  if(!id) return;
+  closeOrderModal();
+  await deleteOrder(id);
+}
 async function deleteOrder(id){
   const o = orderById(id);
   if(!o) return;
@@ -3407,14 +3424,12 @@ function orderCardHtml(o){
   const total = orderTotal(o.id);
   const cost = orderCost(o.id);
   const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} × ${BRL(i.unit_price_cents)} = ${BRL(i.qty * i.unit_price_cents)}</div>`).join('');
+  const editable = o.status !== 'entregue' && o.status !== 'cancelado';
   const btns = [];
-  if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="startEditOrder(${o.id})">Editar</button>`);
-  btns.push(`<button class="danger btn-sm" onclick="deleteOrder(${o.id})">Excluir</button>`);
-  if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
-  if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
-  if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
-  if(o.status !== 'cancelado') btns.push(`<button class="danger btn-sm" onclick="setOrderStatus(${o.id}, 'cancelado')">Cancelar</button>`);
-  return `<div class="item-card" style="align-items:flex-start;">
+  if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
+  if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
+  if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
+  return `<div class="item-card${editable ? ' click' : ''}" style="align-items:flex-start;"${editable ? ` onclick="startEditOrder(${o.id})"` : ''}>
     <span style="flex:1;"><b>${esc(o.client_name)}</b> ${statusBadge(o.status)}
       <div class="mut">${o.order_date ? fmtDate(o.order_date) : fmtDateTime(o.created_at)}${o.customer_contact ? ' · ' + esc(o.customer_contact) : ''}${o.delivered_at ? ' · entregue em ' + fmtDateTime(o.delivered_at) : ''}</div>
       ${o.notes ? `<div class="mut">Obs.: ${esc(o.notes)}</div>` : ''}
