@@ -50,6 +50,7 @@
   .restock-alert h2{color:var(--yellow);}
   .detail-head-actions{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
   #modal-box #store-form-card{background:transparent; border:0; border-radius:0; padding:0; margin:0;}
+  #modal-box #access-form-card{background:transparent; border:0; border-radius:0; padding:0; margin:0;}
   .mat-price{font-family:'Nunito',sans-serif; font-weight:800; font-size:16px; color:var(--cyan); white-space:nowrap;}
   .stores-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .stores-search{display:flex; gap:8px; align-items:stretch; margin-bottom:14px;}
@@ -448,7 +449,8 @@
 
     <!-- EQUIPE -->
     <div id="tab-equipe" class="tabpage hidden">
-      <div class="card">
+      <div class="btnrow" style="margin:0 0 14px;"><button onclick="openAccessFormModal()">+ Usuário</button></div>
+      <div class="card hidden" id="access-form-card">
         <h2>Criar acesso</h2>
         <div class="cols">
           <div><label>Nome</label><input id="ac-name" type="text" placeholder="Ex.: João" autocomplete="name"></div>
@@ -471,24 +473,33 @@
         </div>
         <div class="btnrow">
           <button onclick="createAccess()">✉️ Enviar convite</button>
+          <button class="ghost" type="button" onclick="closeAccessFormModal()">Cancelar</button>
         </div>
       </div>
       <div class="card">
-        <h2>Quem tem acesso</h2>
-        <div class="cols">
-          <div>
-            <label>Tipo de usuário</label>
-            <select id="acc-filter-role" onchange="S.accRoleFilter = this.value; renderEquipe();">
-              <option value="">Todos os tipos</option>
-              <option value="master">Master</option>
-              <option value="store">Loja</option>
-            </select>
+        <div class="stores-head">
+          <h2 style="margin:0;">Quem tem acesso</h2>
+          <button class="ghost btn-sm" type="button" onclick="toggleAccessFilters()">Filtrar</button>
+        </div>
+        <div id="acc-filter-panel" class="hidden">
+          <div class="cols">
+            <div>
+              <label>Tipo de usuário</label>
+              <select id="acc-filter-role" onchange="accessFilterRoleChange(this.value)">
+                <option value="">Todos os tipos</option>
+                <option value="master">Master</option>
+                <option value="store">Loja</option>
+              </select>
+            </div>
+            <div id="acc-filter-store-wrap" class="hidden">
+              <label>Loja</label>
+              <select id="acc-filter-store" onchange="S.accStoreFilter = this.value; renderEquipe();">
+                <option value="">Todas as lojas</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label>Loja</label>
-            <select id="acc-filter-store" onchange="S.accStoreFilter = this.value; renderEquipe();">
-              <option value="">Todas as lojas</option>
-            </select>
+          <div class="btnrow" style="margin-top:0;">
+            <button class="ghost btn-sm" type="button" onclick="clearAccessFilters()">Limpar filtros</button>
           </div>
         </div>
         <div id="access-list"></div>
@@ -3527,6 +3538,40 @@ async function refreshAccessStatus(){
 }
 
 /* ---------------- Equipe (master) ---------------- */
+let accessFormHome = null;
+function openAccessFormModal(){
+  const card = $('access-form-card');
+  if(!card) return;
+  if(!accessFormHome) accessFormHome = { parent: card.parentNode, next: card.nextSibling };
+  accessRoleChange();
+  $('modal-box').innerHTML = '';
+  $('modal-box').appendChild(card);
+  card.classList.remove('hidden');
+  $('modal').classList.remove('hidden');
+}
+function closeAccessFormModal(){
+  const card = $('access-form-card');
+  $('modal').classList.add('hidden');
+  if(card && accessFormHome && accessFormHome.parent){
+    if(accessFormHome.next && accessFormHome.next.parentNode === accessFormHome.parent) accessFormHome.parent.insertBefore(card, accessFormHome.next);
+    else accessFormHome.parent.appendChild(card);
+  }
+  if(card) card.classList.add('hidden');
+}
+function toggleAccessFilters(){
+  const panel = $('acc-filter-panel');
+  if(panel) panel.classList.toggle('hidden');
+}
+function accessFilterRoleChange(v){
+  S.accRoleFilter = v;
+  if(v !== 'store') S.accStoreFilter = '';
+  renderEquipe();
+}
+function clearAccessFilters(){
+  S.accRoleFilter = '';
+  S.accStoreFilter = '';
+  renderEquipe();
+}
 function renderAccessStoreOptions(){
   const sel = $('ac-store');
   if(!sel) return;
@@ -3552,6 +3597,7 @@ function accessRoleChange(){
   if(empty) empty.classList.toggle('hidden', hasStores);
 }
 function goCreateStore(){
+  closeAccessFormModal();
   showTab('lojas');
   openStoreForm();
 }
@@ -3579,6 +3625,7 @@ async function createAccess(){
   accessStatusLoadedAt = 0;
   nameEl.value = '';
   emailEl.value = '';
+  closeAccessFormModal();
   await fetchAll(); renderAll();
   toast('Convite enviado para ' + email + '. A pessoa define a própria senha pelo link do e-mail.');
 }
@@ -3593,6 +3640,8 @@ function renderEquipe(){
     storeFilter.innerHTML = '<option value="">Todas as lojas</option>' + (S.stores || []).map(st => `<option value="${st.id}">${esc(st.name)}</option>`).join('');
     storeFilter.value = current;
   }
+  const filterStoreWrap = $('acc-filter-store-wrap');
+  if(filterStoreWrap) filterStoreWrap.classList.toggle('hidden', S.accRoleFilter !== 'store');
   const el = $('access-list');
   if(!el) return;
   const profiles = S.profiles || [];
