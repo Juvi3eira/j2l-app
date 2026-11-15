@@ -966,25 +966,18 @@ function renderFinancas(){
   });
   const inEl = $('fin-t-in'); inEl.textContent = BRL(inc); inEl.className = 'fin-val pos';
   const outEl = $('fin-t-out'); outEl.textContent = BRL(exp); outEl.className = 'fin-val neg';
-  // Lucro do mês: lucro real do mês exibido (receita menos custo de produção), sem contar as saídas.
-  // Pedidos entregues e acertos entram pelo mês do lançamento nas Finanças (ou pela data de entrega/acerto, se não lançaram);
-  // ganhos avulsos (sem vínculo com pedido ou acerto) entram pelo valor cheio.
-  const txById = {}; S.txs.forEach(t => { txById[t.id] = t; });
-  const linkedTxIds = new Set();
-  S.orders.forEach(o => { if(o.finance_transaction_id) linkedTxIds.add(o.finance_transaction_id); });
-  S.settlements.forEach(sm => { if(sm.finance_transaction_id) linkedTxIds.add(sm.finance_transaction_id); });
-  const monthOfTxOr = (txId, fallback) => { const t = txId ? txById[txId] : null; return t ? String(t.date).slice(0, 7) : (fallback ? String(fallback).slice(0, 7) : null); };
-  let lucro = 0;
-  S.orders.forEach(o => {
-    if(o.status !== 'entregue') return;
-    if(monthOfTxOr(o.finance_transaction_id, o.delivered_at) !== ym) return;
-    lucro += orderTotal(o.id) - orderCost(o.id);
-  });
+  // Lucro do mês: de cada ganho que entrou no mês, quanto sobra livre depois de tirar o custo de produção dele.
+  // O cálculo parte dos lançamentos de ganho do mês (os mesmos que formam o "Ganho bruto do mês"):
+  // ganho de pedido entra pelo lucro do pedido (total menos custo), qualquer que seja o status atual do pedido;
+  // ganho de acerto entra pelo valor acertado menos o custo de produção das vendas daquele ciclo;
+  // ganho sem vínculo (ou cujo pedido/acerto não existe mais) entra pelo valor cheio. Saídas nunca entram.
+  const orderByTxId = {}, settleByTxId = {};
+  S.orders.forEach(o => { if(o.finance_transaction_id) orderByTxId[o.finance_transaction_id] = o; });
+  S.settlements.forEach(sm => { if(sm.finance_transaction_id) settleByTxId[sm.finance_transaction_id] = sm; });
   const settlesByStore = {};
   S.settlements.forEach(sm => { (settlesByStore[sm.store_id] || (settlesByStore[sm.store_id] = [])).push(sm); });
   Object.values(settlesByStore).forEach(list => list.sort((a, b) => String(a.settled_at) < String(b.settled_at) ? -1 : 1));
-  S.settlements.forEach(sm => {
-    if(monthOfTxOr(sm.finance_transaction_id, sm.settled_at) !== ym) return;
+  const settleCycleCost = sm => {
     const list = settlesByStore[sm.store_id];
     const prevSm = list.indexOf(sm) > 0 ? list[list.indexOf(sm) - 1] : null;
     let cycleCost = 0;
@@ -995,12 +988,16 @@ function renderFinancas(){
       const p = prodById(x.product_id);
       if(p) cycleCost += (x.kind === 'correction' ? -1 : 1) * Math.round(unitCostCents(p));
     });
-    lucro += (sm.amount_cents || 0) - cycleCost;
-  });
+    return cycleCost;
+  };
+  let lucro = 0;
   S.txs.forEach(t => {
     if(t.kind !== 'income') return;
     if(String(t.date).slice(0, 7) !== ym) return;
-    if(linkedTxIds.has(t.id)) return;
+    const o = orderByTxId[t.id];
+    if(o){ lucro += orderTotal(o.id) - orderCost(o.id); return; }
+    const sm = settleByTxId[t.id];
+    if(sm){ lucro += (sm.amount_cents || 0) - settleCycleCost(sm); return; }
     lucro += t.amount_cents;
   });
   const resEl = $('fin-t-res'); resEl.textContent = BRL(lucro); resEl.className = 'fin-val ' + (lucro < 0 ? 'neg' : 'pos');
