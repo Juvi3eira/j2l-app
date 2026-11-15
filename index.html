@@ -356,6 +356,7 @@
           <button id="calc-save-btn" onclick="openCalcInfo()">Salvar produto</button>
           <button class="ghost hidden" id="calc-cancel-edit" onclick="cancelProductEdit()">Cancelar edição</button>
         </div>
+        <div id="calc-edit-extras" class="hidden"></div>
       </div>
     </div>
 
@@ -365,7 +366,22 @@
         <h2>Produtos</h2>
         <button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button>
       </div>
+      <div class="btnrow" style="margin:0 0 10px;">
+        <button class="ghost btn-sm" type="button" onclick="toggleProdFilters()">Filtrar</button>
+      </div>
+      <div class="stores-search">
+        <input id="prod-search" type="text" placeholder="Buscar produto" aria-label="Buscar produto" oninput="S.prodSearch = this.value; renderProdutos();">
+        <button class="ghost hidden" id="prod-search-clear" onclick="clearProdSearch()">Limpar</button>
+      </div>
+      <div id="prod-filter-panel" class="hidden">
+        <label>Ordenar por</label>
+        <select id="prod-sort" onchange="S.prodSort = this.value; renderProdutos();">
+          <option value="criacao">Criação</option>
+          <option value="estoque">Estoque</option>
+        </select>
+      </div>
       <div id="prod-list"></div>
+      <div id="prod-empty"></div>
       <h2 style="margin-top:20px;">Arquivados</h2>
       <div id="prod-arch"></div>
     </div>
@@ -728,14 +744,15 @@ const S = {
   calc: { fils: [], sups: [] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
-  histOpen: {}, editingProduct: null, editingOrder: null, mountSearch: '',
+  editingProduct: null, editingOrder: null, mountSearch: '',
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
   storeSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
   orderLines: [],
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
-  pedSearch: '', pedTipoFilter: '', pedShowDone: false
+  pedSearch: '', pedTipoFilter: '', pedShowDone: false,
+  prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false
 };
 let P = null; // estado da produção em edição no modal
 
@@ -1545,6 +1562,7 @@ function resetCalcForm(){
   $('calc-form-title').textContent = 'Calculadora de produto';
   $('calc-save-btn').textContent = 'Salvar produto';
   $('calc-cancel-edit').classList.add('hidden');
+  renderCalcEditExtras();
   ['calc-name','calc-desc','calc-price','calc-time','calc-client','calc-ordercontact','calc-ordernotes'].forEach(id => { if($(id)) $(id).value = ''; });
   if($('calc-manualqty')) $('calc-manualqty').value = '1';
   if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
@@ -1586,6 +1604,8 @@ function loadProductIntoCalc(id){
   setCalcFillMode('manual');
   renderCalcLines();
   recomputeCalc();
+  S.calcHistOpen = false;
+  renderCalcEditExtras();
   showTab('calculadora');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast('Produto carregado na Calculadora para edição. Nada muda até salvar.');
@@ -1596,6 +1616,45 @@ function cancelProductEdit(){
   S.calc.sups = [];
   renderCalcLines();
   recomputeCalc();
+}
+/* ------- Extras da edição do produto: detalhes, histórico e arquivar ------- */
+function renderCalcEditExtras(){
+  const box = $('calc-edit-extras');
+  if(!box) return;
+  const p = S.editingProduct ? prodById(S.editingProduct) : null;
+  if(!p){
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    S.calcHistOpen = false;
+    return;
+  }
+  const st = stockOf(p.id);
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
+      ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
+      <div class="mut">Lucro por peça: ${BRL(Math.round(p.sale_price_cents - unitCostCents(p)))} · Margem: ${p.sale_price_cents > 0 ? fmtN((p.sale_price_cents - unitCostCents(p)) / p.sale_price_cents * 100) : '0'}%</div>
+      <div class="mut">Produzidas: ${st.produced} · Em pedidos: ${st.in_orders}</div>
+      <div class="btnrow">
+        <button class="ghost btn-sm" type="button" onclick="toggleCalcHist()">${S.calcHistOpen ? 'Fechar histórico' : 'Histórico de produção'}</button>
+        <button class="ghost btn-sm" type="button" onclick="archiveFromCalc()">Arquivar</button>
+      </div>
+      ${S.calcHistOpen ? `<div style="margin-top:8px;">${prodHistHtml(p)}</div>` : ''}
+    </div>`;
+}
+function toggleCalcHist(){
+  S.calcHistOpen = !S.calcHistOpen;
+  renderCalcEditExtras();
+}
+async function archiveFromCalc(){
+  const id = S.editingProduct;
+  if(!id) return;
+  await archiveProduct(id, true);
+  const p = prodById(id);
+  if(p && p.archived){
+    cancelProductEdit();
+    showTab('produtos');
+  }
 }
 /* ------- Dados do produto: popup que abre ao salvar pela Calculadora ------- */
 let calcInfoSnapshot = null;
@@ -2266,28 +2325,72 @@ async function hydrateProductPhotos(root){
     }
   }
 }
+function stockOf(id){
+  return S.stock[id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
+}
+function prodCardHtml(p){
+  const st = stockOf(p.id);
+  return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
+    <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
+      <div class="mut">Preço: ${BRL(p.sale_price_cents)} · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
+      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Em expositores: ${st.in_displays}</div>
+    </span></span>
+    <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
+      <button class="pinkbtn btn-sm" onclick="event.stopPropagation(); openProduction(${p.id})">Produzir</button>
+    </div></span></div>`;
+}
+function prodHistHtml(p){
+  const hist = S.prods.filter(x => x.product_id === p.id);
+  if(!hist.length) return '<p class="mut">Nenhuma produção registrada.</p>';
+  return hist.map(h => `<div class="sub-card"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
+    <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('');
+}
+function toggleProdFilters(){
+  const panel = $('prod-filter-panel');
+  if(panel) panel.classList.toggle('hidden');
+}
+function clearProdSearch(){
+  S.prodSearch = '';
+  const inp = $('prod-search');
+  if(inp) inp.value = '';
+  renderProdutos();
+  if(inp) inp.focus();
+}
+function toggleProdEmpty(){
+  S.prodShowEmpty = !S.prodShowEmpty;
+  renderProdutos();
+}
+function prodEmptySectionHtml(list){
+  if(!list.length) return '';
+  const open = !!S.prodShowEmpty;
+  const cards = open ? `<div style="margin-top:10px;">${list.map(prodCardHtml).join('')}</div>` : '';
+  return `<div style="margin-top:20px;"><button class="ghost btn-sm" onclick="toggleProdEmpty()">Sem estoque (${list.length}) ${open ? '▾' : '▸'}</button>${cards}</div>`;
+}
 function renderProdutos(){
-  const active = S.products.filter(p => !p.archived);
-  $('prod-list').innerHTML = active.map(p => {
-    const st = S.stock[p.id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
-    const hist = S.prods.filter(x => x.product_id === p.id);
-    const histHtml = S.histOpen[p.id] ? `<div style="margin:8px 0 4px;">
-      ${hist.length ? hist.map(h => `<div class="sub-card"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
-        <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('') : '<p class="mut">Nenhuma produção registrada.</p>'}
-    </div>` : '';
-    return `<div class="item-card" style="align-items:flex-start;">
-      <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
-        ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
-        <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)} · Custo por peça: ${BRL(Math.round(unitCostCents(p)))} · Lucro por peça: ${BRL(Math.round(p.sale_price_cents - unitCostCents(p)))} · Margem: ${p.sale_price_cents > 0 ? fmtN((p.sale_price_cents - unitCostCents(p)) / p.sale_price_cents * 100) : '0'}% · Tempo: ${fmtTime(p.print_time_minutes)}</div>
-        <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Produzidas: ${st.produced} · Em expositores: ${st.in_displays} · Em pedidos: ${st.in_orders}</div>
-        ${histHtml}</span></span>
-      <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
-        <button class="ghost btn-sm" onclick="loadProductIntoCalc(${p.id})">Editar</button>
-        <button class="pinkbtn btn-sm" onclick="openProduction(${p.id})">Produzir</button>
-        <button class="ghost btn-sm" onclick="toggleHist(${p.id})">${S.histOpen[p.id] ? 'Fechar histórico' : 'Histórico'}</button>
-        <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, true)">Arquivar</button>
-      </div></span></div>`;
-  }).join('') || '<p class="mut">Nenhum produto ativo. Crie o primeiro na Calculadora.</p>';
+  const clr = $('prod-search-clear');
+  if(clr) clr.classList.toggle('hidden', !(S.prodSearch || '').trim());
+  const sortSel = $('prod-sort');
+  if(sortSel) sortSel.value = S.prodSort || 'criacao';
+  const q = norm(S.prodSearch || '');
+  const bySort = (a, b) => {
+    if(S.prodSort === 'estoque'){
+      const d = stockOf(b.id).available - stockOf(a.id).available;
+      if(d) return d;
+      return norm(a.name).localeCompare(norm(b.name));
+    }
+    const c = String(a.created_at || '').localeCompare(String(b.created_at || ''));
+    if(c) return c;
+    return norm(a.name).localeCompare(norm(b.name));
+  };
+  const active = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0));
+  const withStock = active.filter(p => stockOf(p.id).available > 0).sort(bySort);
+  const noStock = active.filter(p => stockOf(p.id).available <= 0).sort(bySort);
+  const listEl = $('prod-list');
+  if(withStock.length) listEl.innerHTML = withStock.map(prodCardHtml).join('');
+  else if(q && !active.length) listEl.innerHTML = '<p class="mut">Nada encontrado com essa busca.</p>';
+  else if(!S.products.some(p => !p.archived)) listEl.innerHTML = '<p class="mut">Nenhum produto ativo. Crie o primeiro na Calculadora.</p>';
+  else listEl.innerHTML = '<p class="mut">Nenhum produto com estoque no momento.</p>';
+  $('prod-empty').innerHTML = prodEmptySectionHtml(noStock);
   const arch = S.products.filter(p => p.archived);
   $('prod-arch').innerHTML = arch.map(p => `<div class="item-card"><span style="flex:1;">${esc(p.name)}<div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div></span>
     <span class="btnrow" style="margin-top:0;">
@@ -2301,7 +2404,6 @@ function consumptionSummary(consumption){
     ? (c.name || 'Filamento') + ': ' + fmtN(c.grams) + ' g'
     : (c.name || 'Insumo') + ': ' + fmtN(c.qty) + ' un').join(' · ');
 }
-function toggleHist(id){ S.histOpen[id] = !S.histOpen[id]; renderProdutos(); }
 async function archiveProduct(id, flag){
   const { error } = await sb.from('products').update({ archived: flag }).eq('id', id);
   if(error) return toastErr(error);
@@ -2336,6 +2438,7 @@ async function deleteProduction(id){
   const { error } = await sb.from('productions').delete().eq('id', id);
   if(error) return toastErr(error);
   await fetchAll(); renderAll();
+  if(S.editingProduct) renderCalcEditExtras();
   toast('Produção excluída e materiais devolvidos.');
 }
 function purgeProduct(id){
