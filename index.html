@@ -303,7 +303,7 @@
           <div class="linebox attach-zone">
             <label>Print do fatiador</label>
             <input id="calc-slicer" type="file" accept="image/*" onchange="onSlicerFile(this)">
-            <p class="mut">A imagem é lida no aparelho e não fica salva.</p>
+            <p class="mut">Anexe o arquivo ou cole o print com Ctrl+V. A imagem é lida no aparelho e não fica salva.</p>
             <div id="slicer-status" class="mut"></div>
             <div id="slicer-summary" class="hidden" style="margin-top:8px;"></div>
           </div>
@@ -2298,6 +2298,27 @@ async function onSlicerFile(input){
     slicerBusy = false;
   }
 }
+
+/* Colar o print com Ctrl+V: entra pela mesma função do upload (onSlicerFile) */
+document.addEventListener('paste', (ev) => {
+  const tab = $('tab-calculadora'), attach = $('slicer-attach'), input = $('calc-slicer');
+  if(!tab || !attach || !input) return;
+  if(tab.classList.contains('hidden') || attach.classList.contains('hidden')) return;
+  let file = null;
+  const items = (ev.clipboardData && ev.clipboardData.items) || [];
+  for(const it of items){
+    if(it.kind === 'file' && it.type && it.type.indexOf('image/') === 0){ file = it.getAsFile(); if(file) break; }
+  }
+  if(!file && ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length) file = ev.clipboardData.files[0];
+  if(!file) return;
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  } catch(e){ return; }
+  ev.preventDefault();
+  onSlicerFile(input);
+});
 
 /* ---------------- Produtos ---------------- */
 function isStoragePath(v){ return !!v && !/^https?:\/\//i.test(v); }
