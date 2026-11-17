@@ -3224,7 +3224,7 @@ function renderStoreDetail(){
     `<div class="row"><span class="mut">Comissão</span><span style="text-align:right;">${fmtN(st.commission_percent)}% sobre as vendas</span></div>`,
     `<div class="row"><span class="mut">Acerto</span><span style="text-align:right;">${esc(cycleText(st))}</span></div>`,
     nxVal ? `<div class="row"><span class="mut">Próximo acerto</span><span style="text-align:right;">${esc(nxVal)}</span></div>` : '',
-    `<div class="row"><span class="mut">Pedidos de reposição</span><span style="text-align:right;">${st.restock_requests_enabled ? 'ativados' : 'desativados'} <span class="mut">(muda em Editar loja)</span></span></div>`
+    `<div class="row"><span class="mut">Pedidos de reposição</span><span style="text-align:right;">${st.restock_requests_enabled ? 'ativados' : 'desativados'}</span></div>`
   ].join('');
   $('store-detail').innerHTML = `
     <h2 style="font-size:19px; margin-bottom:10px;">${esc(st.name)}</h2>
