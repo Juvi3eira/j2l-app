@@ -625,7 +625,7 @@
       <span id="calc-photo-preview"></span>
       <span style="flex:1;">
         <input id="calc-photo-file" type="file" accept="image/*" onchange="onCalcPhotoFile(this)">
-        <div class="mut" id="calc-photo-info">A foto é comprimida no aparelho (até 1200 px, JPEG).</div>
+        <div class="mut" id="calc-photo-info">A foto é comprimida no aparelho (até 1200 px, JPEG). No computador, dá pra colar com Ctrl+V.</div>
         <div class="btnrow hidden" id="calc-photo-actions">
           <button type="button" class="ghost btn-sm" onclick="document.getElementById('calc-photo-file').click()">Trocar foto</button>
           <button type="button" class="danger btn-sm" onclick="removeCalcPhoto()">Remover foto</button>
@@ -1865,7 +1865,7 @@ function renderCalcPhotoPreview(currentPath){
       has = true;
     } else {
       box.innerHTML = photoPlaceholderHtml(initial);
-      if(info) info.textContent = 'A foto é comprimida no aparelho (até 1200 px, JPEG).';
+      if(info) info.textContent = 'A foto é comprimida no aparelho (até 1200 px, JPEG). No computador, dá pra colar com Ctrl+V.';
     }
   }
   const act = $('calc-photo-actions');
@@ -2299,11 +2299,10 @@ async function onSlicerFile(input){
   }
 }
 
-/* Colar o print com Ctrl+V: entra pela mesma função do upload (onSlicerFile) */
+/* Colar imagem com Ctrl+V: com o popup de dados do produto aberto, a imagem vira a foto
+   do produto (onCalcPhotoFile); senão, é o print do fatiador (onSlicerFile).
+   Sem imagem na área de transferência (ex.: colar texto), não intercepta nada. */
 document.addEventListener('paste', (ev) => {
-  const tab = $('tab-calculadora'), attach = $('slicer-attach'), input = $('calc-slicer');
-  if(!tab || !attach || !input) return;
-  if(tab.classList.contains('hidden') || attach.classList.contains('hidden')) return;
   let file = null;
   const items = (ev.clipboardData && ev.clipboardData.items) || [];
   for(const it of items){
@@ -2311,6 +2310,20 @@ document.addEventListener('paste', (ev) => {
   }
   if(!file && ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length) file = ev.clipboardData.files[0];
   if(!file) return;
+  const infoModal = $('calc-info-modal'), photoInput = $('calc-photo-file');
+  if(infoModal && photoInput && !infoModal.classList.contains('hidden')){
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      photoInput.files = dt.files;
+    } catch(e){ return; }
+    ev.preventDefault();
+    onCalcPhotoFile(photoInput);
+    return;
+  }
+  const tab = $('tab-calculadora'), attach = $('slicer-attach'), input = $('calc-slicer');
+  if(!tab || !attach || !input) return;
+  if(tab.classList.contains('hidden') || attach.classList.contains('hidden')) return;
   try {
     const dt = new DataTransfer();
     dt.items.add(file);
