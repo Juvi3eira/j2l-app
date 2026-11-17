@@ -78,6 +78,7 @@
   button.danger{background:transparent; color:var(--bad); border:1px solid var(--bad); font-weight:600;}
   button.pinkbtn{background:var(--pink); color:#fff;}
   .btn-sm{padding:7px 11px; font-size:12px; border-radius:8px;}
+  button:disabled{opacity:.45; cursor:default;}
   .row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:0;}
   .tx-ico{flex:none; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-family:'Bungee','Nunito',sans-serif; font-size:20px; line-height:1; color:var(--navy);}
@@ -110,6 +111,7 @@
   .badge{font-size:11px; padding:2px 8px; border-radius:99px; font-weight:700; white-space:nowrap;}
   .badge.low{background:#5a3b12; color:var(--yellow);}
   .badge.out{background:#5a1f1f; color:var(--bad);}
+  .badge.falta{background:#5a1f1f; color:var(--bad);}
   .badge.link{background:#22304d; color:var(--cyan);}
   .check{display:flex; gap:8px; align-items:center; font-size:14px; margin:8px 0;}
   .chart{display:flex; gap:14px; align-items:flex-end; height:150px; padding-top:8px; overflow-x:auto;}
@@ -127,6 +129,9 @@
   .pickbox input{margin-bottom:6px;}
   .pickopt{display:block; width:100%; text-align:left; background:transparent; color:var(--txt); border:0; border-bottom:1px solid var(--line); padding:9px 6px; font-weight:500; cursor:pointer; border-radius:0;}
   .pickopt:last-child{border-bottom:0;}
+  .pickbox .ssel-opts{max-height:230px; overflow-y:auto;}
+  .pickopt.on{background:#262052;}
+  .pickopt.ssel-pin{color:var(--cyan); font-weight:700;}
   .thumb{width:52px; height:52px; object-fit:cover; border-radius:10px; border:1px solid var(--line); background:#141126;}
   .linebox{border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; background:#1a1730;}
   .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
@@ -266,6 +271,7 @@
       </div>
       <h2>Lançamentos do mês</h2>
       <div id="fin-list"></div>
+      <div id="fin-pager"></div>
     </div>
 
     <!-- MATERIAIS -->
@@ -280,16 +286,21 @@
         </div>
       </div>
       <h2>Materiais em estoque</h2>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+      <div class="stores-search">
+        <input id="mat-search" type="text" placeholder="Buscar material..." aria-label="Buscar material" oninput="S.matSearch = this.value; renderMateriais();">
+        <button class="ghost hidden" id="mat-search-clear" onclick="clearMatSearch()">Limpar</button>
+      </div>
+      <div id="mat-fil-head" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
         <h3 style="margin:0;">Filamentos</h3>
         <button class="btn-sm" onclick="openPurchaseModal('filament')">+ Filamento</button>
       </div>
       <div id="mat-fil"></div>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; margin-bottom:10px;">
+      <div id="mat-sup-head" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; margin-bottom:10px;">
         <h3 style="margin:0;">Insumos</h3>
         <button class="btn-sm" onclick="openPurchaseModal('supply')">+ Insumo</button>
       </div>
       <div id="mat-sup"></div>
+      <div id="mat-noresult"></div>
     </div>
 
     <!-- CALCULADORA -->
@@ -539,8 +550,13 @@
           <option value="pedidos">Pedidos</option>
           <option value="reposicoes">Reposições</option>
         </select>
+        <label>Ordenar por</label>
+        <select id="ped-sort" onchange="S.ordersSort = this.value; renderOrders();">
+          <option value="pedido">Data do pedido</option>
+          <option value="entrega">Data de entrega</option>
+        </select>
         <div class="btnrow" style="margin-top:0;">
-          <button class="ghost btn-sm" type="button" onclick="clearPedFilters()">Limpar filtros</button>
+          <button class="ghost btn-sm hidden" id="ped-clear-filters" type="button" onclick="clearPedFilters()">Limpar filtros</button>
         </div>
       </div>
       <div id="ord-list"></div>
@@ -565,13 +581,13 @@
       </div>
       <div class="card">
         <h2>Meu expositor</h2>
-        <input type="text" id="sv-search" placeholder="Buscar produto no expositor (pode digitar sem acento)" oninput="SV.search = this.value; renderStoreDisplay();">
+        <input type="text" id="sv-search" placeholder="Buscar produto no expositor" oninput="SV.search = this.value; renderStoreDisplay();">
         <div id="sv-display"></div>
       </div>
       <div class="card">
         <h2>Registrar venda</h2>
         <label>Produto do expositor</label>
-        <select id="sv-sale-product"></select>
+        <div id="sv-sale-product"></div>
         <label>Quantidade</label>
         <input id="sv-sale-qty" type="text" inputmode="numeric" value="1">
         <div class="btnrow">
@@ -582,7 +598,7 @@
           <h3>Corrigir venda</h3>
           <p class="mut">Use quando uma venda foi registrada por engano. A correção fica registrada com data e hora, igual à venda, e abate dos vendidos do ciclo.</p>
           <label>Produto</label>
-          <select id="sv-corr-product"></select>
+          <div id="sv-corr-product"></div>
           <label>Quantidade a corrigir</label>
           <input id="sv-corr-qty" type="text" inputmode="numeric" value="1">
           <div class="btnrow">
@@ -744,19 +760,19 @@ const S = {
   filaments: [], supplies: [], products: [], pf: [], ps: [], prods: [],
   stock: {}, recipes: {}, txs: [],
   settings: { watts: 200, kwh: 100, wear: 100, margin: 30 },
-  finMonth: ymNow(), editingTx: null,
+  finMonth: ymNow(), finPage: 1, editingTx: null,
   matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
   calc: { fils: [], sups: [] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
-  editingProduct: null, editingOrder: null, mountSearch: '',
+  editingProduct: null, editingOrder: null,
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
-  storeSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
+  storeSearch: '', matSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
   orderLines: [],
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
-  pedSearch: '', pedTipoFilter: '', pedShowDone: false,
+  pedSearch: '', pedTipoFilter: '', pedShowDone: false, ordersSort: 'pedido',
   prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' }
 };
@@ -980,6 +996,11 @@ function finNav(dir){
   const parts = S.finMonth.split('-').map(Number);
   const d = new Date(parts[0], parts[1] - 1 + dir, 1);
   S.finMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  S.finPage = 1;
+  renderFinancas();
+}
+function finGoPage(dir){
+  S.finPage += dir;
   renderFinancas();
 }
 function renderFinancas(){
@@ -1044,12 +1065,21 @@ function renderFinancas(){
   const catRows = Object.keys(byCategory).map(name => ({ name: name, inc: byCategory[name].inc, exp: byCategory[name].exp, net: byCategory[name].inc - byCategory[name].exp }))
     .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.name.localeCompare(b.name));
   $('fin-cat-summary').innerHTML = catRows.map(c => `<div class="row"><span style="flex:1;">${esc(c.name)}<div class="mut">Ganhos: ${BRL(c.inc)} · Despesas: ${BRL(c.exp)}</div></span><b class="${c.net < 0 ? 'neg' : 'pos'}">${BRL(c.net)}</b></div>`).join('') || '<p class="mut">Nenhuma categoria movimentada neste mês.</p>';
-  $('fin-list').innerHTML = monthTxs.map(t => {
+  // Paginação dos lançamentos: 10 por página, mantendo a ordem atual (mais recentes primeiro).
+  const FIN_PAGE_SIZE = 10;
+  const finPages = Math.max(1, Math.ceil(monthTxs.length / FIN_PAGE_SIZE));
+  if(!(S.finPage >= 1)) S.finPage = 1;
+  if(S.finPage > finPages) S.finPage = finPages;
+  const pageTxs = monthTxs.slice((S.finPage - 1) * FIN_PAGE_SIZE, S.finPage * FIN_PAGE_SIZE);
+  $('fin-list').innerHTML = pageTxs.map(t => {
     const link = t.linked_type ? ` <span class="badge link">compra de ${t.linked_type === 'filament' ? 'filamento' : 'insumo'}</span>` : '';
     const notes = t.notes ? `<div class="mut">${esc(t.notes)}</div>` : '';
     return `<div class="item-card click" onclick="txEdit(${t.id})"><span class="tx-ico ${t.kind === 'income' ? 'inc' : 'exp'}">${t.kind === 'income' ? '+' : '−'}</span><span style="flex:1;"><b>${esc(t.description)}</b>${link}<div class="mut">${fmtDate(t.date)} · ${esc(t.category || '')}</div>${notes}</span>
       <span style="text-align:right;"><b class="${t.kind === 'income' ? 'pos' : 'neg'}">${t.kind === 'income' ? '+' : '-'} ${BRL(t.amount_cents)}</b></span></div>`;
   }).join('') || '<p class="mut">Nenhum lançamento neste mês.</p>';
+  $('fin-pager').innerHTML = finPages > 1
+    ? `<div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:12px;"><button class="ghost btn-sm" onclick="finGoPage(-1)"${S.finPage <= 1 ? ' disabled' : ''}>Anterior</button><span class="mut">Página ${S.finPage} de ${finPages}</span><button class="ghost btn-sm" onclick="finGoPage(1)"${S.finPage >= finPages ? ' disabled' : ''}>Próxima</button></div>`
+    : '';
   renderFinChart();
 }
 function renderFinChart(){
@@ -1254,17 +1284,43 @@ function toggleFinished(kind){
   else S.showFinishedSups = !S.showFinishedSups;
   renderMateriais();
 }
+function matFilMatch(f, q){
+  return !q || norm(f.name + ' ' + (f.brand || '') + ' ' + (f.material || '') + ' ' + (f.color || '')).indexOf(q) >= 0;
+}
+function matSupMatch(s, q){
+  return !q || norm(s.name).indexOf(q) >= 0;
+}
+function clearMatSearch(){
+  S.matSearch = '';
+  const inp = $('mat-search');
+  if(inp) inp.value = '';
+  renderMateriais();
+  if(inp) inp.focus();
+}
 function renderMateriais(){
-  const filsOk = S.filaments.filter(f => filRemaining(f) > 0);
-  const filsOut = S.filaments.filter(f => filRemaining(f) <= 0);
+  const q = norm(S.matSearch || '');
+  const clr = $('mat-search-clear');
+  if(clr) clr.classList.toggle('hidden', !q);
+  const filsOk = S.filaments.filter(f => filRemaining(f) > 0 && matFilMatch(f, q));
+  const filsOut = S.filaments.filter(f => filRemaining(f) <= 0 && matFilMatch(f, q));
+  const filEmpty = !!q && !filsOk.length && !filsOut.length;
+  const filHead = $('mat-fil-head');
+  if(filHead) filHead.classList.toggle('hidden', filEmpty);
+  $('mat-fil').classList.toggle('hidden', filEmpty);
   $('mat-fil').innerHTML = (filsOk.map(f => filCardHtml(f, false)).join('')
     || (filsOut.length ? '<p class="mut">Nenhum filamento em estoque.</p>' : '<p class="mut">Nenhum filamento.</p>'))
-    + finishedSectionHtml('fil', filsOut, S.showFinishedFils);
-  const supsOk = S.supplies.filter(s => supRemaining(s) > 0);
-  const supsOut = S.supplies.filter(s => supRemaining(s) <= 0);
+    + finishedSectionHtml('fil', filsOut, S.showFinishedFils || !!q);
+  const supsOk = S.supplies.filter(s => supRemaining(s) > 0 && matSupMatch(s, q));
+  const supsOut = S.supplies.filter(s => supRemaining(s) <= 0 && matSupMatch(s, q));
+  const supEmpty = !!q && !supsOk.length && !supsOut.length;
+  const supHead = $('mat-sup-head');
+  if(supHead) supHead.classList.toggle('hidden', supEmpty);
+  $('mat-sup').classList.toggle('hidden', supEmpty);
   $('mat-sup').innerHTML = (supsOk.map(s => supCardHtml(s, false)).join('')
     || (supsOut.length ? '<p class="mut">Nenhum insumo em estoque.</p>' : '<p class="mut">Nenhum insumo.</p>'))
-    + finishedSectionHtml('sup', supsOut, S.showFinishedSups);
+    + finishedSectionHtml('sup', supsOut, S.showFinishedSups || !!q);
+  const noRes = $('mat-noresult');
+  if(noRes) noRes.innerHTML = (q && filEmpty && supEmpty) ? '<p class="mut">Nenhum material encontrado para essa busca.</p>' : '';
 }
 function reporMat(type, id){
   if(type === 'filament'){
@@ -1426,28 +1482,105 @@ async function delMat(type, id){
 }
 
 /* ---------------- Calculadora ---------------- */
-function filPickOptions(i, filter){
-  const q = norm(filter || '');
-  const list = S.filaments.filter(f => !q || norm(f.name + ' ' + f.brand + ' ' + f.color + ' ' + f.material).indexOf(q) >= 0);
-  if(!list.length) return '<p class="mut">Nenhum filamento encontrado.</p>';
-  return list.map(f => `<button class="pickopt" onclick="pickCalcFil(${i}, ${f.id})"><span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}<span class="mut"> · ${fmtN(filRemaining(f))} g restantes · ${BRL(Math.round(filCostPerGram(f)*100)/100)}/g</span></button>`).join('');
+/* ---------- Seletor com busca (componente único das listas longas) ----------
+   Um campo mostra a seleção atual; clicar abre um painel NO FLUXO da página
+   (expande logo abaixo do campo, sem flutuar), com a busca no topo e as opções
+   rolando dentro do próprio painel: assim o painel nunca é cortado pelo scroll
+   do modal. A busca filtra por norm() sobre o texto t de cada opção. A opção
+   pinned, quando existe, fica fixa no rodapé do painel, fora do filtro.
+   cfg: { value, placeholder, searchPh, emptyText, options, pinned, onpick }
+   options: [{ v, t, ohtml, fhtml }] (ohtml = linha da opção, fhtml = campo;
+   sem eles, usa esc(t)). O v escolhido vai ao onpick exatamente como
+   configurado (número ou texto), igual ao controle antigo de cada tela. */
+const SSEL = {};
+function sselRegister(key, cfg){
+  SSEL[key] = {
+    value: cfg.value, placeholder: cfg.placeholder || 'Escolher...',
+    searchPh: cfg.searchPh || 'Buscar...', emptyText: cfg.emptyText || 'Nada encontrado.',
+    options: cfg.options || [], pinned: cfg.pinned || null,
+    onpick: cfg.onpick || function(){}, filter: '', open: false, list: []
+  };
 }
-function supPickOptions(i, filter){
-  const q = norm(filter || '');
-  const list = S.supplies.filter(s => !q || norm(s.name).indexOf(q) >= 0);
-  if(!list.length) return '<p class="mut">Nenhum insumo encontrado.</p>';
-  return list.map(s => `<button class="pickopt" onclick="pickCalcSup(${i}, ${s.id})">${esc(s.name)}<span class="mut"> · ${fmtN(supRemaining(s))} ${esc(s.unit)} restantes · ${BRL(s.unit_cost_cents)} cada</span></button>`).join('');
+function sselFieldHtml(key){
+  const c = SSEL[key];
+  if(!c) return '';
+  const sel = c.options.find(o => String(o.v) === String(c.value));
+  const inner = sel ? (sel.fhtml != null ? sel.fhtml : esc(sel.t)) : '<span class="mut">' + esc(c.placeholder) + '</span>';
+  return inner + ' <span style="float:right;" class="mut">&#9662;</span>';
 }
+function sselOptionsHtml(key){
+  const c = SSEL[key];
+  if(!c) return '';
+  const q = norm(c.filter || '');
+  c.list = c.options.filter(o => !q || norm(o.t).indexOf(q) >= 0);
+  if(!c.list.length) return '<p class="mut" style="padding:6px;">' + esc(c.emptyText) + '</p>';
+  return c.list.map((o, ix) => `<button class="pickopt${String(o.v) === String(c.value) ? ' on' : ''}" onclick="sselPick('${key}', ${ix})">${o.ohtml != null ? o.ohtml : esc(o.t)}</button>`).join('');
+}
+function sselHtml(key, cfg){
+  sselRegister(key, cfg);
+  const c = SSEL[key];
+  return `<div class="picksel" id="ssel-f-${key}" onclick="sselToggle('${key}')">${sselFieldHtml(key)}</div>`
+    + `<div class="pickbox hidden" id="ssel-p-${key}">`
+    + `<input type="text" placeholder="${esc(c.searchPh)}" value="${esc(c.filter)}" oninput="sselFilter('${key}', this.value)" autocomplete="off">`
+    + `<div class="ssel-opts" id="ssel-o-${key}">${sselOptionsHtml(key)}</div>`
+    + (c.pinned ? `<button class="pickopt ssel-pin" onclick="sselPickPinned('${key}')">${esc(c.pinned.t)}</button>` : '')
+    + `</div>`;
+}
+function sselCloseAll(){
+  document.querySelectorAll('.pickbox').forEach(b => b.classList.add('hidden'));
+  Object.keys(SSEL).forEach(k => { SSEL[k].open = false; });
+}
+function sselToggle(key){
+  const p = $('ssel-p-' + key);
+  if(!p) return;
+  const wasHidden = p.classList.contains('hidden');
+  sselCloseAll();
+  if(wasHidden){
+    p.classList.remove('hidden');
+    if(SSEL[key]) SSEL[key].open = true;
+    const inp = p.querySelector('input');
+    if(inp) inp.focus();
+  }
+}
+function sselFilter(key, v){
+  const c = SSEL[key];
+  if(!c) return;
+  c.filter = v;
+  const box = $('ssel-o-' + key);
+  if(box) box.innerHTML = sselOptionsHtml(key);
+}
+function sselPick(key, ix){
+  const c = SSEL[key];
+  if(!c || !c.list[ix]) return;
+  const v = c.list[ix].v;
+  c.value = v;
+  sselCloseAll();
+  const f = $('ssel-f-' + key);
+  if(f) f.innerHTML = sselFieldHtml(key);
+  c.onpick(v);
+}
+function sselPickPinned(key){
+  const c = SSEL[key];
+  if(!c || !c.pinned) return;
+  sselCloseAll();
+  c.onpick(c.pinned.v);
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.picksel') && !e.target.closest('.pickbox')) sselCloseAll();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') sselCloseAll();
+});
 function renderCalcLines(){
   $('calc-fils').innerHTML = S.calc.fils.map((l, i) => {
-    const f = l.filamentId ? filById(l.filamentId) : null;
-    const sel = f ? `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}` : '<span class="mut">Escolher filamento...</span>';
+    const opts = S.filaments.map(f => ({
+      v: f.id,
+      t: f.name + ' ' + f.brand + ' ' + f.color + ' ' + f.material,
+      ohtml: `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}<span class="mut"> · ${fmtN(filRemaining(f))} g restantes · ${BRL(Math.round(filCostPerGram(f)*100)/100)}/g</span>`,
+      fhtml: `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}`
+    }));
     return `<div class="linebox">
-      <div class="picksel" onclick="togglePick('f', ${i})">${sel} <span style="float:right;" class="mut">&#9662;</span></div>
-      <div class="pickbox hidden" id="pickbox-f-${i}">
-        <input type="text" placeholder="Buscar filamento" oninput="filterPick('f', ${i}, this.value)">
-        <div id="pickopts-f-${i}">${filPickOptions(i, '')}</div>
-      </div>
+      ${sselHtml('cf-' + i, { value: l.filamentId, placeholder: 'Escolher filamento...', searchPh: 'Buscar filamento', emptyText: 'Nenhum filamento encontrado.', options: opts, onpick: v => pickCalcFil(i, v) })}
       <label>Gramas</label>
       <input type="text" inputmode="decimal" value="${esc(l.gramsStr)}" placeholder="Ex.: 12,5" oninput="calcFilGrams(${i}, this.value)">
       <div class="mut" id="calcfil-info-${i}"></div>
@@ -1455,29 +1588,19 @@ function renderCalcLines(){
     </div>`;
   }).join('');
   $('calc-sups').innerHTML = S.calc.sups.map((l, i) => {
-    const s = l.supplyId ? supById(l.supplyId) : null;
-    const sel = s ? esc(s.name) : '<span class="mut">Escolher insumo...</span>';
+    const opts = S.supplies.map(s => ({
+      v: s.id,
+      t: s.name,
+      ohtml: `${esc(s.name)}<span class="mut"> · ${fmtN(supRemaining(s))} ${esc(s.unit)} restantes · ${BRL(s.unit_cost_cents)} cada</span>`
+    }));
     return `<div class="linebox">
-      <div class="picksel" onclick="togglePick('s', ${i})">${sel} <span style="float:right;" class="mut">&#9662;</span></div>
-      <div class="pickbox hidden" id="pickbox-s-${i}">
-        <input type="text" placeholder="Buscar insumo" oninput="filterPick('s', ${i}, this.value)">
-        <div id="pickopts-s-${i}">${supPickOptions(i, '')}</div>
-      </div>
+      ${sselHtml('cs-' + i, { value: l.supplyId, placeholder: 'Escolher insumo...', searchPh: 'Buscar insumo', emptyText: 'Nenhum insumo encontrado.', options: opts, onpick: v => pickCalcSup(i, v) })}
       <label>Quantidade por peça</label>
       <input type="text" inputmode="decimal" value="${esc(l.qtyStr)}" placeholder="Ex.: 1" oninput="calcSupQty(${i}, this.value)">
       <div class="mut" id="calcsup-info-${i}"></div>
       <div class="btnrow"><button class="danger btn-sm" onclick="removeCalcSup(${i})">Remover</button></div>
     </div>`;
   }).join('');
-}
-function togglePick(kind, i){
-  const box = $('pickbox-' + kind + '-' + i);
-  const wasHidden = box.classList.contains('hidden');
-  document.querySelectorAll('.pickbox').forEach(b => b.classList.add('hidden'));
-  if(wasHidden) box.classList.remove('hidden');
-}
-function filterPick(kind, i, v){
-  $('pickopts-' + kind + '-' + i).innerHTML = kind === 'f' ? filPickOptions(i, v) : supPickOptions(i, v);
 }
 function pickCalcFil(i, id){ S.calc.fils[i].filamentId = id; renderCalcLines(); recomputeCalc(); }
 function pickCalcSup(i, id){ S.calc.sups[i].supplyId = id; renderCalcLines(); recomputeCalc(); }
@@ -2632,8 +2755,6 @@ function openProduction(pid){
 function closeModal(){ $('modal').classList.add('hidden'); P = null; }
 function renderProdModal(){
   const prod = prodById(P.productId);
-  const filOpts = selId => S.filaments.map(f => `<option value="${f.id}" ${f.id === selId ? 'selected' : ''}>${esc(f.name)} (${fmtN(filRemaining(f))} g restantes)</option>`).join('');
-  const supOpts = selId => S.supplies.map(s => `<option value="${s.id}" ${s.id === selId ? 'selected' : ''}>${esc(s.name)} (${fmtN(supRemaining(s))} ${esc(s.unit)} restantes)</option>`).join('');
   $('modal-box').innerHTML = `
     <h2>Registrar produção</h2>
     <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(prod.name)}</b>. Confira a prévia de consumo: pode trocar o rolo e ajustar as quantidades antes de confirmar.</p>
@@ -2644,7 +2765,7 @@ function renderProdModal(){
     <h3>Filamentos (total da leva, em gramas)</h3>
     ${P.fils.length ? P.fils.map((l, i) => `<div class="linebox">
       <label>Rolo (pode trocar)</label>
-      <select onchange="prodFilSel(${i}, this.value)">${filOpts(l.filamentId)}</select>
+      ${sselHtml('pf-' + i, { value: String(l.filamentId), placeholder: 'Escolher filamento...', searchPh: 'Buscar filamento', emptyText: 'Nenhum filamento encontrado.', options: S.filaments.map(f => ({ v: String(f.id), t: f.name + ' (' + fmtN(filRemaining(f)) + ' g restantes)' })), onpick: v => prodFilSel(i, v) })}
       <div class="mut" style="margin-top:6px;"><span class="sw" id="prodfil-sw-${i}" style="background:${swatch((filById(l.filamentId) || {}).color)}"></span>Cor aproximada do rolo selecionado</div>
       <label>Gramas no total</label>
       <input type="text" inputmode="decimal" value="${numStr(l.grams)}" oninput="prodFilGrams(${i}, this.value)">
@@ -2653,7 +2774,7 @@ function renderProdModal(){
     <h3>Insumos (total da leva)</h3>
     ${P.sups.length ? P.sups.map((l, i) => `<div class="linebox">
       <label>Insumo</label>
-      <select onchange="prodSupSel(${i}, this.value)">${supOpts(l.supplyId)}</select>
+      ${sselHtml('ps-' + i, { value: String(l.supplyId), placeholder: 'Escolher insumo...', searchPh: 'Buscar insumo', emptyText: 'Nenhum insumo encontrado.', options: S.supplies.map(s => ({ v: String(s.id), t: s.name + ' (' + fmtN(supRemaining(s)) + ' ' + s.unit + ' restantes)' })), onpick: v => prodSupSel(i, v) })}
       <label>Quantidade no total</label>
       <input type="text" inputmode="decimal" value="${numStr(l.qty)}" oninput="prodSupQty(${i}, this.value)">
       <div class="mut">Receita: ${fmtN(l.perPiece)} por peça</div>
@@ -2820,7 +2941,6 @@ function renderStoreList(){
 function openStore(id){
   S.currentStore = id;
   S.displaySearch = '';
-  S.mountSearch = '';
   renderLojas();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -3078,27 +3198,6 @@ function cycleInfo(store){
   const net = gross - commission;
   return { last: last, byProd: byProd, gross: gross, items: items, commission: commission, net: net, carriedIn: carriedIn, due: net + carriedIn };
 }
-function activeProductOptions(){
-  const q = norm(S.mountSearch);
-  const act = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0));
-  if(!act.length) return '<option value="">Nenhum produto ativo</option>';
-  return act.map(p => `<option value="${p.id}">${esc(p.name)} (estoque: ${homeAvail(p.id)})</option>`).join('');
-}
-function refreshMountOptions(){
-  const sel = $('disp-product');
-  if(!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = activeProductOptions();
-  if(cur && Array.from(sel.options).some(o => String(o.value) === String(cur))) sel.value = cur;
-  updateDispHint();
-}
-function updateDispHint(){
-  const sel = $('disp-product');
-  const hint = $('disp-hint');
-  if(!sel || !hint) return;
-  const pid = parseInt(sel.value, 10);
-  hint.textContent = pid ? ('Estoque agora: ' + homeAvail(pid) + ' peças. Mandar além disso é recusado.') : '';
-}
 function renderStoreDetail(){
   const st = storeById(S.currentStore);
   if(!st){ S.currentStore = null; renderLojas(); return; }
@@ -3108,22 +3207,31 @@ function renderStoreDetail(){
     ? `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><span style="flex:1;">${esc(contractFileName(st.contract_file_path))}</span><button type="button" class="btn-sm" onclick="openStoreContract(${st.id})">Ver contrato</button></div>`
     : (st.contract_file_path
       ? `<div class="mut">${esc(st.contract_file_path)}</div>`
-      : `<p class="mut">Nenhum contrato anexado. Para anexar, trocar ou remover o contrato desta loja, abra o Editar loja: o campo Contrato guarda o PDF ou a foto do contrato de consignação.</p>`);
-  $('store-detail').innerHTML = `
-    <div style="margin-bottom:16px;">
-      <h2 style="font-size:19px; margin-bottom:6px;">${esc(st.name)}</h2>
-      <div class="mut">${esc(st.contact_name || '')}${st.whatsapp ? ' · WhatsApp ' + esc(st.whatsapp) : ''}</div>
-      ${st.address ? `<div class="mut">${esc(st.address)}</div>` : ''}
-      ${st.notes ? `<div class="mut">${esc(st.notes)}</div>` : ''}
-      <div class="mut">Comissão da loja: ${fmtN(st.commission_percent)}% sobre as vendas</div>
-      <div class="mut">Acerto: ${esc(cycleText(st))}</div>
-      <div class="mut">${esc(nextSettlementText(st))}</div>
-      <div class="mut">Pedidos de reposição da loja: ${st.restock_requests_enabled ? 'ativados' : 'desativados'} (muda em Editar loja)</div>
-    </div>
+      : '');
+  /* Sem contrato anexado, o card Contrato nem aparece no detalhe da loja. */
+  const contractCard = st.contract_file_path ? `
     <div class="card">
       <div class="sec-label">Contrato</div>
       ${contractHtml}
+    </div>` : '';
+  const nxRaw = nextSettlementText(st);
+  const nxVal = nxRaw.replace(/^(Próximo acerto|Combinado do acerto|Acerto): /, '');
+  const respVal = [st.contact_name ? esc(st.contact_name) : '', st.whatsapp ? 'WhatsApp ' + esc(st.whatsapp) : ''].filter(Boolean).join(' · ');
+  const infoRows = [
+    respVal ? `<div class="row"><span class="mut">Responsável</span><span style="text-align:right;">${respVal}</span></div>` : '',
+    st.address ? `<div class="row"><span class="mut">Endereço</span><span style="text-align:right;">${esc(st.address)}</span></div>` : '',
+    st.notes ? `<div class="row"><span class="mut">Observações</span><span style="text-align:right;">${esc(st.notes)}</span></div>` : '',
+    `<div class="row"><span class="mut">Comissão</span><span style="text-align:right;">${fmtN(st.commission_percent)}% sobre as vendas</span></div>`,
+    `<div class="row"><span class="mut">Acerto</span><span style="text-align:right;">${esc(cycleText(st))}</span></div>`,
+    nxVal ? `<div class="row"><span class="mut">Próximo acerto</span><span style="text-align:right;">${esc(nxVal)}</span></div>` : '',
+    `<div class="row"><span class="mut">Pedidos de reposição</span><span style="text-align:right;">${st.restock_requests_enabled ? 'ativados' : 'desativados'} <span class="mut">(muda em Editar loja)</span></span></div>`
+  ].join('');
+  $('store-detail').innerHTML = `
+    <h2 style="font-size:19px; margin-bottom:10px;">${esc(st.name)}</h2>
+    <div class="card">
+      ${infoRows}
     </div>
+    ${contractCard}
     <div class="card">
       <div class="sec-label">Acerto</div>
       <div class="acerto-hero">${BRL(cyc.due)}</div>
@@ -3147,24 +3255,13 @@ function renderStoreDetail(){
       <h2>Estoque no expositor</h2>
       <button class="btn-sm" onclick="openRestock(${st.id})">Repor estoque</button>
     </div>
-    <input type="text" placeholder="Buscar produto no expositor (pode digitar sem acento)" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();" style="margin-bottom:12px;">
-    <div class="linebox">
-      <label>Adicionar produto ao expositor</label>
-      <label>Buscar produto</label>
-      <input type="text" placeholder="Buscar produto (pode digitar sem acento)" value="${esc(S.mountSearch)}" oninput="S.mountSearch = this.value; refreshMountOptions();">
-      <select id="disp-product" onchange="updateDispHint()">${activeProductOptions()}</select>
-      <label>Quantidade</label>
-      <input id="disp-qty" type="text" inputmode="numeric" value="1">
-      <div class="mut" id="disp-hint"></div>
-      <div class="btnrow"><button class="btn-sm" onclick="mountDisplay()">Adicionar ao expositor</button></div>
-    </div>
+    <input type="text" placeholder="Buscar produto no expositor" value="${esc(S.displaySearch)}" oninput="S.displaySearch = this.value; renderDisplayList();" style="margin-bottom:12px;">
     <div id="display-list"></div>
     <h2 style="margin-top:20px;">Histórico de reposições</h2>
     <div>${storeRestockHistoryHtml(st.id)}</div>
     <h2 style="margin-top:20px;">Vendas registradas pela loja</h2>
     <div id="sales-list">${salesHistoryHtml(st.id)}</div>`;
   renderDisplayList();
-  updateDispHint();
 }
 function renderDisplayList(){
   const el = $('display-list');
@@ -3183,7 +3280,7 @@ function renderDisplayList(){
     return `<div class="item-card" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         <div class="mut">Preço na loja: ${BRL(p.sale_price_cents)}</div>
-        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle} (só leitura aqui, quem muda é a loja vendendo)</div>
+        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Vendidos no ciclo: ${r.sold_in_cycle} (só leitura aqui, quem muda é a loja vendendo)</div>
         ${r.carried_balance_cents ? `<div class="mut">Saldo carregado neste produto: ${BRL(r.carried_balance_cents)}</div>` : ''}
       </span></span>
       <span><button class="ghost btn-sm" onclick="openCorrectTotal(${r.id})">Corrigir total</button></span>
@@ -3199,20 +3296,6 @@ async function addToDisplay(storeId, productId, qty){
     const { error } = await sb.from('store_stock').insert({ store_id: storeId, product_id: productId, delivered_qty: qty, sold_in_cycle: 0, settled_in_cycle_cents: 0, carried_balance_cents: 0 });
     if(error) throw error;
   }
-}
-async function mountDisplay(){
-  const st = storeById(S.currentStore);
-  if(!st) return;
-  const pid = parseInt($('disp-product').value, 10);
-  const qty = Math.round(parseNum($('disp-qty').value) || 0);
-  const p = prodById(pid);
-  if(!p){ toast('Escolha um produto.', true); return; }
-  if(qty <= 0){ toast('Informe uma quantidade maior que zero.', true); return; }
-  const avail = homeAvail(pid);
-  if(qty > avail){ toast('Não dá para mandar ' + qty + ' de "' + p.name + '": só há ' + avail + ' em estoque. Nada foi enviado.', true); return; }
-  try { await addToDisplay(st.id, pid, qty); } catch(e){ return toastErr(e); }
-  await fetchAll(); renderAll();
-  toast(qty + ' peças de "' + p.name + '" foram para o expositor da ' + st.name + '.');
 }
 function openCorrectTotal(rowId){
   const r = S.storeStock.find(x => x.id === rowId);
@@ -3249,12 +3332,27 @@ function openRestock(storeId){
   openBox(`
     <h2>Repor estoque: ${esc(st.name)}</h2>
     <p class="mut" style="margin-bottom:8px;">Digite a quantidade de cada produto para mandar ao expositor. Tudo é conferido contra o estoque antes de aplicar: se algo passar do disponível, nada é reposto.</p>
-    ${prods.length ? prods.map(p => `<div class="row"><span style="flex:1;">${esc(p.name)}<div class="mut">Estoque: ${homeAvail(p.id)}</div></span>
-      <input type="text" inputmode="numeric" id="rs-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')
+    ${prods.length ? `<input type="text" id="rs-search" placeholder="Buscar produto..." oninput="filterRestockRows(this.value)" autocomplete="off" style="margin-bottom:10px;">
+    <div id="rs-list" style="max-height:52vh; overflow-y:auto;">
+      ${prods.map(p => `<div class="row rs-row" data-name="${esc(norm(p.name))}"><span style="flex:1;">${esc(p.name)}<div class="mut">Estoque: ${homeAvail(p.id)}</div></span>
+      <input type="text" inputmode="numeric" id="rs-qty-${p.id}" placeholder="0" style="width:90px; margin:0;"></div>`).join('')}
+      <p class="mut hidden" id="rs-noresults" style="padding:6px;">Nenhum produto encontrado para essa busca.</p>
+    </div>`
       : '<p class="mut">Nenhum produto em estoque agora.</p>'}
     <div class="btnrow">
       <button class="pinkbtn" onclick="applyRestock()">Repor estoque</button>
     </div>`);
+}
+function filterRestockRows(v){
+  const q = norm(v || '');
+  let visible = 0;
+  document.querySelectorAll('#rs-list .rs-row').forEach(r => {
+    const show = !q || (r.getAttribute('data-name') || '').indexOf(q) >= 0;
+    r.classList.toggle('hidden', !show);
+    if(show) visible++;
+  });
+  const nr = $('rs-noresults');
+  if(nr) nr.classList.toggle('hidden', visible > 0);
 }
 async function applyRestock(){
   if(!RS) return;
@@ -3514,20 +3612,7 @@ function renderPedidos(){
   renderOrderLines();
   renderOrders();
 }
-function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false, search: '' }; }
-function orderSelectOptionsHtml(l){
-  const q = norm(l.search || '');
-  const act = S.products.filter(p => !p.archived);
-  const opts = act.filter(p => !q || norm(p.name).includes(q)).map(p => `<option value="${p.id}" ${String(l.productId) === String(p.id) ? 'selected' : ''}>${esc(p.name)} (estoque: ${homeAvail(p.id)})</option>`).join('');
-  return `<option value="" ${l.productId ? '' : 'selected'}>Escolher produto...</option>${opts}<option value="__new__">+ Criar produto novo</option>`;
-}
-function orderLineSearch(i, v){
-  const l = S.orderLines[i];
-  if(!l) return;
-  l.search = v;
-  const sel = $('ord-sel-' + i);
-  if(sel) sel.innerHTML = orderSelectOptionsHtml(l);
-}
+function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false }; }
 function orderLinesTotals(){
   let total = 0, cost = 0;
   for(const l of S.orderLines){
@@ -3571,10 +3656,12 @@ function renderOrderLines(){
       </div>`;
     }
     const p = l.productId ? prodById(l.productId) : null;
+    const prodOpts = [{ v: '', t: 'Escolher produto...' }].concat(
+      S.products.filter(x => !x.archived).map(x => ({ v: String(x.id), t: x.name + ' (estoque: ' + homeAvail(x.id) + ')' }))
+    );
     return `<div class="linebox">
       <label>Produto</label>
-      <input type="text" placeholder="Buscar produto..." value="${esc(l.search || '')}" oninput="orderLineSearch(${i}, this.value)" autocomplete="off">
-      <select id="ord-sel-${i}" onchange="orderLineProduct(${i}, this.value)">${orderSelectOptionsHtml(l)}</select>
+      ${sselHtml('ord-' + i, { value: l.productId == null ? '' : String(l.productId), placeholder: 'Escolher produto...', searchPh: 'Buscar produto...', emptyText: 'Nenhum produto encontrado.', options: prodOpts, pinned: { v: '__new__', t: '+ Criar produto novo' }, onpick: v => orderLineProduct(i, v) })}
       <div class="mut">${p ? 'Estoque: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>
       <label>Quantidade</label>
       <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)">
@@ -3763,6 +3850,10 @@ function togglePedFilters(){
 }
 function clearPedFilters(){
   S.pedTipoFilter = '';
+  S.pedSearch = '';
+  S.ordersSort = 'pedido';
+  const inp = $('ped-search');
+  if(inp) inp.value = '';
   renderOrders();
 }
 function clearPedSearch(){
@@ -3772,9 +3863,27 @@ function clearPedSearch(){
   renderOrders();
   if(inp) inp.focus();
 }
+/* Faltam do item no card do pedido: mesma conta do aviso do saveOrder (qty - avail).
+   O avail aqui é o que o produto consegue atender para ESTE pedido: o homeAvail já
+   desconta este pedido no estoque geral, então somamos de volta as quantidades
+   deste pedido para o produto, sobrando produzido - expositores - baixas - OUTROS
+   pedidos não cancelados. Só vale para pedido aberto e item com produto. */
+function orderShortage(o, item){
+  if(!item || item.product_id == null) return 0;
+  if(o.status !== 'pendente' && o.status !== 'em_producao') return 0;
+  const own = orderItemsOf(o.id)
+    .filter(i => i.product_id != null && String(i.product_id) === String(item.product_id))
+    .reduce((a, i) => a + (Number(i.qty) || 0), 0);
+  const supply = homeAvail(item.product_id) + own;
+  const falta = (Number(item.qty) || 0) - supply;
+  return falta > 0 ? falta : 0;
+}
 function orderCardHtml(o){
   const items = orderItemsOf(o.id);
-  const itemsHtml = items.map(i => `<div class="mut">${esc(i.description)}: ${i.qty} peças</div>`).join('');
+  const itemsHtml = items.map(i => {
+    const falta = orderShortage(o, i);
+    return `<div class="mut">${esc(i.description)}: ${i.qty} peças${falta > 0 ? ` · <span class="badge falta">Faltam ${falta}</span>` : ''}</div>`;
+  }).join('');
   const editable = o.status !== 'entregue' && o.status !== 'cancelado';
   const btns = [];
   if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
@@ -3822,6 +3931,10 @@ function renderOrders(){
   if(clr) clr.classList.toggle('hidden', !(S.pedSearch || '').trim());
   const tipoSel = $('ped-filter-tipo');
   if(tipoSel) tipoSel.value = S.pedTipoFilter || '';
+  const sortSel = $('ped-sort');
+  if(sortSel) sortSel.value = S.ordersSort || 'pedido';
+  const clearFiltersBtn = $('ped-clear-filters');
+  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !((S.pedTipoFilter || '') || (S.pedSearch || '').trim() || (S.ordersSort && S.ordersSort !== 'pedido')));
   const q = norm(S.pedSearch || '');
   const tipo = S.pedTipoFilter || '';
   const groups = restockGroups();
@@ -3832,7 +3945,7 @@ function renderOrders(){
       const items = orderItemsOf(o.id);
       const hay = norm(o.client_name + ' ' + items.map(i => i.description).join(' ') + ' ' + (o.notes || ''));
       if(q && hay.indexOf(q) < 0) return;
-      const entry = { key: String(o.order_date || o.created_at || ''), html: orderCardHtml(o) };
+      const entry = { key: String(o.order_date || o.created_at || ''), dkey: String(o.order_date || ''), html: orderCardHtml(o) };
       if(o.status === 'entregue') doneEntries.push(entry); else mainEntries.push(entry);
     });
   }
@@ -3841,7 +3954,7 @@ function renderOrders(){
       const st = storeById(g.storeId);
       const hay = norm((st ? st.name : 'Loja') + ' ' + g.rows.map(r => { const p = prodById(r.product_id); return p ? p.name : ''; }).join(' ') + ' ' + (g.message || ''));
       if(q && hay.indexOf(q) < 0) return;
-      mainEntries.push({ key: String(g.createdAt || ''), html: restockCardHtml(g, i) });
+      mainEntries.push({ key: String(g.createdAt || ''), dkey: '', html: restockCardHtml(g, i) });
     });
   }
   const byKey = (a, b) => {
@@ -3850,7 +3963,13 @@ function renderOrders(){
     if(!b.key) return -1;
     return a.key.localeCompare(b.key);
   };
-  mainEntries.sort(byKey);
+  const byDKey = (a, b) => {
+    if(!a.dkey && !b.dkey) return 0;
+    if(!a.dkey) return 1;
+    if(!b.dkey) return -1;
+    return a.dkey.localeCompare(b.dkey);
+  };
+  mainEntries.sort(S.ordersSort === 'entrega' ? byDKey : byKey);
   doneEntries.sort(byKey);
   if(!mainEntries.length){
     $('ord-list').innerHTML = (q || tipo)
@@ -4174,7 +4293,7 @@ async function removeAccess(profileId, displayName){
 }
 
 /* ---------------- Visão da loja ---------------- */
-const SV = { storeId: null, store: null, stock: [], products: [], sales: [], settlements: [], gs: {}, restocks: [], search: '' };
+const SV = { storeId: null, store: null, stock: [], products: [], sales: [], settlements: [], gs: {}, restocks: [], search: '', salePid: '', corrPid: '' };
 const svProd = id => SV.products.find(p => p.id === id);
 
 async function loadStoreFull(){
@@ -4309,27 +4428,28 @@ function renderStoreDisplay(){
     return `<div class="sub-card" style="align-items:flex-start;">
       <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
         <div class="mut">Preço de venda: ${BRL(p.sale_price_cents)}</div>
-        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Entregues: ${r.delivered_qty} · Vendidos no ciclo: ${r.sold_in_cycle}</div>
+        <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Vendidos no ciclo: ${r.sold_in_cycle}</div>
       </span></span></div>`;
   }).join('') || '<p class="mut">Nenhum produto no seu expositor ainda. Quando a J2L montar o expositor, os produtos aparecem aqui.</p>';
 }
 function renderStoreSaleOptions(){
-  const saleSel = $('sv-sale-product'), corrSel = $('sv-corr-product');
-  if(!saleSel || !corrSel) return;
-  const curS = saleSel.value, curC = corrSel.value;
-  saleSel.innerHTML = SV.stock.filter(r => (r.delivered_qty - r.sold_in_cycle) > 0 && svProd(r.product_id))
-    .map(r => { const p = svProd(r.product_id); return `<option value="${p.id}">${esc(p.name)} (no expositor: ${r.delivered_qty - r.sold_in_cycle})</option>`; }).join('')
-    || '<option value="">Nada no expositor para vender</option>';
-  if(curS && SV.stock.some(r => String(r.product_id) === String(curS))) saleSel.value = curS;
-  corrSel.innerHTML = SV.stock.filter(r => r.sold_in_cycle > 0 && svProd(r.product_id))
-    .map(r => { const p = svProd(r.product_id); return `<option value="${p.id}">${esc(p.name)} (vendidos no ciclo: ${r.sold_in_cycle})</option>`; }).join('')
-    || '<option value="">Nenhuma venda para corrigir</option>';
-  if(curC && SV.stock.some(r => String(r.product_id) === String(curC))) corrSel.value = curC;
+  const saleBox = $('sv-sale-product'), corrBox = $('sv-corr-product');
+  if(!saleBox || !corrBox) return;
+  const saleOpts = SV.stock.filter(r => (r.delivered_qty - r.sold_in_cycle) > 0 && svProd(r.product_id))
+    .map(r => { const p = svProd(r.product_id); return { v: String(p.id), t: p.name + ' (no expositor: ' + (r.delivered_qty - r.sold_in_cycle) + ')' }; });
+  if(!saleOpts.length) saleOpts.push({ v: '', t: 'Nada no expositor para vender' });
+  if(!saleOpts.some(o => String(o.v) === String(SV.salePid))) SV.salePid = saleOpts[0].v;
+  saleBox.innerHTML = sselHtml('svsale', { value: SV.salePid, placeholder: 'Escolher produto...', searchPh: 'Buscar produto...', emptyText: 'Nenhum produto encontrado.', options: saleOpts, onpick: v => { SV.salePid = v; } });
+  const corrOpts = SV.stock.filter(r => r.sold_in_cycle > 0 && svProd(r.product_id))
+    .map(r => { const p = svProd(r.product_id); return { v: String(p.id), t: p.name + ' (vendidos no ciclo: ' + r.sold_in_cycle + ')' }; });
+  if(!corrOpts.length) corrOpts.push({ v: '', t: 'Nenhuma venda para corrigir' });
+  if(!corrOpts.some(o => String(o.v) === String(SV.corrPid))) SV.corrPid = corrOpts[0].v;
+  corrBox.innerHTML = sselHtml('svcorr', { value: SV.corrPid, placeholder: 'Escolher produto...', searchPh: 'Buscar produto...', emptyText: 'Nenhum produto encontrado.', options: corrOpts, onpick: v => { SV.corrPid = v; } });
 }
 function toggleStoreCorrect(){ $('sv-correct').classList.toggle('hidden'); }
 async function storeRegisterSale(){
   if(S.previewStoreId){ toast('Somente visualização: na prévia da loja nada é registrado.', true); return; }
-  const pid = parseInt($('sv-sale-product').value, 10);
+  const pid = parseInt(SV.salePid, 10);
   const qty = Math.round(parseNum($('sv-sale-qty').value) || 0);
   const row = SV.stock.find(r => r.product_id === pid);
   const prod = svProd(pid);
@@ -4349,7 +4469,7 @@ async function storeRegisterSale(){
 }
 async function storeRegisterCorrection(){
   if(S.previewStoreId){ toast('Somente visualização: na prévia da loja nada é registrado.', true); return; }
-  const pid = parseInt($('sv-corr-product').value, 10);
+  const pid = parseInt(SV.corrPid, 10);
   const qty = Math.round(parseNum($('sv-corr-qty').value) || 0);
   const row = SV.stock.find(r => r.product_id === pid);
   const prod = svProd(pid);
