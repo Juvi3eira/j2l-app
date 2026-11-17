@@ -687,7 +687,9 @@ const numStr = n => String(r2(n)).replace('.',',');
 function parsePrintTime(str){
   const s = norm(str).replace(/\s+/g,'');
   if(!s) return 0;
-  const m = s.match(/^(?:(\d+(?:[.,]\d+)?)h)?(?:(\d+(?:[.,]\d+)?)m)?$/);
+  const cm = s.match(/^(\d{1,3}):(\d{1,2})$/);
+  if(cm) return r2((+cm[1])*60 + (+cm[2]));
+  const m = s.match(/^(?:(\d+(?:[.,]\d+)?)h)?(?:(\d+(?:[.,]\d+)?)m?)?$/);
   if(m && (m[1] || m[2])){
     const h = m[1] ? parseFloat(m[1].replace(',','.')) : 0;
     const mi = m[2] ? parseFloat(m[2].replace(',','.')) : 0;
