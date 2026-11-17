@@ -116,8 +116,10 @@
   .cmonth{display:flex; flex-direction:column; align-items:center; gap:4px; min-width:54px;}
   .cbars{display:flex; gap:4px; align-items:flex-end; height:108px;}
   .cbar{width:16px; border-radius:4px 4px 0 0; min-height:2px;}
-  .modal{position:fixed; inset:0; background:rgba(5,4,15,.78); display:flex; align-items:flex-start; justify-content:center; padding:20px 12px; overflow-y:auto; z-index:95;}
-  .modal .box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; width:100%; max-width:560px;}
+  .modal{position:fixed; inset:0; background:rgba(5,4,15,.78); display:flex; justify-content:center; padding:20px 12px; overflow-y:auto; z-index:95;}
+  .modal .box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; width:100%; max-width:560px; margin:auto; position:relative;}
+  .modal .box h2{padding-right:34px;}
+  .modal .modal-x{position:absolute; top:10px; right:10px; width:32px; height:32px; min-height:32px; padding:0; border-radius:50%; background:transparent; border:1px solid var(--line); color:var(--mut); font-family:'Nunito',sans-serif; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;}
   #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#26224a; color:var(--txt); border:1px solid var(--cyan); padding:12px 16px; border-radius:10px; z-index:99; max-width:92vw; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.5);}
   #toast.errbox{border-color:var(--bad);}
   .picksel{border:1px solid var(--line); border-radius:10px; padding:11px; cursor:pointer; background:#141126; margin-bottom:6px;}
@@ -246,7 +248,6 @@
         <div style="text-align:center; margin-bottom:8px;">
           <div class="mut" style="letter-spacing:.4px;">SALDO ACUMULADO</div>
           <div class="fin-hero pos" id="fin-t-hero">R$ 0,00</div>
-          <p class="mut" style="margin-top:4px;">O saldo não zera: ele continua de um mês para o outro.</p>
         </div>
         <div class="row"><span class="mut">Lucro do mês</span><span class="fin-val" id="fin-t-res">R$ 0,00</span></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;">
@@ -295,7 +296,7 @@
     <div id="tab-calculadora" class="tabpage hidden">
       <div class="card">
         <h2 id="calc-form-title">Calculadora de produto</h2>
-        <div class="seg">
+        <div class="seg" id="calc-fillmode-seg">
           <button type="button" id="seg-manual" class="on" onclick="setCalcFillMode('manual')">Manual</button>
           <button type="button" id="seg-print" onclick="setCalcFillMode('print')">Print do fatiador</button>
         </div>
@@ -341,7 +342,7 @@
       <div class="card calc-result">
         <h2>Resultado</h2>
         <div id="calc-out"></div>
-        <label class="check"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> Este cálculo já é um pedido</label>
+        <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> SALVAR COMO PEDIDO</label>
         <div id="calc-order-fields" class="hidden">
           <div class="cols">
             <div><label>Nome do cliente</label><input id="calc-client" type="text" placeholder="Ex.: Pure Pilates Cerejeiras"></div>
@@ -488,7 +489,6 @@
         </div>
         <div class="btnrow">
           <button onclick="createAccess()">✉️ Enviar convite</button>
-          <button class="ghost" type="button" onclick="closeAccessFormModal()">Fechar</button>
         </div>
       </div>
       <div class="card">
@@ -611,12 +611,16 @@
 
 <!-- MODAL DE PRODUÇÃO -->
 <div id="modal" class="modal hidden">
-  <div class="box" id="modal-box"></div>
+  <div class="box">
+    <button type="button" class="modal-x" aria-label="Fechar" onclick="closeModalX()">&#10005;</button>
+    <div id="modal-box"></div>
+  </div>
 </div>
 
 <!-- MODAL DE DADOS DO PRODUTO (Calculadora: abre ao salvar o produto) -->
 <div id="calc-info-modal" class="modal hidden">
   <div class="box">
+    <button type="button" class="modal-x" aria-label="Fechar" onclick="cancelCalcInfo()">&#10005;</button>
     <h2 id="calc-info-title">Dados do produto</h2>
     <label>Nome do produto</label>
     <input id="calc-name" type="text" placeholder="Ex.: Chaveiro logo redondo">
@@ -636,7 +640,6 @@
     <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
     <div class="btnrow">
       <button id="calc-info-save" onclick="saveProductCalc()">Salvar</button>
-      <button class="ghost" onclick="cancelCalcInfo()">Fechar</button>
     </div>
   </div>
 </div>
@@ -754,7 +757,8 @@ const S = {
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
   pedSearch: '', pedTipoFilter: '', pedShowDone: false,
-  prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false
+  prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false,
+  stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' }
 };
 let P = null; // estado da produção em edição no modal
 
@@ -944,6 +948,12 @@ async function fetchAll(){
   S.stores = st.data || []; S.storeStock = ss.data || []; S.sales = sl.data || [];
   S.settlements = sm.data || []; S.orders = od.data || []; S.orderItems = oi.data || [];
   S.restocks = rr.data || []; S.profiles = pp.data || [];
+  // Baixas de estoque: carga tolerante a falha. Se a tabela ainda nao existe
+  // (SQL das baixas nao rodou), a lista fica vazia e o resto do app segue normal.
+  try {
+    const so = await sb.from('stock_outs').select('*').order('created_at', { ascending: false });
+    S.stockOuts = so.error ? [] : (so.data || []);
+  } catch(e){ S.stockOuts = []; }
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -1082,7 +1092,6 @@ function txFormHtml(){
     <input id="tx-notes" type="text" placeholder="Opcional">
     <button id="tx-save-btn" style="width:100%;" onclick="txSave()">Salvar lançamento</button>
     <div class="btnrow">
-      <button class="ghost" onclick="txCancel()">Fechar</button>
       <button class="danger hidden" id="tx-del-btn" onclick="txDelFromModal()">Excluir</button>
     </div>`;
 }
@@ -1206,7 +1215,6 @@ function purchaseFormHtml(){
     <label class="check"><input type="checkbox" id="mat-fin" checked> Lançar despesa nas Finanças</label>
     <div class="btnrow">
       <button onclick="savePurchase()">Salvar compra</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`;
 }
 function openPurchaseModal(type){
@@ -1488,7 +1496,22 @@ function setCalcFillMode(m){
   if(sp) sp.classList.toggle('on', calcFillMode === 'print');
   if(at) at.classList.toggle('hidden', calcFillMode !== 'print');
   const mq = $('calc-manualqty-wrap'); if(mq) mq.classList.toggle('hidden', calcFillMode !== 'manual');
+  if(S.editingProduct) applyCalcEditVisibility();
   recomputeCalc();
+}
+/* Na edição de produto, os controles que só existem na criação ficam escondidos:
+   o seletor Manual/Print, a quantidade manual, o bloco do print e o bloco de pedido.
+   O estado deles já é forçado ao abrir a edição (manual, qtd 1, lote desligado, pedido desligado),
+   então nenhum número do Resultado muda. */
+function applyCalcEditVisibility(){
+  const ed = !!S.editingProduct;
+  const seg = $('calc-fillmode-seg'); if(seg) seg.classList.toggle('hidden', ed);
+  const ow = $('calc-asorder-wrap'); if(ow) ow.classList.toggle('hidden', ed);
+  if(ed){
+    const at = $('slicer-attach'); if(at) at.classList.add('hidden');
+    const mq = $('calc-manualqty-wrap'); if(mq) mq.classList.add('hidden');
+    const of = $('calc-order-fields'); if(of) of.classList.add('hidden');
+  }
 }
 function toggleCalcEnergy(){
   const body = $('calc-energy-body');
@@ -1578,6 +1601,7 @@ function resetCalcForm(){
   const sf = $('calc-slicer'); if(sf) sf.value = '';
   const ss = $('slicer-status'); if(ss) ss.textContent = '';
   const sm = $('slicer-summary'); if(sm){ sm.classList.add('hidden'); sm.innerHTML = ''; }
+  applyCalcEditVisibility();
 }
 function loadProductIntoCalc(id){
   const p = prodById(id);
@@ -1605,9 +1629,12 @@ function loadProductIntoCalc(id){
   $('calc-asorder').checked = false;
   toggleOrderFields();
   setCalcFillMode('manual');
+  applyCalcEditVisibility();
   renderCalcLines();
   recomputeCalc();
   S.calcHistOpen = false;
+  S.stockOutOpen = false;
+  S.stockOutDraft = { qty: '', note: '' };
   renderCalcEditExtras();
   showTab('calculadora');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1619,6 +1646,7 @@ function cancelProductEdit(){
   S.calc.sups = [];
   renderCalcLines();
   recomputeCalc();
+  showTab('produtos');
 }
 /* ------- Extras da edição do produto: detalhes, histórico e arquivar ------- */
 function renderCalcEditExtras(){
@@ -1629,9 +1657,11 @@ function renderCalcEditExtras(){
     box.classList.add('hidden');
     box.innerHTML = '';
     S.calcHistOpen = false;
+    S.stockOutOpen = false;
     return;
   }
   const st = stockOf(p.id);
+  const outs = (S.stockOuts || []).filter(x => String(x.product_id) === String(p.id));
   const cr = S.calcResult;
   const price = cr && isFinite(cr.priceUsed) ? cr.priceUsed : p.sale_price_cents;
   const cost = cr && isFinite(cr.cost) ? cr.cost : unitCostCents(p);
@@ -1641,17 +1671,76 @@ function renderCalcEditExtras(){
     <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
       ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
       <div class="mut">Lucro por peça: ${BRL(Math.round(profit))} · Margem: ${price > 0 ? fmtN(profit / price * 100) : '0'}%</div>
+      <div class="mut">Estoque: ${st.available} · Reservado: ${reservedOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
       <div class="mut">Produzidas: ${st.produced} · Em pedidos: ${st.in_orders}</div>
       <div class="btnrow">
         <button class="ghost btn-sm" type="button" onclick="toggleCalcHist()">${S.calcHistOpen ? 'Fechar histórico' : 'Histórico de produção'}</button>
         <button class="ghost btn-sm" type="button" onclick="archiveFromCalc()">Arquivar</button>
       </div>
       ${S.calcHistOpen ? `<div style="margin-top:8px;">${prodHistHtml(p)}</div>` : ''}
+      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+        <div class="btnrow" style="margin-top:0;">
+          <button class="ghost btn-sm" type="button" onclick="toggleStockOutForm()">${S.stockOutOpen ? 'Fechar saídas' : 'Tirar do estoque'}</button>
+        </div>
+        ${S.stockOutOpen ? `<div style="margin-top:8px;">
+          <label>Quantidade</label>
+          <input id="out-qty" type="text" inputmode="numeric" placeholder="Ex.: 1" value="${esc(S.stockOutDraft.qty || '')}" oninput="S.stockOutDraft.qty = this.value">
+          <label>Motivo (obrigatório)</label>
+          <input id="out-note" type="text" placeholder="Ex.: presente, uso próprio, controle" value="${esc(S.stockOutDraft.note || '')}" oninput="S.stockOutDraft.note = this.value">
+          <div class="btnrow"><button class="btn-sm" type="button" onclick="confirmStockOut()">Confirmar saída</button></div>
+        </div>` : ''}
+        ${outs.length ? `<div style="margin-top:8px;">${outs.map(x => `<div class="sub-card"><span style="flex:1;">${x.qty} ${x.qty === 1 ? 'peça' : 'peças'} · ${fmtDateTime(x.created_at)}<div class="mut">${esc(x.note || '')}</div></span>
+          <button class="danger btn-sm" type="button" onclick="undoStockOut(${x.id})">Desfazer</button></div>`).join('')}</div>` : ''}
+      </div>
     </div>`;
 }
 function toggleCalcHist(){
   S.calcHistOpen = !S.calcHistOpen;
   renderCalcEditExtras();
+}
+/* ------- Saídas de estoque (baixa sem venda: presente, uso próprio, controle) ------- */
+function toggleStockOutForm(){
+  S.stockOutOpen = !S.stockOutOpen;
+  renderCalcEditExtras();
+}
+/* Validação da baixa: quantidade inteira de 1 até o disponível (reservado e expositor não saem por aqui)
+   e motivo obrigatório. Devolve { qty, note } ou { error }. */
+function stockOutValidation(qtyRaw, noteRaw, available){
+  const q = parseNum(qtyRaw);
+  if(!q || q < 1 || Math.floor(q) !== q) return { error: 'Informe a quantidade da saída: um número inteiro, pelo menos 1.' };
+  if(q > available) return { error: 'Só há ' + available + ' em estoque disponível deste produto. O que está reservado em pedidos ou no expositor não pode sair por aqui.' };
+  const note = String(noteRaw || '').trim();
+  if(!note) return { error: 'Escreva o motivo da saída.' };
+  return { qty: q, note: note };
+}
+function stockOutDbError(error){
+  const msg = String((error && error.message) || error || '');
+  if(/stock_outs|does not exist|42P01|PGRST205/i.test(msg)) toast('As saídas de estoque precisam da atualização do banco de dados (arquivo baixas-estoque.sql). Nada foi alterado.', true);
+  else toastErr(error);
+}
+async function confirmStockOut(){
+  const p = S.editingProduct ? prodById(S.editingProduct) : null;
+  if(!p) return;
+  const qtyEl = $('out-qty'), noteEl = $('out-note');
+  const v = stockOutValidation(
+    qtyEl ? qtyEl.value : S.stockOutDraft.qty,
+    noteEl ? noteEl.value : S.stockOutDraft.note,
+    stockOf(p.id).available);
+  if(v.error){ toast(v.error, true); return; }
+  const { error } = await sb.from('stock_outs').insert({ product_id: p.id, qty: v.qty, note: v.note });
+  if(error) return stockOutDbError(error);
+  S.stockOutOpen = false;
+  S.stockOutDraft = { qty: '', note: '' };
+  await fetchAll(); renderAll();
+  if(S.editingProduct) renderCalcEditExtras();
+  toast('Saída registrada: ' + v.qty + (v.qty === 1 ? ' peça de "' : ' peças de "') + p.name + '" saiu do estoque.');
+}
+async function undoStockOut(id){
+  const { error } = await sb.from('stock_outs').delete().eq('id', id);
+  if(error) return stockOutDbError(error);
+  await fetchAll(); renderAll();
+  if(S.editingProduct) renderCalcEditExtras();
+  toast('Saída desfeita: as peças voltaram ao estoque.');
 }
 async function archiveFromCalc(){
   const id = S.editingProduct;
@@ -2369,12 +2458,33 @@ async function hydrateProductPhotos(root){
 function stockOf(id){
   return S.stock[id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
 }
+/* Vendidos do produto: vendas nas lojas (uma linha por unidade; correções entram negativas)
+   mais as quantidades dos itens de pedidos diretos já entregues. */
+function soldOf(id){
+  let n = 0;
+  (S.sales || []).forEach(x => { if(String(x.product_id) === String(id)) n += x.kind === 'correction' ? -1 : 1; });
+  (S.orders || []).forEach(o => {
+    if(o.status !== 'entregue') return;
+    orderItemsOf(o.id).forEach(i => { if(i.product_id != null && String(i.product_id) === String(id)) n += Number(i.qty) || 0; });
+  });
+  return n;
+}
+/* Reservado do produto: unidades em pedidos ainda abertos (pendente ou em produção).
+   É só exibição: a disponibilidade em si já desconta esses pedidos no estoque geral. */
+function reservedOf(id){
+  let n = 0;
+  (S.orders || []).forEach(o => {
+    if(o.status !== 'pendente' && o.status !== 'em_producao') return;
+    orderItemsOf(o.id).forEach(i => { if(i.product_id != null && String(i.product_id) === String(id)) n += Number(i.qty) || 0; });
+  });
+  return n;
+}
 function prodCardHtml(p){
   const st = stockOf(p.id);
   return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
       <div class="mut">Preço: ${BRL(p.sale_price_cents)} · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
-      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Em expositores: ${st.in_displays}</div>
+      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Reservado: ${reservedOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
       <button class="pinkbtn btn-sm" onclick="event.stopPropagation(); openProduction(${p.id})">Produzir</button>
@@ -2490,7 +2600,6 @@ function purgeProduct(id){
     <p class="mut" style="margin-bottom:8px;">Excluir o produto "<b style="color:var(--txt);">${esc(p.name)}</b>" de vez? As produções dele serão desfeitas e os materiais voltam ao estoque. Esta ação não tem volta.</p>
     <div class="btnrow">
       <button class="danger" onclick="doPurgeProduct('${p.id}')">Excluir de vez</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function doPurgeProduct(id){
@@ -2552,7 +2661,6 @@ function renderProdModal(){
     <label class="check"><input type="checkbox" ${P.saveRecipe ? 'checked' : ''} onchange="P.saveRecipe = this.checked"> Salvar esta prévia como a nova receita do produto</label>
     <div class="btnrow">
       <button onclick="confirmProduction()">Confirmar produção</button>
-      <button class="ghost" onclick="closeModal()">Fechar</button>
     </div>`;
 }
 function prodQtyChange(v){
@@ -2638,6 +2746,20 @@ let CT = null; // estado do popup Corrigir total
 
 function openBox(html){ $('modal-box').innerHTML = html; $('modal').classList.remove('hidden'); }
 function closeBox(){ $('modal').classList.add('hidden'); RS = null; ST = null; DL = null; CT = null; }
+/* O X do modal fecha pelo mesmo caminho do botão Fechar do formulário que estiver aberto:
+   cada formulário tem sua limpeza própria ao fechar, então o X despacha para a função certa
+   conforme o conteúdo atual do #modal-box; sem formulário conhecido, fecha direto (closeBox). */
+function closeModalX(){
+  const box = $('modal-box');
+  if(box){
+    if(box.querySelector('#store-form-card')){ closeStoreForm(); return; }
+    if(box.querySelector('#access-form-card')){ closeAccessFormModal(); return; }
+    if(box.querySelector('#ord-client') || box.querySelector('#ord-lines')){ closeOrderModal(); return; }
+    if(box.querySelector('#tx-desc')){ txCancel(); return; }
+  }
+  if(P){ closeModal(); return; }
+  closeBox();
+}
 
 function cycleText(st){
   if(st.settlement_cycle === 'quinzenal') return 'Quinzenal' + (st.settlement_day ? ', dias ' + st.settlement_day + ' e ' + (Number(st.settlement_day) + 15) : '');
@@ -2746,6 +2868,7 @@ function openStoreFormModal(){
   S.storeFormModal = true;
   $('modal-box').innerHTML = '';
   $('modal-box').appendChild(card);
+  const stc = $('st-cancel'); if(stc) stc.classList.add('hidden');
   card.classList.remove('hidden');
   $('modal').classList.remove('hidden');
 }
@@ -3103,7 +3226,6 @@ function openCorrectTotal(rowId){
     <input id="ct-total" type="text" inputmode="numeric" value="${r.delivered_qty}">
     <div class="btnrow">
       <button onclick="saveCorrectTotal()">Salvar correção</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function saveCorrectTotal(){
@@ -3132,7 +3254,6 @@ function openRestock(storeId){
       : '<p class="mut">Nenhum produto em estoque agora.</p>'}
     <div class="btnrow">
       <button class="pinkbtn" onclick="applyRestock()">Repor estoque</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function applyRestock(){
@@ -3186,7 +3307,6 @@ function openSettlement(storeId){
     <p class="mut">Se o valor acertado for menor que o total, o restante vira saldo do próximo ciclo. Ao confirmar, os vendidos zeram e o que sobrou no expositor vira o estoque inicial do novo ciclo.</p>
     <div class="btnrow">
       <button onclick="confirmSettlement()">Confirmar acerto</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function confirmSettlement(){
@@ -3510,7 +3630,6 @@ function orderFormHtml(){
     <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
     <div class="btnrow">
       <button onclick="saveOrder()">${editing ? 'Salvar' : 'Salvar pedido'}</button>
-      <button class="ghost" onclick="closeOrderModal()">Fechar</button>
     </div>
     ${editing ? `<div class="btnrow" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
       ${ord && ord.status !== 'cancelado' ? `<button class="danger" onclick="cancelOrderFromEdit()">Cancelar pedido</button>` : ''}
@@ -3759,7 +3878,6 @@ function openDeliverModal(id){
     <label class="check"><input type="checkbox" id="dl-finance" checked> Lançar o valor nas Finanças como ganho</label>
     <div class="btnrow">
       <button onclick="confirmDeliver()">Confirmar entrega</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function confirmDeliver(){
@@ -4296,7 +4414,6 @@ function openStoreRestock(){
     <input id="svr-msg" type="text" placeholder="Ex.: o chaveiro está acabando">
     <div class="btnrow">
       <button class="pinkbtn" onclick="submitStoreRestock()">Enviar pedido</button>
-      <button class="ghost" onclick="closeBox()">Fechar</button>
     </div>`);
 }
 async function submitStoreRestock(){
