@@ -276,15 +276,6 @@
 
     <!-- MATERIAIS -->
     <div id="tab-materiais" class="tabpage hidden">
-      <div class="card hidden" id="mat-edit-card">
-        <h2>Editar material</h2>
-        <div id="mat-edit-fields"></div>
-        <div class="btnrow">
-          <button onclick="saveMatEdit()">Salvar edição</button>
-          <button class="danger" onclick="delMat(S.editingMat.type, S.editingMat.id)">Excluir</button>
-          <button class="ghost" onclick="cancelMatEdit()">Fechar</button>
-        </div>
-      </div>
       <h2>Materiais em estoque</h2>
       <div class="stores-search">
         <input id="mat-search" type="text" placeholder="Buscar material..." aria-label="Buscar material" oninput="S.matSearch = this.value; renderMateriais();">
@@ -659,6 +650,19 @@
     <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
     <div class="btnrow">
       <button id="calc-info-save" onclick="saveProductCalc()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE EDIÇÃO DE MATERIAL -->
+<div id="mat-edit-modal" class="modal hidden">
+  <div class="box">
+    <button type="button" class="modal-x" aria-label="Fechar" onclick="cancelMatEdit()">&#10005;</button>
+    <h2>Editar material</h2>
+    <div id="mat-edit-fields"></div>
+    <div class="btnrow">
+      <button onclick="saveMatEdit()">Salvar edição</button>
+      <button class="danger" onclick="delMat(S.editingMat.type, S.editingMat.id)">Excluir</button>
     </div>
   </div>
 </div>
@@ -1462,12 +1466,11 @@ function editMat(type, id){
         <div><label>Custo por unidade (R$)</label><input id="me-unitcost" type="text" inputmode="decimal" value="${moneyStr(s.unit_cost_cents)}"></div>
       </div>`;
   }
-  $('mat-edit-card').classList.remove('hidden');
-  $('mat-edit-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('mat-edit-modal').classList.remove('hidden');
 }
 function cancelMatEdit(){
   S.editingMat = null;
-  $('mat-edit-card').classList.add('hidden');
+  $('mat-edit-modal').classList.add('hidden');
   $('mat-edit-fields').innerHTML = '';
 }
 async function saveMatEdit(){
