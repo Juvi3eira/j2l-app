@@ -86,6 +86,7 @@
   .tx-ico.inc{background:var(--ok);}
   .mut{color:var(--mut); font-size:13px;}
   .big{font-family:'Bungee','Nunito',sans-serif; font-size:23px; font-weight:400;}
+  .card-price{font-family:'Bungee','Nunito',sans-serif; font-size:20px; color:var(--cyan);}
   .fin-hero{font-family:'Bungee','Nunito',sans-serif; font-size:34px; font-weight:400; text-align:center; line-height:1.15;}
   .fin-box{border:1px solid var(--line); border-radius:12px; padding:10px; text-align:center;}
   .fin-val{font-family:'Nunito',sans-serif; font-weight:800; font-size:17px;}
@@ -2678,7 +2679,7 @@ function prodCardHtml(p){
   const st = stockOf(p.id);
   return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
-      <div class="mut">Preço: ${BRL(p.sale_price_cents)} · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
+      <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
       <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Reservado: ${reservedOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
