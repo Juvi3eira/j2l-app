@@ -668,6 +668,27 @@
   </div>
 </div>
 
+<!-- MODAL DE VENDA RÁPIDA (Produtos: botão VENDER; a venda nasce como pedido entregue) -->
+<div id="quicksale-modal" class="modal hidden">
+  <div class="box">
+    <button type="button" class="modal-x" aria-label="Fechar" onclick="closeQuickSale()">&#10005;</button>
+    <h2>Registrar venda</h2>
+    <div id="qs-head" style="display:flex; gap:12px; align-items:center;"></div>
+    <label>Quantidade</label>
+    <input id="qs-qty" type="text" inputmode="numeric" value="1" oninput="updateQuickSale()">
+    <label>Cliente</label>
+    <input id="qs-client" type="text" placeholder="Opcional">
+    <div class="row"><span>Preço unitário</span><b id="qs-unit"></b></div>
+    <div class="row"><span>Total</span><b id="qs-total"></b></div>
+    <div class="mut" id="qs-stock" style="margin-top:8px;"></div>
+    <div class="mut hidden" id="qs-warn" style="color:var(--bad); margin-top:4px;"></div>
+    <label class="check"><input type="checkbox" class="switch" id="qs-finance" checked> Lançar nas Finanças</label>
+    <div class="btnrow">
+      <button onclick="saveQuickSale()">Salvar venda</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="hidden"></div>
 
 <script src="config.js"></script>
@@ -802,7 +823,7 @@ const S = {
   calc: { fils: [], sups: [], times: [''] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
-  editingProduct: null, editingOrder: null,
+  editingProduct: null, editingOrder: null, quickSale: null,
   stores: [], storeStock: [], sales: [], settlements: [],
   orders: [], orderItems: [], restocks: [],
   storeSearch: '', matSearch: '', currentStore: null, displaySearch: '', editingStore: null, previewStoreId: null,
@@ -2684,6 +2705,9 @@ function prodCardHtml(p){
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
       <button class="pinkbtn btn-sm" onclick="event.stopPropagation(); openProduction(${p.id})">Produzir</button>
+    </div>
+    <div class="btnrow" style="justify-content:flex-end;">
+      <button class="btn-sm" onclick="event.stopPropagation(); openQuickSale(${p.id})">VENDER</button>
     </div></span></div>`;
 }
 function prodHistHtml(p){
@@ -4100,6 +4124,81 @@ async function doSetOrderStatus(id, st, post){
   if(error) return toastErr(error);
   await fetchAll(); renderAll();
   toast('Pedido de ' + o.client_name + ' agora está: ' + st.replace('_', ' ') + '.');
+}
+
+/* Venda rápida (botão VENDER no cartão do produto): cria o pedido já ENTREGUE,
+   no mesmo formato do saveOrder (preço e custo congelados do produto), e lança
+   nas Finanças com os mesmos campos do fluxo de entrega (doSetOrderStatus).
+   O estoque e os Vendidos se ajustam sozinhos: o general_stock desconta o
+   pedido e o soldOf soma os itens de pedidos entregues. */
+function openQuickSale(id){
+  const p = prodById(id);
+  if(!p) return;
+  S.quickSale = { productId: id };
+  $('qs-head').innerHTML = photoHtml(p) + '<span style="flex:1;"><b>' + esc(p.name) + '</b></span>';
+  hydrateProductPhotos($('qs-head'));
+  $('qs-qty').value = '1';
+  $('qs-client').value = '';
+  $('qs-finance').checked = true;
+  updateQuickSale();
+  $('quicksale-modal').classList.remove('hidden');
+}
+function closeQuickSale(){
+  $('quicksale-modal').classList.add('hidden');
+  S.quickSale = null;
+}
+function updateQuickSale(){
+  if(!S.quickSale) return;
+  const p = prodById(S.quickSale.productId);
+  if(!p) return;
+  const qty = Math.round(parseNum($('qs-qty').value) || 0);
+  $('qs-unit').textContent = BRL(p.sale_price_cents);
+  $('qs-total').textContent = BRL(Math.max(0, qty) * p.sale_price_cents);
+  const avail = homeAvail(p.id);
+  $('qs-stock').textContent = 'Estoque: ' + avail;
+  const falta = qty - avail;
+  const warn = $('qs-warn');
+  if(qty > 0 && falta > 0){
+    warn.textContent = 'Faltam ' + falta + ' peças (em estoque ' + avail + '). Pode salvar mesmo assim, como nos pedidos.';
+    warn.classList.remove('hidden');
+  } else {
+    warn.classList.add('hidden');
+  }
+}
+async function saveQuickSale(){
+  if(!S.quickSale) return;
+  const p = prodById(S.quickSale.productId);
+  if(!p){ toast('Este produto não existe mais.', true); return; }
+  const qty = Math.round(parseNum($('qs-qty').value) || 0);
+  if(qty < 1){ toast('Informe a quantidade vendida.', true); return; }
+  const client = $('qs-client').value.trim() || 'Venda direta';
+  const post = $('qs-finance').checked;
+  const total = qty * p.sale_price_cents;
+  const { data: ord, error } = await sb.from('orders').insert({
+    client_name: client, status: 'entregue', post_to_finance: false,
+    order_date: todayStr(), customer_contact: '', notes: '',
+    delivered_at: new Date().toISOString()
+  }).select().single();
+  if(error) return toastErr(error);
+  const { error: e2 } = await sb.from('order_items').insert({
+    order_id: ord.id, product_id: p.id, description: p.name, qty: qty,
+    unit_price_cents: p.sale_price_cents, unit_cost_cents: Math.round(unitCostCents(p))
+  });
+  if(e2) return toastErr(e2);
+  if(post && total > 0){
+    const { data: tx, error: e3 } = await sb.from('transactions').insert({
+      kind: 'income', category: 'Pedidos', description: 'Pedido: ' + client,
+      amount_cents: total, date: todayStr(), notes: 'Entrega do pedido ' + ord.id
+    }).select().single();
+    if(e3) return toastErr(e3);
+    const { error: e4 } = await sb.from('orders').update({ post_to_finance: true, finance_transaction_id: tx.id }).eq('id', ord.id);
+    if(e4) return toastErr(e4);
+  }
+  closeQuickSale();
+  S.pedShowDone = true;
+  await fetchAll(); renderAll();
+  showTab('pedidos');
+  toast('Venda registrada: ' + qty + ' × ' + p.name + ' para ' + client + '.');
 }
 
 /* ---------------- Etapa C: acessos, equipe, visão da loja, tempo real ---------------- */
