@@ -336,7 +336,9 @@
         <div id="calc-sups"></div>
         <button class="ghost btn-sm" onclick="addCalcSup()">+ Insumo</button>
         <label>Tempo de impressão</label>
-        <input id="calc-time" type="text" placeholder="Ex.: 20h1m, 45m ou 2h" oninput="recomputeCalc()">
+        <div id="calc-times"></div>
+        <button class="ghost btn-sm" type="button" onclick="addCalcTime()">+ Adicionar tempo</button>
+        <div class="mut" id="calc-time-total" style="margin-top:6px;"></div>
         <h3 class="sec-h sec-energy collapse-h" onclick="toggleCalcEnergy()">Energia e desgaste <span class="car" id="calc-energy-caret">&#9656;</span></h3>
         <div id="calc-energy-body" class="hidden">
           <div class="cols">
@@ -725,6 +727,27 @@ function fmtTime(mins){
   if(h) return h+'h';
   return m+'m';
 }
+/* Uma linha de tempo da Calculadora: texto livre nos mesmos formatos do
+   parsePrintTime. Linha vazia vale 0 e é válida; texto que não segue nenhum
+   formato reconhecido é marcado como inválido (ok=false) pra travar o salvar. */
+function parseTimeRow(str){
+  const s = norm(str).replace(/\s+/g,'');
+  if(!s) return { min: 0, ok: true };
+  const ok = /^\d{1,3}:\d{1,2}$/.test(s)
+    || (/^(?:(\d+(?:[.,]\d+)?)h)?(?:(\d+(?:[.,]\d+)?)m?)?$/.test(s) && /\d/.test(s))
+    || /^\d+(?:[.,]\d+)?$/.test(s);
+  return { min: ok ? parsePrintTime(str) : 0, ok: ok };
+}
+/* Tempos de impressão de um produto, um por impressão/peça: usa a lista
+   print_times quando ela existe e tem itens; senão cai pro campo único
+   print_time_minutes; produto sem tempo nenhum volta lista vazia. */
+function productPrintTimes(p){
+  if(p && Array.isArray(p.print_times) && p.print_times.length){
+    return p.print_times.map(x => Number(x) || 0);
+  }
+  if(p && Number(p.print_time_minutes) > 0) return [Number(p.print_time_minutes)];
+  return [];
+}
 let toastTimer = null;
 function toast(msg, isErr){
   const t = $('toast');
@@ -762,7 +785,7 @@ const S = {
   settings: { watts: 200, kwh: 100, wear: 100, margin: 30 },
   finMonth: ymNow(), finPage: 1, editingTx: null,
   matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
-  calc: { fils: [], sups: [] },
+  calc: { fils: [], sups: [], times: [''] },
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
   editingProduct: null, editingOrder: null,
@@ -774,7 +797,8 @@ const S = {
   accRoleFilter: '', accStoreFilter: '',
   pedSearch: '', pedTipoFilter: '', pedShowDone: false, ordersSort: 'pedido',
   prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false,
-  stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' }
+  stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
+  hasPrintTimes: false
 };
 let P = null; // estado da produção em edição no modal
 
@@ -959,6 +983,9 @@ async function fetchAll(){
   const firstErr = [f,s,p,pf,ps,pd,gs,tx,st,ss,sl,sm,od,oi,rr,pp].map(r => r.error).find(Boolean);
   if(firstErr) toastErr(firstErr);
   S.filaments = f.data || []; S.supplies = s.data || []; S.products = p.data || [];
+  // A coluna print_times só entra no payload de salvar depois que o SQL dela
+  // rodou; enquanto as linhas não trazem a chave, o app se comporta como antes.
+  if((p.data || []).length) S.hasPrintTimes = Object.prototype.hasOwnProperty.call(p.data[0], 'print_times');
   S.pf = pf.data || []; S.ps = ps.data || []; S.prods = pd.data || [];
   S.txs = tx.data || [];
   S.stores = st.data || []; S.storeStock = ss.data || []; S.sales = sl.data || [];
@@ -982,6 +1009,7 @@ function renderAll(){
   renderFinancas();
   renderMateriais();
   renderCalcLines();
+  renderCalcTimes();
   recomputeCalc();
   renderProdutos();
   renderLojas();
@@ -1610,6 +1638,24 @@ function addCalcSup(){ S.calc.sups.push({ supplyId: null, qtyStr: '' }); renderC
 function removeCalcSup(i){ S.calc.sups.splice(i, 1); renderCalcLines(); recomputeCalc(); }
 function calcFilGrams(i, v){ S.calc.fils[i].gramsStr = v; recomputeCalc(); }
 function calcSupQty(i, v){ S.calc.sups[i].qtyStr = v; recomputeCalc(); }
+function renderCalcTimes(){
+  const box = $('calc-times');
+  if(!box) return;
+  if(!S.calc.times.length) S.calc.times = [''];
+  box.innerHTML = S.calc.times.map((v, i) => `
+    <div class="row">
+      <input type="text" style="margin-bottom:0;" placeholder="Ex.: 20h1m, 45m ou 2h" value="${esc(v)}" oninput="calcTimeInput(${i}, this.value)">
+      <button class="danger btn-sm" type="button" onclick="removeCalcTime(${i})">✕</button>
+    </div>`).join('');
+}
+function addCalcTime(){ S.calc.times.push(''); renderCalcTimes(); }
+function removeCalcTime(i){
+  if(S.calc.times.length <= 1) S.calc.times = [''];
+  else S.calc.times.splice(i, 1);
+  renderCalcTimes();
+  recomputeCalc();
+}
+function calcTimeInput(i, v){ S.calc.times[i] = v; recomputeCalc(); }
 function toggleOrderFields(){ $('calc-order-fields').classList.toggle('hidden', !$('calc-asorder').checked); }
 let calcFillMode = 'manual';
 function setCalcFillMode(m){
@@ -1655,8 +1701,11 @@ function recomputeCalc(){
   const manQty = Math.max(1, Math.round(parseNum($('calc-manualqty') ? $('calc-manualqty').value : '') || 1));
   const effQty = calcFillMode === 'print' ? (lotMode ? lotQty : 1) : manQty;
   const lqw = $('calc-lotqty-wrap'); if(lqw) lqw.classList.toggle('hidden', !$('calc-lotmode').checked);
-  const timeTotal = parsePrintTime($('calc-time').value);
-  const timePP = lotMode ? timeTotal / lotQty : timeTotal;
+  const parsedTimes = S.calc.times.map(parseTimeRow);
+  const timeInvalid = parsedTimes.some(t => !t.ok);
+  const timePP = parsedTimes.reduce((a, t, i) => a + ((lotMode && i === 0) ? t.min / lotQty : t.min), 0);
+  const timesPP = parsedTimes.map((t, i) => r2((lotMode && i === 0) ? t.min / lotQty : t.min));
+  const ttEl = $('calc-time-total'); if(ttEl) ttEl.textContent = 'Tempo total: ' + fmtTime(timePP);
   let filCost = 0;
   const filDetail = [];
   S.calc.fils.forEach((l, i) => {
@@ -1686,6 +1735,7 @@ function recomputeCalc(){
   const profit = priceUsed - cost;
   S.calcResult = {
     cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP),
+    timesPP: timesPP, timeInvalid: timeInvalid,
     lotQty: lotQty, effQty: effQty, filDetail: filDetail, supDetail: supDetail
   };
   let totalRow = '';
@@ -1712,7 +1762,9 @@ function resetCalcForm(){
   $('calc-save-btn').textContent = 'Salvar produto';
   $('calc-cancel-edit').classList.add('hidden');
   renderCalcEditExtras();
-  ['calc-name','calc-desc','calc-price','calc-time','calc-client','calc-ordercontact','calc-ordernotes'].forEach(id => { if($(id)) $(id).value = ''; });
+  ['calc-name','calc-desc','calc-price','calc-client','calc-ordercontact','calc-ordernotes'].forEach(id => { if($(id)) $(id).value = ''; });
+  S.calc.times = [''];
+  renderCalcTimes();
   if($('calc-manualqty')) $('calc-manualqty').value = '1';
   if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
   $('calc-asorder').checked = false;
@@ -1744,7 +1796,9 @@ function loadProductIntoCalc(id){
   $('calc-watts').value = numStr(prm.watts);
   $('calc-kwh').value = moneyStr(Math.round(prm.kwh));
   $('calc-wear').value = moneyStr(Math.round(prm.wear));
-  $('calc-time').value = p.print_time_minutes ? fmtTime(p.print_time_minutes) : '';
+  const rows = productPrintTimes(p);
+  S.calc.times = rows.length ? rows.map(m => fmtTime(m)) : [''];
+  renderCalcTimes();
   $('calc-lotmode').checked = false;
   if($('calc-manualqty')) $('calc-manualqty').value = '1';
   S.calc.fils = rec.fils.map(r => ({ filamentId: r.filament_id, gramsStr: numStr(r.grams) }));
@@ -1879,6 +1933,7 @@ async function archiveFromCalc(){
 let calcInfoSnapshot = null;
 function openCalcInfo(){
   recomputeCalc();
+  if(S.calcResult && S.calcResult.timeInvalid){ toast('Um dos tempos de impressão não foi reconhecido. Confira os tempos e tente de novo.', true); return; }
   calcInfoSnapshot = {
     name: $('calc-name').value, desc: $('calc-desc').value,
     photo: { blob: S.calcPhoto.blob, removed: S.calcPhoto.removed, sizes: S.calcPhoto.sizes }
@@ -1908,9 +1963,10 @@ function cancelCalcInfo(){
 }
 async function saveProductCalc(){
   recomputeCalc();
+  const R = S.calcResult;
+  if(R && R.timeInvalid){ toast('Um dos tempos de impressão não foi reconhecido. Confira os tempos e tente de novo.', true); return; }
   const name = $('calc-name').value.trim();
   if(!name){ toast('Dê um nome ao produto antes de salvar.', true); return; }
-  const R = S.calcResult;
   const typedPrice = parseMoney($('calc-price').value);
   const salePrice = typedPrice > 0 ? typedPrice : Math.round(R.suggested);
   const oldProduct = S.editingProduct ? prodById(S.editingProduct) : null;
@@ -1935,6 +1991,7 @@ async function saveProductCalc(){
     energy_rate_cents_per_kwh: parseMoney($('calc-kwh').value),
     machine_rate_cents_per_hour: parseMoney($('calc-wear').value)
   };
+  if(S.hasPrintTimes) payload.print_times = (R.timesPP && R.timesPP.length) ? R.timesPP : [R.timePP];
   let prod = null;
   if(S.editingProduct){
     const editingId = S.editingProduct;
@@ -2444,7 +2501,7 @@ function applySlicerResult(res){
   matchSlicerRows(res.rows);
   S.calc.fils = res.rows.map(r => ({ filamentId: r.filamentId || null, gramsStr: numStr(r.grams) }));
   $('calc-lotmode').checked = true;
-  if(res.minutes) $('calc-time').value = fmtTime(res.minutes);
+  if(res.minutes){ if(!S.calc.times.length) S.calc.times = ['']; S.calc.times[0] = fmtTime(res.minutes); renderCalcTimes(); }
   renderCalcLines();
   recomputeCalc();
   const lines = res.rows.map(r => {
