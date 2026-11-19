@@ -1816,6 +1816,7 @@ function resetCalcForm(){
   if($('calc-manualqty')) $('calc-manualqty').value = '1';
   if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
   $('calc-asorder').checked = false;
+  $('calc-lotmode').checked = false;
   toggleOrderFields();
   setCalcFillMode('manual');
   if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
@@ -2582,7 +2583,7 @@ function dismissSlicerSummary(){ $('slicer-summary').classList.add('hidden'); }
 function applySlicerResult(res){
   matchSlicerRows(res.rows);
   S.calc.fils = res.rows.map(r => ({ filamentId: r.filamentId || null, gramsStr: numStr(r.grams) }));
-  $('calc-lotmode').checked = true;
+  $('calc-lotmode').checked = false;
   if(res.minutes){ if(!S.calc.times.length) S.calc.times = ['']; S.calc.times[0] = fmtTime(res.minutes); renderCalcTimes(); }
   renderCalcLines();
   recomputeCalc();
@@ -2594,7 +2595,7 @@ function applySlicerResult(res){
   const sum = res.rows.reduce((s, r) => s + r.grams, 0);
   const sumTxt = res.total != null ? `Total lido: ${fmtN(res.total)} g${Math.abs(sum - res.total) > Math.max(0.06, res.total * 0.02) ? ' (a soma das linhas deu ' + fmtN(r2(sum)) + ' g, confira)' : ''}. ` : '';
   $('slicer-summary').innerHTML = `<h3>Leitura do print</h3>${lines}
-    <p class="mut">${sumTxt}Tempo total: ${fmtTime(res.minutes)}.${res.changes ? ' Trocas: ' + res.changes + '.' : ''} Modo lote ligado: confira as peças do lote e os rolos. Nada foi salvo.</p>
+    <p class="mut">${sumTxt}Tempo total: ${fmtTime(res.minutes)}.${res.changes ? ' Trocas: ' + res.changes + '.' : ''} Confira os valores e os rolos. Nada foi salvo.</p>
     <div class="btnrow"><button class="ghost btn-sm" onclick="dismissSlicerSummary()">Fechar aviso</button></div>`;
   $('slicer-summary').classList.remove('hidden');
   $('slicer-status').textContent = 'Print lido. Confira os valores abaixo.';
