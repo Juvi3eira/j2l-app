@@ -2490,13 +2490,39 @@ function mergeSlicerResults(a, b){
   b.rows.forEach(r => { if(!out.rows.some(x => x.index === r.index)) out.rows.push(r); });
   out.rows.sort((x, y) => x.index - y.index);
   if(out.total != null && out.rows.length >= 2){
-    const sum = out.rows.reduce((s, r) => s + r.grams, 0);
-    if(Math.abs(sum - out.total) > Math.max(0.06, out.total * 0.02)){
+    const tol = () => Math.max(0.06, out.total * 0.02);
+    const sumOf = () => out.rows.reduce((s, r) => s + r.grams, 0);
+    if(Math.abs(sumOf() - out.total) > tol()){
+      /* Troca pontual entre as duas leituras: se trocar as gramas de UMA linha
+         pelo valor da outra leitura faz a soma bater com o total, aquele é o
+         valor certo (caso real 2026-11-19: uma leitura leu 10,21 g como
+         102,19 g e a outra leu certo). */
+      for(const r of out.rows){
+        const alt = (r.fromSecond ? a.rows : b.rows).find(x => x.index === r.index);
+        if(!alt || alt.grams === r.grams) continue;
+        if(Math.abs(sumOf() - r.grams + alt.grams - out.total) <= tol()){ r.grams = alt.grams; break; }
+      }
+    }
+    if(Math.abs(sumOf() - out.total) > tol()){
       const second = out.rows.filter(r => r.fromSecond);
       if(second.length === 1){
         const r = second[0];
-        const derived = r2(out.total - (sum - r.grams));
+        const derived = r2(out.total - (sumOf() - r.grams));
         if(derived > 0){ r.grams = derived; r.derived = true; }
+      }
+    }
+    if(Math.abs(sumOf() - out.total) > tol()){
+      /* Derivação pela razão gramas/metro (~2,98 g/m, a mesma do pickByRatio):
+         se UMA linha destoa muito das gramas que os metros dela preveem e as
+         outras batem, completa as gramas dela pelo total menos as outras. */
+      const exp = r => (r.meters > 0 ? r.meters * 2.98 : null);
+      const fits = r => { const e = exp(r); return e != null && Math.abs(r.grams - e) <= Math.max(6, e * 0.45); };
+      const odd = out.rows.filter(r => exp(r) != null && !fits(r));
+      if(odd.length === 1 && out.rows.every(r => r === odd[0] || exp(r) == null || fits(r))){
+        const r = odd[0];
+        const derived = r2(out.total - (sumOf() - r.grams));
+        const e = exp(r);
+        if(derived > 0 && Math.abs(derived - e) <= Math.max(6, e * 0.45)){ r.grams = derived; r.derived = true; }
       }
     }
   }
