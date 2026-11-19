@@ -4037,6 +4037,7 @@ function orderCardHtml(o){
   return `<div class="item-card${editable ? ' click' : ''}" style="align-items:flex-start;"${editable ? ` onclick="startEditOrder(${o.id})"` : ''}>
     <span style="flex:1;">${(o.client_name || '').trim() ? `<div><b>${esc(o.client_name)}</b></div>` : ''}${statusBadge(o.status)}
       <div class="mut">Entrega: ${fmtDate(o.order_date || o.created_at)}</div>
+      <div>Total: <b>${BRL(orderTotal(o.id))}</b></div>
       ${itemsHtml || '<div class="mut">Sem itens.</div>'}
     </span>
     <span class="btnrow" style="margin-top:0;">${btns.join('')}</span>
