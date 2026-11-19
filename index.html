@@ -2816,6 +2816,7 @@ function renderProdutos(){
       <button class="ghost btn-sm" onclick="archiveProduct(${p.id}, false)">Restaurar</button>
       <button class="danger btn-sm" onclick="purgeProduct('${p.id}')">Excluir de vez</button>
     </span></div>`).join('') || '<p class="mut">Nenhum produto arquivado.</p>';
+  hydrateProductPhotos(document);
 }
 function consumptionSummary(consumption){
   if(!Array.isArray(consumption) || !consumption.length) return 'Sem consumo registrado.';
@@ -3431,6 +3432,7 @@ function renderDisplayList(){
       <span><button class="ghost btn-sm" onclick="openCorrectTotal(${r.id})">Corrigir total</button></span>
     </div>`;
   }).join('') || '<p class="mut">Nenhum produto neste expositor.</p>';
+  hydrateProductPhotos(document);
 }
 async function addToDisplay(storeId, productId, qty){
   const row = stockRowOf(storeId, productId);
@@ -4652,6 +4654,7 @@ function renderStoreDisplay(){
         <div class="mut">No expositor: <b style="color:var(--txt);">${inDisplay}</b> · Vendidos no ciclo: ${r.sold_in_cycle}</div>
       </span></span></div>`;
   }).join('') || '<p class="mut">Nenhum produto no seu expositor ainda. Quando a J2L montar o expositor, os produtos aparecem aqui.</p>';
+  hydrateProductPhotos(document);
 }
 function renderStoreSaleOptions(){
   const saleBox = $('sv-sale-product'), corrBox = $('sv-corr-product');
