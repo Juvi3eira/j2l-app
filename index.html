@@ -364,10 +364,6 @@
         <h2 id="calc-result-title">Resultado</h2>
         <div id="calc-out"></div>
         <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> Salvar como pedido</label>
-        <div id="calc-notmade-wrap">
-          <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
-          <div class="mut" id="calc-notmade-help">Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.</div>
-        </div>
         <div id="calc-order-fields" class="hidden">
           <div class="cols">
             <div><label>Nome do cliente</label><input id="calc-client" type="text" placeholder="Ex.: Pure Pilates Cerejeiras"></div>
@@ -715,6 +711,10 @@
       <input id="calc-cat-input" type="text" list="calc-cat-list" placeholder="Ex.: Natal" style="flex:1;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addCalcCat(); }">
       <datalist id="calc-cat-list"></datalist>
       <button class="ghost btn-sm" type="button" onclick="addCalcCat()">Adicionar</button>
+    </div>
+    <div id="calc-notmade-wrap" style="margin-top:14px;">
+      <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
+      <div class="mut" id="calc-notmade-help">Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.</div>
     </div>
     </div>
     <div class="btnrow">
