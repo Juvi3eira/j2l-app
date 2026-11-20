@@ -322,6 +322,8 @@
           <label>Quantidade a produzir</label>
           <input id="calc-manualqty" type="text" inputmode="numeric" value="1" oninput="recomputeCalc()">
         </div>
+        <button class="ghost btn-sm hidden" id="calc-mats-toggle" type="button" onclick="toggleCalcMats()">Materiais ▸</button>
+        <div id="calc-mats-body">
         <h3 class="sec-h sec-fil">Filamentos</h3>
         <div id="calc-fils"></div>
         <button class="ghost btn-sm" onclick="addCalcFil()">+ Filamento</button>
@@ -329,6 +331,7 @@
         <h3 class="sec-h sec-sup">Insumos</h3>
         <div id="calc-sups"></div>
         <button class="ghost btn-sm" onclick="addCalcSup()">+ Insumo</button>
+        </div>
         <label>Tempo de impressão</label>
         <div id="calc-times"></div>
         <button class="ghost btn-sm" type="button" onclick="addCalcTime()">+ Adicionar tempo</button>
@@ -352,7 +355,7 @@
         <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> SALVAR COMO PEDIDO</label>
         <div id="calc-notmade-wrap">
           <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
-          <div class="mut">Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.</div>
+          <div class="mut" id="calc-notmade-help">Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.</div>
         </div>
         <div id="calc-order-fields" class="hidden">
           <div class="cols">
@@ -391,6 +394,8 @@
           <option value="criacao">Criação</option>
           <option value="estoque">Estoque</option>
         </select>
+        <label>Categoria</label>
+        <select id="prod-cat-filter" onchange="S.prodCat = this.value; renderProdutos();"></select>
       </div>
       <div id="prod-list"></div>
       <div id="prod-empty"></div>
@@ -655,6 +660,13 @@
     </div>
     <label>Descrição</label>
     <textarea id="calc-desc" rows="2" placeholder="Opcional"></textarea>
+    <label>Categorias</label>
+    <div id="calc-cats-chips"></div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="calc-cat-input" type="text" list="calc-cat-list" placeholder="Ex.: Natal" style="flex:1;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addCalcCat(); }">
+      <datalist id="calc-cat-list"></datalist>
+      <button class="ghost btn-sm" type="button" onclick="addCalcCat()">Adicionar</button>
+    </div>
     </div>
     <div class="btnrow">
       <button id="calc-info-save" onclick="saveProductCalc()">Salvar</button>
@@ -835,6 +847,7 @@ const S = {
   finMonth: ymNow(), finPage: 1, editingTx: null,
   matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
   calc: { fils: [], sups: [], times: [''] },
+  calcCats: [], calcMatsOpen: false, calcCostOpen: false,
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
   editingProduct: null, editingOrder: null, quickSale: null,
@@ -845,7 +858,7 @@ const S = {
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
   pedSearch: '', pedTipoFilter: '', pedShowDone: false, ordersSort: 'pedido',
-  prodSearch: '', prodSort: 'criacao', prodShowEmpty: false, calcHistOpen: false,
+  prodSearch: '', prodSort: 'criacao', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
   hasPrintTimes: false
 };
@@ -1724,12 +1737,37 @@ function applyCalcEditVisibility(){
   const ed = !!S.editingProduct;
   const seg = $('calc-fillmode-seg'); if(seg) seg.classList.toggle('hidden', ed);
   const ow = $('calc-asorder-wrap'); if(ow) ow.classList.toggle('hidden', ed);
-  const nw = $('calc-notmade-wrap'); if(nw) nw.classList.toggle('hidden', ed);
+  const help = $('calc-notmade-help');
+  if(help) help.textContent = ed
+    ? 'Ative e salve para desfazer as produções deste produto e devolver os materiais ao estoque. O estoque dele zera.'
+    : 'Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.';
+  applyCalcMatsVisibility();
   if(ed){
     const at = $('slicer-attach'); if(at) at.classList.add('hidden');
     const mq = $('calc-manualqty-wrap'); if(mq) mq.classList.add('hidden');
     const of = $('calc-order-fields'); if(of) of.classList.add('hidden');
   }
+}
+/* Na edição, Filamentos e Insumos ficam numa seção "Materiais" fechada por
+   padrão; na criação o botão some e as seções ficam sempre visíveis. */
+function applyCalcMatsVisibility(){
+  const ed = !!S.editingProduct;
+  const tg = $('calc-mats-toggle'), body = $('calc-mats-body');
+  if(tg){
+    tg.classList.toggle('hidden', !ed);
+    tg.textContent = S.calcMatsOpen ? 'Materiais ▾' : 'Materiais ▸';
+  }
+  if(body) body.classList.toggle('hidden', ed && !S.calcMatsOpen);
+}
+function toggleCalcMats(){
+  S.calcMatsOpen = !S.calcMatsOpen;
+  applyCalcMatsVisibility();
+}
+/* No Resultado, o detalhamento do custo (filamentos, insumos, energia) fica
+   recolhido atrás da linha "Custo por peça", que vira um botão de abrir/fechar. */
+function toggleCalcCost(){
+  S.calcCostOpen = !S.calcCostOpen;
+  recomputeCalc();
 }
 function toggleCalcEnergy(){
   const body = $('calc-energy-body');
@@ -1798,13 +1836,17 @@ function recomputeCalc(){
     totalRow = `
     <div class="row"><span>Lucro em ${manQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * manQty))}</b></div>`;
   }
+  let suggestedRow = '';
+  if((($('calc-margin').value || '') + '').trim() !== '') suggestedRow = `
+    <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>`;
   $('calc-out').innerHTML = `
+    <div class="row" style="cursor:pointer;" onclick="toggleCalcCost()"><span><b>Custo por peça</b> <span class="mut">${S.calcCostOpen ? '▾' : '▸'}</span></span><span class="big">${BRL(Math.round(cost))}</span></div>
+    <div id="calc-cost-detail" class="${S.calcCostOpen ? '' : 'hidden'}">
     <div class="row"><span>Filamentos por peça</span><b>${BRL(Math.round(filCost))}</b></div>
     <div class="row"><span>Insumos por peça</span><b>${BRL(Math.round(supCost))}</b></div>
     <div class="row"><span>Energia e desgaste por peça <span class="mut">(${fmtTime(timePP)} de impressão)</span></span><b>${BRL(Math.round(energy))}</b></div>
-    <div class="row"><span><b>Custo por peça</b></span><span class="big">${BRL(Math.round(cost))}</span></div>
-    <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>
-    <div class="row"><span>Preço usado no cálculo ${typedPrice > 0 ? '(o digitado)' : '(o sugerido)'}</span><b>${BRL(Math.round(priceUsed))}</b></div>
+    </div>${suggestedRow}
+    <div class="row"><span>PREÇO</span><b>${BRL(Math.round(priceUsed))}</b></div>
     <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>${totalRow}`;
   if(S.editingProduct) renderCalcEditExtras();
 }
@@ -1823,6 +1865,9 @@ function resetCalcForm(){
   $('calc-asorder').checked = false;
   $('calc-notmade').checked = false;
   $('calc-lotmode').checked = false;
+  S.calcCats = [];
+  renderCalcCats();
+  S.calcCostOpen = false;
   toggleOrderFields();
   setCalcFillMode('manual');
   if(S.calcPhoto.previewUrl) URL.revokeObjectURL(S.calcPhoto.previewUrl);
@@ -1891,7 +1936,10 @@ function loadProductIntoCalc(id){
   S.calc.fils = rec.fils.map(r => ({ filamentId: r.filament_id, gramsStr: numStr(r.grams) }));
   S.calc.sups = rec.sups.map(r => ({ supplyId: r.supply_id, qtyStr: numStr(r.qty_per_piece) }));
   $('calc-asorder').checked = false;
-  $('calc-notmade').checked = false;
+  $('calc-notmade').checked = !S.prods.some(x => String(x.product_id) === String(id));
+  S.calcCats = productCats(p).slice();
+  renderCalcCats();
+  S.calcMatsOpen = false;
   toggleOrderFields();
   setCalcFillMode('manual');
   applyCalcEditVisibility();
@@ -1903,6 +1951,43 @@ function loadProductIntoCalc(id){
   renderCalcEditExtras();
   openCalcEditPopup();
   toast('Produto carregado na Calculadora para edição. Nada muda até salvar.');
+}
+/* ------- Categorias do produto (products.categories: array jsonb de nomes) ------- */
+function productCats(p){
+  return (Array.isArray(p && p.categories) ? p.categories : [])
+    .filter(c => String(c || '').trim())
+    .map(c => String(c));
+}
+function allCategories(){
+  const seen = {};
+  const out = [];
+  (S.products || []).forEach(p => productCats(p).forEach(c => {
+    const k = norm(c);
+    if(k && !seen[k]){ seen[k] = 1; out.push(c); }
+  }));
+  return out.sort((a, b) => norm(a).localeCompare(norm(b)));
+}
+function renderCalcCats(){
+  const chips = $('calc-cats-chips'), dl = $('calc-cat-list');
+  if(chips){
+    chips.innerHTML = (S.calcCats || []).map((c, i) => `<span class="pill" style="display:inline-flex; align-items:center; gap:6px; margin:0 6px 6px 0;">${esc(c)}<button type="button" class="ghost btn-sm" style="padding:0 4px;" onclick="removeCalcCat(${i})">✕</button></span>`).join('');
+  }
+  if(dl) dl.innerHTML = allCategories().map(c => `<option value="${esc(c)}">`).join('');
+}
+function addCalcCat(){
+  const inp = $('calc-cat-input');
+  if(!inp) return;
+  const v = inp.value.trim();
+  inp.value = '';
+  if(!v) return;
+  if(!Array.isArray(S.calcCats)) S.calcCats = [];
+  if(S.calcCats.some(c => norm(c) === norm(v))){ renderCalcCats(); return; }
+  S.calcCats.push(v);
+  renderCalcCats();
+}
+function removeCalcCat(i){
+  if(Array.isArray(S.calcCats)) S.calcCats.splice(i, 1);
+  renderCalcCats();
 }
 function cancelProductEdit(){
   resetCalcForm();
@@ -2061,6 +2146,17 @@ async function saveProductCalc(){
   const salePrice = typedPrice > 0 ? typedPrice : Math.round(R.suggested);
   const oldProduct = S.editingProduct ? prodById(S.editingProduct) : null;
   const oldPhoto = oldProduct ? oldProduct.photo_path : null;
+  /* "Ainda não fabricado" na edição: desfaz as produções do produto e devolve
+     os materiais. As travas rodam antes de qualquer escrita: se já houve venda,
+     expositor ou baixa de estoque, salvar com a opção ligada é recusado. */
+  const prodProds = S.editingProduct ? S.prods.filter(x => String(x.product_id) === String(S.editingProduct)) : [];
+  const unmakeRequested = !!S.editingProduct && $('calc-notmade').checked && prodProds.length > 0;
+  if(unmakeRequested){
+    if(soldOf(S.editingProduct) > 0){ toast('Este produto já tem vendas, então não dá para marcar como ainda não fabricado.', true); return; }
+    if(stockOf(S.editingProduct).in_displays > 0){ toast('Este produto tem peças em expositor, então não dá para marcar como ainda não fabricado.', true); return; }
+    if((S.stockOuts || []).some(x => String(x.product_id) === String(S.editingProduct))){ toast('Este produto já tem baixa de estoque registrada, então não dá para marcar como ainda não fabricado.', true); return; }
+  }
+  let unmade = false;
   let finalPhoto = oldPhoto;
   let uploadedPath = null;
   if(S.calcPhoto.removed) finalPhoto = null;
@@ -2075,6 +2171,7 @@ async function saveProductCalc(){
     name: name, photo_path: finalPhoto, sale_price_cents: salePrice,
     print_time_minutes: R.timePP, archived: false,
     description: $('calc-desc').value.trim(),
+    categories: (S.calcCats || []).slice(),
     labor_cents: 0,
     extra_cents: 0,
     machine_power_watts: parseNum($('calc-watts').value) || 0,
@@ -2102,6 +2199,11 @@ async function saveProductCalc(){
   if(R.supDetail.length){
     const { error: e2 } = await sb.from('product_supplies').insert(R.supDetail.map(d => ({ product_id: prod.id, supply_id: d.supplyId, qty_per_piece: d.qty })));
     if(e2) return toastErr(e2);
+  }
+  if(unmakeRequested){
+    for(const pr of prodProds) await reverseConsumption(pr.consumption);
+    await sb.from('productions').delete().eq('product_id', S.editingProduct);
+    unmade = true;
   }
   if(isStoragePath(oldPhoto) && oldPhoto !== finalPhoto){ try { await sb.storage.from('product-photos').remove([oldPhoto]); } catch(e) {} }
   let producedQty = 0;
@@ -2144,7 +2246,9 @@ async function saveProductCalc(){
   await fetchAll(); renderAll();
   closeCalcInfo();
   let doneMsg;
-  if(wasEditing) doneMsg = 'Produto "' + name + '" atualizado.';
+  if(wasEditing) doneMsg = unmade
+    ? 'Produto "' + name + '" atualizado e marcado como ainda não fabricado: produções desfeitas, materiais devolvidos e estoque zerado.'
+    : 'Produto "' + name + '" atualizado.';
   else if(notMade) doneMsg = 'Produto "' + name + '" salvo como ainda não fabricado, sem produção e com estoque 0.';
   else if(prodFailed) doneMsg = 'Produto "' + name + '" salvo, mas a produção inicial não foi registrada.';
   else doneMsg = 'Produto "' + name + '" salvo e ' + (producedQty === 1 ? '1 peça produzida' : producedQty + ' peças produzidas') + '.' + (prodEnded.length ? ' Atenção, acabou o estoque de: ' + prodEnded.join(', ') + '.' : '');
@@ -2826,6 +2930,11 @@ function renderProdutos(){
   if(clr) clr.classList.toggle('hidden', !(S.prodSearch || '').trim());
   const sortSel = $('prod-sort');
   if(sortSel) sortSel.value = S.prodSort || 'criacao';
+  const catSel = $('prod-cat-filter');
+  if(catSel){
+    catSel.innerHTML = '<option value="">Todas</option>' + allCategories().map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    catSel.value = S.prodCat || '';
+  }
   const q = norm(S.prodSearch || '');
   const bySort = (a, b) => {
     if(S.prodSort === 'estoque'){
@@ -2837,7 +2946,7 @@ function renderProdutos(){
     if(c) return c;
     return norm(a.name).localeCompare(norm(b.name));
   };
-  const active = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0));
+  const active = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0) && (!S.prodCat || productCats(p).some(c => norm(c) === norm(S.prodCat))));
   const withStock = active.filter(p => stockOf(p.id).available > 0).sort(bySort);
   const noStock = active.filter(p => stockOf(p.id).available <= 0).sort(bySort);
   const listEl = $('prod-list');
