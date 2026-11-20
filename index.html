@@ -172,6 +172,12 @@
   .tx-kind-seg #tx-kind-income.on{background:var(--cyan); color:#0b0a18;}
   #tab-calculadora h3.collapse-h{cursor:pointer;}
   #tab-calculadora h3.collapse-h .car{float:right; color:var(--mut);}
+  /* Comparar valores: A (formulário + resultado) na coluna 1, Configuração B na coluna 2 */
+  #tab-calculadora.comparing{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;}
+  #tab-calculadora.comparing > .card:first-of-type{grid-column:1;}
+  #tab-calculadora.comparing > .calc-result{grid-column:1;}
+  #tab-calculadora.comparing > #calc-compare-panel{grid-column:2; grid-row:1 / span 2;}
+  @media(max-width:720px){ #tab-calculadora.comparing{grid-template-columns:1fr;} #tab-calculadora.comparing > #calc-compare-panel{grid-column:1; grid-row:auto;} }
 </style>
 </head>
 <body>
@@ -350,8 +356,12 @@
         </div>
       </div>
       <div class="card calc-result">
-        <h2>Resultado</h2>
+        <h2 id="calc-result-title">Resultado</h2>
         <div id="calc-out"></div>
+        <div id="calc-compare-wrap">
+          <label class="check"><input type="checkbox" class="switch" id="calc-compare" onchange="toggleCompare()"> Comparar valores</label>
+          <div class="mut">Compara duas configurações do fatiador lado a lado. No fim, você salva com a A ou aplica a B e salva.</div>
+        </div>
         <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> SALVAR COMO PEDIDO</label>
         <div id="calc-notmade-wrap">
           <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
@@ -372,6 +382,44 @@
           <button class="ghost hidden" id="calc-cancel-edit" onclick="cancelProductEdit()">Cancelar edição</button>
         </div>
         <div id="calc-edit-extras" class="hidden"></div>
+      </div>
+      <div class="card hidden" id="calc-compare-panel">
+        <h2>Configuração B</h2>
+        <div class="seg">
+          <button type="button" id="seg-manual-b" class="on" onclick="setCalcFillModeB('manual')">Manual</button>
+          <button type="button" id="seg-print-b" onclick="setCalcFillModeB('print')">Print do fatiador</button>
+        </div>
+        <div id="slicer-attach-b" class="hidden">
+          <div class="linebox attach-zone">
+            <label>Print do fatiador</label>
+            <input id="calc-slicer-b" type="file" accept="image/*" onchange="onSlicerFileB(this)">
+            <p class="mut">Anexe o arquivo ou cole o print com Ctrl+V. A imagem é lida no aparelho e não fica salva.</p>
+            <div id="slicer-status-b" class="mut"></div>
+            <div id="slicer-summary-b" class="hidden" style="margin-top:8px;"></div>
+          </div>
+          <label class="check"><input type="checkbox" class="switch" id="calc-lotmode-b" onchange="recomputeCalcB()"> Modo lote (totais do fatiador)</label>
+          <div id="calc-lotqty-wrap-b" class="hidden">
+            <label>Peças por lote</label>
+            <input id="calc-lotqty-b" type="text" inputmode="numeric" value="10" oninput="recomputeCalcB()">
+          </div>
+        </div>
+        <div id="calc-manualqty-wrap-b">
+          <label>Quantidade a produzir</label>
+          <input id="calc-manualqty-b" type="text" inputmode="numeric" value="1" oninput="recomputeCalcB()">
+        </div>
+        <h3 class="sec-h sec-fil">Filamentos</h3>
+        <div id="calc-fils-b"></div>
+        <button class="ghost btn-sm" onclick="addCalcFilB()">+ Filamento</button>
+        <div class="mut" id="calc-fil-total-b" style="margin-top:6px;"></div>
+        <p class="mut">Insumos: os mesmos da Configuração A.</p>
+        <label>Tempo de impressão</label>
+        <div id="calc-times-b"></div>
+        <button class="ghost btn-sm" type="button" onclick="addCalcTimeB()">+ Adicionar tempo</button>
+        <div class="mut" id="calc-time-total-b" style="margin-top:6px;"></div>
+        <h3 class="sec-h">Resultado B</h3>
+        <div id="calc-out-b"></div>
+        <div class="btnrow"><button onclick="applyCompareB()">Usar a Configuração B</button></div>
+        <div class="mut">Aplica os valores da B na calculadora principal. Depois é só salvar o produto.</div>
       </div>
     </div>
 
@@ -847,6 +895,7 @@ const S = {
   finMonth: ymNow(), finPage: 1, editingTx: null,
   matType: 'filament', editingMat: null, showFinishedFils: false, showFinishedSups: false,
   calc: { fils: [], sups: [], times: [''] },
+  calcB: { fils: [], times: [''], fromPrint: false }, compareOn: false, calcBResult: null,
   calcCats: [], calcMatsOpen: false, calcCostOpen: false,
   calcPhoto: { blob: null, removed: false, sizes: '' }, photoUrlCache: {},
   storeContract: { file: null, removed: false }, contractUrlCache: {},
@@ -1737,6 +1786,7 @@ function applyCalcEditVisibility(){
   const ed = !!S.editingProduct;
   const seg = $('calc-fillmode-seg'); if(seg) seg.classList.toggle('hidden', ed);
   const ow = $('calc-asorder-wrap'); if(ow) ow.classList.toggle('hidden', ed);
+  const cw = $('calc-compare-wrap'); if(cw) cw.classList.toggle('hidden', ed);
   const help = $('calc-notmade-help');
   if(help) help.textContent = ed
     ? 'Ative e salve para desfazer as produções deste produto e devolver os materiais ao estoque. O estoque dele zera.'
@@ -1850,6 +1900,174 @@ function recomputeCalc(){
     <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>${totalRow}`;
   if(S.editingProduct) renderCalcEditExtras();
 }
+/* ---------------- Comparar valores: Configuração B ----------------
+   Painel lateral com filamentos, tempos e quantidade próprios, mas usando as
+   MESMAS configurações (potência, kWh, desgaste, margem e preço digitado) e os
+   MESMOS insumos da Configuração A. No fim, applyCompareB copia a B pra
+   calculadora principal e o salvar continua sendo o fluxo normal. */
+function toggleCompare(){ setCompare(!!($('calc-compare') && $('calc-compare').checked)); }
+function setCompare(on){
+  S.compareOn = !!on;
+  const panel = $('calc-compare-panel');
+  if(panel) panel.classList.toggle('hidden', !S.compareOn);
+  const tab = $('tab-calculadora');
+  if(tab) tab.classList.toggle('comparing', S.compareOn);
+  const title = $('calc-result-title');
+  if(title) title.textContent = S.compareOn ? 'Resultado: Configuração A' : 'Resultado';
+  if(S.compareOn){
+    const bEmpty = !S.calcB.fils.length && !(S.calcB.times || []).some(t => (t || '').trim());
+    if(bEmpty){
+      S.calcB.fils = S.calc.fils.map(l => ({ filamentId: l.filamentId, gramsStr: l.gramsStr }));
+      S.calcB.times = S.calc.times.slice();
+      S.calcB.fromPrint = calcFillMode === 'print';
+      const lm = $('calc-lotmode-b'); if(lm) lm.checked = $('calc-lotmode').checked;
+      const lq = $('calc-lotqty-b'); if(lq) lq.value = $('calc-lotqty').value;
+      const mq = $('calc-manualqty-b'); if(mq) mq.value = $('calc-manualqty') ? $('calc-manualqty').value : '1';
+    }
+    setCalcFillModeB(S.calcB.fromPrint ? 'print' : 'manual');
+    renderCalcLinesB();
+    renderCalcTimesB();
+    recomputeCalcB();
+  }
+}
+function setCalcFillModeB(m){
+  S.calcB.fromPrint = m === 'print';
+  const sm = $('seg-manual-b'), sp = $('seg-print-b'), at = $('slicer-attach-b');
+  if(sm) sm.classList.toggle('on', !S.calcB.fromPrint);
+  if(sp) sp.classList.toggle('on', S.calcB.fromPrint);
+  if(at) at.classList.toggle('hidden', !S.calcB.fromPrint);
+  const mq = $('calc-manualqty-wrap-b'); if(mq) mq.classList.toggle('hidden', S.calcB.fromPrint);
+  recomputeCalcB();
+}
+function renderCalcLinesB(){
+  const box = $('calc-fils-b');
+  if(!box) return;
+  box.innerHTML = S.calcB.fils.map((l, i) => {
+    const opts = S.filaments.map(f => ({
+      v: f.id,
+      t: f.name + ' ' + f.brand + ' ' + f.color + ' ' + f.material,
+      ohtml: `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}<span class="mut"> · ${fmtN(filRemaining(f))} g restantes · ${BRL(Math.round(filCostPerGram(f)*100)/100)}/g</span>`,
+      fhtml: `<span class="sw" style="background:${swatch(f.color)}"></span>${esc(f.name)}`
+    }));
+    return `<div class="linebox">
+      ${sselHtml('bf-' + i, { value: l.filamentId, placeholder: 'Escolher filamento...', searchPh: 'Buscar filamento', emptyText: 'Nenhum filamento encontrado.', options: opts, onpick: v => pickCalcFilB(i, v) })}
+      <label>Gramas</label>
+      <input type="text" inputmode="decimal" value="${esc(l.gramsStr)}" placeholder="Ex.: 12,5" oninput="calcFilGramsB(${i}, this.value)">
+      <div class="mut" id="calcfil-b-info-${i}"></div>
+      <div class="btnrow"><button class="danger btn-sm" onclick="removeCalcFilB(${i})">Remover</button></div>
+    </div>`;
+  }).join('');
+}
+function pickCalcFilB(i, id){ S.calcB.fils[i].filamentId = id; renderCalcLinesB(); recomputeCalcB(); }
+function addCalcFilB(){ S.calcB.fils.push({ filamentId: null, gramsStr: '' }); renderCalcLinesB(); }
+function removeCalcFilB(i){ S.calcB.fils.splice(i, 1); renderCalcLinesB(); recomputeCalcB(); }
+function calcFilGramsB(i, v){ S.calcB.fils[i].gramsStr = v; recomputeCalcB(); }
+function renderCalcTimesB(){
+  const box = $('calc-times-b');
+  if(!box) return;
+  if(!S.calcB.times.length) S.calcB.times = [''];
+  box.innerHTML = S.calcB.times.map((v, i) => `
+    <div class="row">
+      <input type="text" style="margin-bottom:0;" placeholder="Ex.: 20h1m, 45m ou 2h" value="${esc(v)}" oninput="calcTimeInputB(${i}, this.value)">
+      <button class="danger btn-sm" type="button" onclick="removeCalcTimeB(${i})">✕</button>
+    </div>`).join('');
+}
+function addCalcTimeB(){ S.calcB.times.push(''); renderCalcTimesB(); }
+function removeCalcTimeB(i){
+  if(S.calcB.times.length <= 1) S.calcB.times = [''];
+  else S.calcB.times.splice(i, 1);
+  renderCalcTimesB();
+  recomputeCalcB();
+}
+function calcTimeInputB(i, v){ S.calcB.times[i] = v; recomputeCalcB(); }
+function recomputeCalcB(){
+  /* Configurações compartilhadas: relê os campos da A (sem salvar nem redesenhar a A). */
+  S.settings.watts = parseNum($('calc-watts').value) || 0;
+  S.settings.kwh = parseMoney($('calc-kwh').value);
+  S.settings.wear = parseMoney($('calc-wear').value);
+  S.settings.margin = parseNum($('calc-margin').value) || 0;
+  const fromPrint = !!S.calcB.fromPrint;
+  const lotEl = $('calc-lotmode-b');
+  const lotMode = fromPrint && !!(lotEl && lotEl.checked);
+  const lotQty = Math.max(1, Math.round(parseNum(($('calc-lotqty-b') || {}).value) || 1));
+  const manQty = Math.max(1, Math.round(parseNum(($('calc-manualqty-b') || {}).value || '') || 1));
+  const effQty = fromPrint ? (lotMode ? lotQty : 1) : manQty;
+  const lqw = $('calc-lotqty-wrap-b'); if(lqw && lotEl) lqw.classList.toggle('hidden', !lotEl.checked);
+  const parsedTimes = S.calcB.times.map(parseTimeRow);
+  const timeInvalid = parsedTimes.some(t => !t.ok);
+  const timePP = parsedTimes.reduce((a, t, i) => a + ((lotMode && i === 0) ? t.min / lotQty : t.min), 0);
+  const timesPP = parsedTimes.map((t, i) => r2((lotMode && i === 0) ? t.min / lotQty : t.min));
+  const ttEl = $('calc-time-total-b'); if(ttEl) ttEl.textContent = 'Tempo total: ' + fmtTime(timePP);
+  let filCost = 0;
+  let filGramsTotal = 0;
+  const filDetail = [];
+  S.calcB.fils.forEach((l, i) => {
+    const info = $('calcfil-b-info-' + i);
+    const f = l.filamentId ? filById(l.filamentId) : null;
+    const gramsPP = (parseNum(l.gramsStr) || 0) / (lotMode ? lotQty : 1);
+    filGramsTotal += gramsPP;
+    let c = 0;
+    if(f && gramsPP > 0){ c = gramsPP * filCostPerGram(f); filCost += c; filDetail.push({ filamentId: f.id, grams: r2(gramsPP) }); }
+    if(info) info.textContent = f ? ('Por peça: ' + fmtN(gramsPP) + ' g · ' + BRL(Math.round(c)) + (lotMode ? ' (total do lote dividido por ' + lotQty + ')' : '')) : '';
+  });
+  const ftEl = $('calc-fil-total-b'); if(ftEl) ftEl.textContent = 'Filamento total: ' + fmtN(filGramsTotal) + ' g';
+  /* Insumos: os mesmos da Configuração A. */
+  let supCost = 0;
+  const supDetail = [];
+  S.calc.sups.forEach(l => {
+    const s = l.supplyId ? supById(l.supplyId) : null;
+    const qty = parseNum(l.qtyStr) || 0;
+    if(s && qty > 0){ supCost += qty * s.unit_cost_cents; supDetail.push({ supplyId: s.id, qty: r2(qty) }); }
+  });
+  const energy = energyCostCents(timePP);
+  const cost = filCost + supCost + energy;
+  const margin = parseNum($('calc-margin').value) || 0;
+  const suggested = margin >= 100 ? cost : cost / (1 - margin/100);
+  const typedPrice = parseMoney($('calc-price').value);
+  const priceUsed = typedPrice > 0 ? typedPrice : suggested;
+  const profit = priceUsed - cost;
+  S.calcBResult = {
+    cost: cost, suggested: suggested, priceUsed: priceUsed, timePP: r2(timePP),
+    timesPP: timesPP, timeInvalid: timeInvalid,
+    effQty: effQty, filDetail: filDetail, supDetail: supDetail
+  };
+  let totalRow = '';
+  if(fromPrint){
+    if(lotMode) totalRow = `
+    <div class="row"><span>Lucro no lote de ${lotQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * lotQty))}</b></div>`;
+  } else if(manQty >= 2){
+    totalRow = `
+    <div class="row"><span>Lucro em ${manQty} peças</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit * manQty))}</b></div>`;
+  }
+  let suggestedRow = '';
+  if((($('calc-margin').value || '') + '').trim() !== '') suggestedRow = `
+    <div class="row"><span>Preço sugerido (margem de ${fmtN(margin)}%)</span><b>${BRL(Math.round(suggested))}</b></div>`;
+  const outB = $('calc-out-b');
+  if(outB) outB.innerHTML = `
+    <div class="row"><span>Filamentos por peça</span><b>${BRL(Math.round(filCost))}</b></div>
+    <div class="row"><span>Insumos por peça</span><b>${BRL(Math.round(supCost))}</b></div>
+    <div class="row"><span>Energia e desgaste por peça <span class="mut">(${fmtTime(timePP)} de impressão)</span></span><b>${BRL(Math.round(energy))}</b></div>
+    <div class="row"><span><b>Custo por peça</b></span><span class="big">${BRL(Math.round(cost))}</span></div>${suggestedRow}
+    <div class="row"><span>PREÇO</span><b>${BRL(Math.round(priceUsed))}</b></div>
+    <div class="row"><span>Lucro por peça</span><b class="${profit < 0 ? 'neg' : 'pos'}">${BRL(Math.round(profit))}</b></div>${totalRow}`;
+}
+function applyCompareB(){
+  if(!S.calcBResult) recomputeCalcB();
+  if(S.calcBResult && S.calcBResult.timeInvalid){ toast('Um dos tempos da Configuração B não foi reconhecido. Confira e tente de novo.', true); return; }
+  if(!S.calcB.fils.some(l => (parseNum(l.gramsStr) || 0) > 0)){ toast('A Configuração B ainda não tem filamentos com gramas.', true); return; }
+  S.calc.fils = S.calcB.fils.map(l => ({ filamentId: l.filamentId, gramsStr: l.gramsStr }));
+  S.calc.times = S.calcB.times.slice();
+  setCalcFillMode(S.calcB.fromPrint ? 'print' : 'manual');
+  $('calc-lotmode').checked = S.calcB.fromPrint && $('calc-lotmode-b').checked;
+  $('calc-lotqty').value = $('calc-lotqty-b').value;
+  if($('calc-manualqty')) $('calc-manualqty').value = $('calc-manualqty-b').value;
+  renderCalcLines();
+  renderCalcTimes();
+  const cmp = $('calc-compare'); if(cmp) cmp.checked = false;
+  setCompare(false);
+  recomputeCalc();
+  toast('Configuração B aplicada na calculadora. Confira os valores e salve o produto.');
+}
 function resetCalcForm(){
   restoreCalcEditPopup();
   S.editingProduct = null;
@@ -1865,6 +2083,10 @@ function resetCalcForm(){
   $('calc-asorder').checked = false;
   $('calc-notmade').checked = false;
   $('calc-lotmode').checked = false;
+  const cmpOff = $('calc-compare'); if(cmpOff) cmpOff.checked = false;
+  S.calcB = { fils: [], times: [''], fromPrint: false };
+  S.calcBResult = null;
+  setCompare(false);
   S.calcCats = [];
   renderCalcCats();
   S.calcCostOpen = false;
@@ -1887,7 +2109,7 @@ let calcEditMoved = null;
 function openCalcEditPopup(){
   const box = $('calc-edit-box'), tab = $('tab-calculadora'), fields = $('calc-info-fields'), title = $('calc-form-title');
   if(!box || !tab || !fields || !title || calcEditMoved) return;
-  const cards = tab.querySelectorAll(':scope > .card');
+  const cards = tab.querySelectorAll(':scope > .card:not(#calc-compare-panel)');
   if(cards.length !== 2) return;
   const items = [];
   const grab = (node) => items.push({ node: node, parent: node.parentNode, next: node.nextSibling });
@@ -1937,6 +2159,10 @@ function loadProductIntoCalc(id){
   S.calc.sups = rec.sups.map(r => ({ supplyId: r.supply_id, qtyStr: numStr(r.qty_per_piece) }));
   $('calc-asorder').checked = false;
   $('calc-notmade').checked = !S.prods.some(x => String(x.product_id) === String(id));
+  const cmpOff2 = $('calc-compare'); if(cmpOff2) cmpOff2.checked = false;
+  S.calcB = { fils: [], times: [''], fromPrint: false };
+  S.calcBResult = null;
+  setCompare(false);
   S.calcCats = productCats(p).slice();
   renderCalcCats();
   S.calcMatsOpen = false;
@@ -2739,16 +2965,10 @@ function applySlicerResult(res){
   $('slicer-summary').classList.remove('hidden');
   $('slicer-status').textContent = 'Print lido. Confira os valores abaixo.';
 }
-async function onSlicerFile(input){
-  const file = input.files && input.files[0];
-  input.value = '';
-  if(!file || slicerBusy) return;
-  const status = $('slicer-status');
-  const summary = $('slicer-summary');
-  summary.classList.add('hidden'); summary.innerHTML = '';
-  if(!window.Tesseract){ status.textContent = 'Leitor indisponível neste aparelho. Preencha manualmente.'; return; }
-  slicerBusy = true;
-  status.textContent = 'Lendo o print...';
+/* Pipeline de leitura do print (OCR em duas passadas + reconciliação),
+   compartilhado entre a Configuração A e a B do modo Comparar: devolve o
+   resultado parseado ou lança erro se a leitura ficar incompleta. */
+async function readSlicerImage(file, status){
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error('imagem')); i.src = url; });
@@ -2781,14 +3001,80 @@ async function onSlicerFile(input){
     if(res.total == null && resB.total != null) res.total = resB.total;
     if(!res.minutes) res.minutes = resB.minutes;
     if(!res.rows.length || !res.minutes) throw new Error('leitura incompleta');
+    return res;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+async function onSlicerFile(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file || slicerBusy) return;
+  const status = $('slicer-status');
+  const summary = $('slicer-summary');
+  summary.classList.add('hidden'); summary.innerHTML = '';
+  if(!window.Tesseract){ status.textContent = 'Leitor indisponível neste aparelho. Preencha manualmente.'; return; }
+  slicerBusy = true;
+  status.textContent = 'Lendo o print...';
+  try {
+    const res = await readSlicerImage(file, status);
     applySlicerResult(res);
   } catch(e){
     status.textContent = 'Não consegui ler esse print. Confira se ele mostra os filamentos e o tempo, ou preencha manualmente. Nada foi alterado.';
   } finally {
-    URL.revokeObjectURL(url);
     slicerBusy = false;
   }
 }
+function dismissSlicerSummaryB(){ $('slicer-summary-b').classList.add('hidden'); }
+function applySlicerResultB(res){
+  matchSlicerRows(res.rows);
+  S.calcB.fils = res.rows.map(r => ({ filamentId: r.filamentId || null, gramsStr: numStr(r.grams) }));
+  if(res.minutes){ if(!S.calcB.times.length) S.calcB.times = ['']; S.calcB.times[0] = fmtTime(res.minutes); }
+  setCalcFillModeB('print');
+  $('calc-lotmode-b').checked = false;
+  renderCalcLinesB();
+  renderCalcTimesB();
+  recomputeCalcB();
+  const lines = res.rows.map(r => {
+    const f = r.filamentId ? filById(r.filamentId) : null;
+    return `<div class="row"><span>Filamento ${r.index}: ${fmtN(r.grams)} g</span><b>${f ? esc(f.name) : 'sem rolo correspondente'}</b></div>
+      <div class="mut">${f ? (r.matchBy === 'cor' ? 'Combinado pela cor do print.' : 'Combinado pela ordem dos rolos.') : 'Escolha o rolo no seletor da linha.'}${r.derived ? ' Valor completado pelo total.' : ''}</div>`;
+  }).join('');
+  const sum = res.rows.reduce((s, r) => s + r.grams, 0);
+  const sumTxt = res.total != null ? `Total lido: ${fmtN(res.total)} g${Math.abs(sum - res.total) > Math.max(0.06, res.total * 0.02) ? ' (a soma das linhas deu ' + fmtN(r2(sum)) + ' g, confira)' : ''}. ` : '';
+  $('slicer-summary-b').innerHTML = `<h3>Leitura do print</h3>${lines}
+    <p class="mut">${sumTxt}Tempo total: ${fmtTime(res.minutes)}.${res.changes ? ' Trocas: ' + res.changes + '.' : ''} Confira os valores e os rolos. Nada foi salvo.</p>
+    <div class="btnrow"><button class="ghost btn-sm" onclick="dismissSlicerSummaryB()">Fechar aviso</button></div>`;
+  $('slicer-summary-b').classList.remove('hidden');
+  $('slicer-status-b').textContent = 'Print lido. Confira os valores abaixo.';
+}
+async function onSlicerFileB(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file || slicerBusy) return;
+  const status = $('slicer-status-b');
+  const summary = $('slicer-summary-b');
+  summary.classList.add('hidden'); summary.innerHTML = '';
+  if(!window.Tesseract){ status.textContent = 'Leitor indisponível neste aparelho. Preencha manualmente.'; return; }
+  slicerBusy = true;
+  status.textContent = 'Lendo o print...';
+  try {
+    const res = await readSlicerImage(file, status);
+    applySlicerResultB(res);
+  } catch(e){
+    status.textContent = 'Não consegui ler esse print. Confira se ele mostra os filamentos e o tempo, ou preencha manualmente. Nada foi alterado.';
+  } finally {
+    slicerBusy = false;
+  }
+}
+
+/* No modo Comparar, o Ctrl+V vai pra zona de anexo (A ou B) em que ela clicou por último. */
+let slicerPasteTarget = 'A';
+document.addEventListener('click', e => {
+  if(!e.target || !e.target.closest) return;
+  if(e.target.closest('#slicer-attach-b')) slicerPasteTarget = 'B';
+  else if(e.target.closest('#slicer-attach')) slicerPasteTarget = 'A';
+});
 
 /* Colar imagem com Ctrl+V: com o popup de dados do produto aberto, a imagem vira a foto
    do produto (onCalcPhotoFile); senão, é o print do fatiador (onSlicerFile).
@@ -2817,7 +3103,19 @@ document.addEventListener('paste', (ev) => {
   }
   const tab = $('tab-calculadora'), attach = $('slicer-attach'), input = $('calc-slicer');
   if(!tab || !attach || !input) return;
-  if(tab.classList.contains('hidden') || attach.classList.contains('hidden')) return;
+  if(tab.classList.contains('hidden')) return;
+  const attachB = $('slicer-attach-b'), inputB = $('calc-slicer-b');
+  if(S.compareOn && slicerPasteTarget === 'B' && attachB && inputB && !attachB.classList.contains('hidden')){
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      inputB.files = dt.files;
+    } catch(e){ return; }
+    ev.preventDefault();
+    onSlicerFileB(inputB);
+    return;
+  }
+  if(attach.classList.contains('hidden')) return;
   try {
     const dt = new DataTransfer();
     dt.items.add(file);
