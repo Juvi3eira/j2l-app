@@ -310,6 +310,10 @@
           <button type="button" id="seg-manual" class="on" onclick="setCalcFillMode('manual')">Manual</button>
           <button type="button" id="seg-print" onclick="setCalcFillMode('print')">Print do fatiador</button>
         </div>
+        <div id="calc-compare-wrap" style="margin-top:10px;">
+          <label class="check"><input type="checkbox" class="switch" id="calc-compare" onchange="toggleCompare()"> Comparar valores</label>
+          <div class="mut">Compara duas configurações do fatiador lado a lado. No fim, você salva com a A ou aplica a B e salva.</div>
+        </div>
         <div id="slicer-attach" class="hidden">
           <div class="linebox attach-zone">
             <label>Print do fatiador</label>
@@ -358,10 +362,6 @@
       <div class="card calc-result">
         <h2 id="calc-result-title">Resultado</h2>
         <div id="calc-out"></div>
-        <div id="calc-compare-wrap">
-          <label class="check"><input type="checkbox" class="switch" id="calc-compare" onchange="toggleCompare()"> Comparar valores</label>
-          <div class="mut">Compara duas configurações do fatiador lado a lado. No fim, você salva com a A ou aplica a B e salva.</div>
-        </div>
         <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> Salvar como pedido</label>
         <div id="calc-notmade-wrap">
           <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
