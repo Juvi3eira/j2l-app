@@ -177,7 +177,8 @@
   #tab-calculadora.comparing > .card:first-of-type{grid-column:1;}
   #tab-calculadora.comparing > .calc-result{grid-column:1;}
   #tab-calculadora.comparing > #calc-compare-panel{grid-column:2; grid-row:1 / span 2;}
-  @media(max-width:720px){ #tab-calculadora.comparing{grid-template-columns:1fr;} #tab-calculadora.comparing > #calc-compare-panel{grid-column:1; grid-row:auto;} }
+  body:has(#tab-calculadora.comparing) main{max-width:1460px;}
+  @media(max-width:900px){ #tab-calculadora.comparing{grid-template-columns:1fr;} #tab-calculadora.comparing > #calc-compare-panel{grid-column:1; grid-row:auto;} }
 </style>
 </head>
 <body>
