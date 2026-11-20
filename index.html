@@ -328,7 +328,7 @@
           <label>Quantidade a produzir</label>
           <input id="calc-manualqty" type="text" inputmode="numeric" value="1" oninput="recomputeCalc()">
         </div>
-        <button class="ghost btn-sm hidden" id="calc-mats-toggle" type="button" onclick="toggleCalcMats()">Materiais ▸</button>
+        <button class="ghost btn-sm hidden" id="calc-mats-toggle" type="button" onclick="toggleCalcMats()">Informações ▸</button>
         <div id="calc-mats-body">
         <h3 class="sec-h sec-fil">Filamentos</h3>
         <div id="calc-fils"></div>
@@ -337,7 +337,6 @@
         <h3 class="sec-h sec-sup">Insumos</h3>
         <div id="calc-sups"></div>
         <button class="ghost btn-sm" onclick="addCalcSup()">+ Insumo</button>
-        </div>
         <label>Tempo de impressão</label>
         <div id="calc-times"></div>
         <button class="ghost btn-sm" type="button" onclick="addCalcTime()">+ Adicionar tempo</button>
@@ -349,6 +348,7 @@
             <div><label>Preço do kWh (R$)</label><input id="calc-kwh" type="text" inputmode="decimal" value="1,00" oninput="recomputeCalc()"></div>
           </div>
           <div><label>Desgaste da máquina (R$ por hora)</label><input id="calc-wear" type="text" inputmode="decimal" value="1,00" oninput="recomputeCalc()"></div>
+        </div>
         </div>
         <div class="cols">
           <div><label>Margem desejada (%)</label><input id="calc-margin" type="text" inputmode="decimal" value="30" oninput="recomputeCalc()"></div>
@@ -1805,7 +1805,7 @@ function applyCalcMatsVisibility(){
   const tg = $('calc-mats-toggle'), body = $('calc-mats-body');
   if(tg){
     tg.classList.toggle('hidden', !ed);
-    tg.textContent = S.calcMatsOpen ? 'Materiais ▾' : 'Materiais ▸';
+    tg.textContent = S.calcMatsOpen ? 'Informações ▾' : 'Informações ▸';
   }
   if(body) body.classList.toggle('hidden', ed && !S.calcMatsOpen);
 }
