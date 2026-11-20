@@ -350,6 +350,10 @@
         <h2>Resultado</h2>
         <div id="calc-out"></div>
         <label class="check" id="calc-asorder-wrap"><input type="checkbox" class="switch" id="calc-asorder" onchange="toggleOrderFields()"> SALVAR COMO PEDIDO</label>
+        <div id="calc-notmade-wrap">
+          <label class="check"><input type="checkbox" class="switch" id="calc-notmade"> Ainda não fabricado</label>
+          <div class="mut">Salva o produto sem registrar produção, sem baixar materiais e com estoque 0.</div>
+        </div>
         <div id="calc-order-fields" class="hidden">
           <div class="cols">
             <div><label>Nome do cliente</label><input id="calc-client" type="text" placeholder="Ex.: Pure Pilates Cerejeiras"></div>
@@ -1720,6 +1724,7 @@ function applyCalcEditVisibility(){
   const ed = !!S.editingProduct;
   const seg = $('calc-fillmode-seg'); if(seg) seg.classList.toggle('hidden', ed);
   const ow = $('calc-asorder-wrap'); if(ow) ow.classList.toggle('hidden', ed);
+  const nw = $('calc-notmade-wrap'); if(nw) nw.classList.toggle('hidden', ed);
   if(ed){
     const at = $('slicer-attach'); if(at) at.classList.add('hidden');
     const mq = $('calc-manualqty-wrap'); if(mq) mq.classList.add('hidden');
@@ -1816,6 +1821,7 @@ function resetCalcForm(){
   if($('calc-manualqty')) $('calc-manualqty').value = '1';
   if($('calc-orderdate')) $('calc-orderdate').value = todayStr();
   $('calc-asorder').checked = false;
+  $('calc-notmade').checked = false;
   $('calc-lotmode').checked = false;
   toggleOrderFields();
   setCalcFillMode('manual');
@@ -1885,6 +1891,7 @@ function loadProductIntoCalc(id){
   S.calc.fils = rec.fils.map(r => ({ filamentId: r.filament_id, gramsStr: numStr(r.grams) }));
   S.calc.sups = rec.sups.map(r => ({ supplyId: r.supply_id, qtyStr: numStr(r.qty_per_piece) }));
   $('calc-asorder').checked = false;
+  $('calc-notmade').checked = false;
   toggleOrderFields();
   setCalcFillMode('manual');
   applyCalcEditVisibility();
@@ -2100,7 +2107,8 @@ async function saveProductCalc(){
   let producedQty = 0;
   let prodFailed = false;
   let prodEnded = [];
-  if(!S.editingProduct){
+  const notMade = !S.editingProduct && $('calc-notmade').checked;
+  if(!S.editingProduct && !notMade){
     const pqty = Math.max(1, Math.round(R.effQty || 1));
     const pres = await insertProductionAndDeduct(prod.id, pqty,
       R.filDetail.map(d => ({ filamentId: d.filamentId, perPiece: d.grams, grams: r2(d.grams * pqty) })),
@@ -2137,6 +2145,7 @@ async function saveProductCalc(){
   closeCalcInfo();
   let doneMsg;
   if(wasEditing) doneMsg = 'Produto "' + name + '" atualizado.';
+  else if(notMade) doneMsg = 'Produto "' + name + '" salvo como ainda não fabricado, sem produção e com estoque 0.';
   else if(prodFailed) doneMsg = 'Produto "' + name + '" salvo, mas a produção inicial não foi registrada.';
   else doneMsg = 'Produto "' + name + '" salvo e ' + (producedQty === 1 ? '1 peça produzida' : producedQty + ' peças produzidas') + '.' + (prodEnded.length ? ' Atenção, acabou o estoque de: ' + prodEnded.join(', ') + '.' : '');
   toast(doneMsg + extra);
