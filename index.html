@@ -4258,6 +4258,8 @@ function refreshOrderSummary(){
   (S.orderLines || []).forEach((l, i) => {
     const info = $('ord-line-info-' + i);
     if(info) info.innerHTML = orderLineInfoHtml(l);
+    const nb = $('ord-note-btn-' + i);
+    if(nb) nb.textContent = (l.note || '').trim() ? 'Observação ✓' : '+ Observação';
   });
 }
 function renderOrderLines(){
@@ -4285,7 +4287,7 @@ function renderOrderLines(){
       <div id="ord-line-info-${i}">${orderLineInfoHtml(l)}</div>
       <label>Quantidade</label>
       <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)">
-      <div class="btnrow"><button class="ghost btn-sm" onclick="toggleOrderLineNote(${i})">${(l.note || '').trim() ? 'Observação ✓' : '+ Observação'}</button><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
+      <div class="btnrow"><button class="ghost btn-sm" id="ord-note-btn-${i}" onclick="toggleOrderLineNote(${i})">${(l.note || '').trim() ? 'Observação ✓' : '+ Observação'}</button><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
       ${(l.noteOpen || (l.note || '').trim()) ? `<label>Observação do item</label><input id="ord-note-${i}" type="text" placeholder="Ex.: com estrela dourada, tamanho maior..." value="${esc(l.note || '')}" oninput="orderLineField(${i}, 'note', this.value)">` : ''}
     </div>`;
   }).join('');
