@@ -4224,13 +4224,41 @@ function orderLinesTotals(){
   }
   return { total: total, cost: cost };
 }
+function orderLineUnitPrice(l){
+  if(l.frozen) return Math.max(0, parseMoney(l.priceStr));
+  if(!l.productId) return null;
+  const p = prodById(l.productId);
+  if(!p) return null;
+  return l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
+}
+function orderLineInfoHtml(l){
+  if(l.frozen) return '';
+  const price = orderLineUnitPrice(l);
+  if(price == null) return '<div class="mut" style="margin-top:6px;">Escolha um produto para ver o preço dele.</div>';
+  const p = prodById(l.productId);
+  const qty = Math.round(parseNum(l.qtyStr) || 0);
+  return `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:8px;">
+    <span class="mut">Preço: <b style="color:var(--txt);">${BRL(price)}</b> cada${p ? ' · Estoque: ' + homeAvail(p.id) : ''}</span>
+    <span style="font-weight:800;">Subtotal: <span style="color:var(--cyan);">${BRL(qty * price)}</span></span>
+  </div>`;
+}
 function orderSummaryHtml(){
   const t = orderLinesTotals();
-  return `Total: <b style="color:var(--txt);">${BRL(t.total)}</b>${t.cost > 0 ? ' · Custo: ' + BRL(t.cost) + ' · Lucro: ' + BRL(t.total - t.cost) : ''}`;
+  const rows = [];
+  if(t.cost > 0){
+    rows.push(`<div class="row"><span>Custo</span><span>${BRL(t.cost)}</span></div>`);
+    rows.push(`<div class="row"><span>Lucro</span><span class="${t.total - t.cost < 0 ? 'neg' : 'pos'}">${BRL(t.total - t.cost)}</span></div>`);
+  }
+  rows.push(`<div class="row"><span><b>Total do pedido</b></span><span class="card-price">${BRL(t.total)}</span></div>`);
+  return `<div class="linebox" style="margin-bottom:0;">${rows.join('')}</div>`;
 }
 function refreshOrderSummary(){
   const el = $('ord-summary');
   if(el) el.innerHTML = orderSummaryHtml();
+  (S.orderLines || []).forEach((l, i) => {
+    const info = $('ord-line-info-' + i);
+    if(info) info.innerHTML = orderLineInfoHtml(l);
+  });
 }
 function renderOrderLines(){
   const box = $('ord-lines');
@@ -4253,7 +4281,7 @@ function renderOrderLines(){
     return `<div class="linebox">
       <label>Produto</label>
       ${sselHtml('ord-' + i, { value: l.productId == null ? '' : String(l.productId), placeholder: 'Escolher produto...', searchPh: 'Buscar produto...', emptyText: 'Nenhum produto encontrado.', options: prodOpts, pinned: { v: '__new__', t: '+ Criar produto novo' }, onpick: v => orderLineProduct(i, v) })}
-      <div class="mut">${p ? 'Estoque: ' + homeAvail(p.id) + ' · custo atual calculado: ' + BRL(Math.round(unitCostCents(p))) : ''}</div>
+      <div id="ord-line-info-${i}">${orderLineInfoHtml(l)}</div>
       <label>Quantidade</label>
       <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)">
       <div class="btnrow"><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
@@ -4302,10 +4330,10 @@ function orderFormHtml(){
     </div>
     <label>Observações</label>
     <input id="ord-notes" type="text" placeholder="Opcional">
-    <div class="mut" id="ord-summary" style="margin-top:16px;">${orderSummaryHtml()}</div>
     <h3>Itens do pedido</h3>
     <div id="ord-lines"></div>
     <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
+    <div id="ord-summary" style="margin-top:16px;">${orderSummaryHtml()}</div>
     <div class="btnrow">
       <button onclick="saveOrder()">${editing ? 'Salvar' : 'Salvar pedido'}</button>
     </div>
