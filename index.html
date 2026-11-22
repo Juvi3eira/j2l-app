@@ -424,7 +424,10 @@
     <div id="tab-produtos" class="tabpage hidden">
       <div class="sec-actions">
         <h2>Produtos</h2>
-        <button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button>
+        <span class="btnrow" style="margin-top:0;">
+          <button class="ghost btn-sm" type="button" onclick="openCatalogModal()">Catálogo PDF</button>
+          <button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button>
+        </span>
       </div>
       <div class="btnrow" style="margin:0 0 10px;">
         <button class="ghost btn-sm" type="button" onclick="toggleProdFilters()">Filtrar</button>
@@ -3157,6 +3160,123 @@ async function hydrateProductPhotos(root){
     } catch(e){
       img.outerHTML = photoPlaceholderHtml(initial);
     }
+  }
+}
+/* ---------------- Catálogo em PDF (para imprimir) ----------------
+   Modal de seleção em Produtos; gera uma página clara com a cara da J2L
+   (faixa azul-marinho com a logo, resto branco para economizar tinta) com
+   foto, nome e preço de cada produto escolhido, e abre a impressão do
+   navegador (salvar como PDF ou imprimir direto). */
+function openCatalogModal(){
+  const prods = S.products.filter(p => !p.archived);
+  if(!prods.length){ toast('Nenhum produto ativo para colocar no catálogo.', true); return; }
+  const rows = prods.map(p => `
+    <label class="sub-card" style="cursor:pointer;">
+      <span style="display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" class="cat-check" value="${p.id}" checked onchange="catalogCount()" style="width:20px; height:20px; flex:none;">
+        ${photoHtml(p)}
+        <span><b>${esc(p.name)}</b><br><span class="mut">${BRL(p.sale_price_cents)}</span></span>
+      </span>
+    </label>`).join('');
+  openBox(`
+    <h2>Catálogo em PDF</h2>
+    <p class="mut">Escolha os produtos que entram no catálogo. Ele sai com fundo claro, foto, nome e preço de cada um, pronto para imprimir ou salvar em PDF.</p>
+    <div class="btnrow">
+      <button class="ghost btn-sm" type="button" onclick="catalogToggleAll(true)">Marcar todos</button>
+      <button class="ghost btn-sm" type="button" onclick="catalogToggleAll(false)">Desmarcar todos</button>
+    </div>
+    <div style="margin-top:10px;">${rows}</div>
+    <div class="btnrow" style="margin-top:14px;">
+      <button id="cat-gen-btn" onclick="generateCatalogPdf()">Gerar PDF (${prods.length} produtos)</button>
+    </div>`);
+  hydrateProductPhotos(document);
+}
+function catalogToggleAll(on){
+  document.querySelectorAll('.cat-check').forEach(c => { c.checked = on; });
+  catalogCount();
+}
+function catalogCount(){
+  const n = document.querySelectorAll('.cat-check:checked').length;
+  const btn = $('cat-gen-btn');
+  if(btn) btn.textContent = 'Gerar PDF (' + n + (n === 1 ? ' produto)' : ' produtos)');
+}
+async function catalogPhotoUrl(p){
+  if(!p.photo_path) return '';
+  if(/^https?:\/\//i.test(p.photo_path)) return p.photo_path;
+  let hit = S.photoUrlCache[p.photo_path];
+  if(!hit || hit.exp < Date.now()){
+    const { data, error } = await sb.storage.from('product-photos').createSignedUrl(p.photo_path, 3600);
+    if(error || !data || !data.signedUrl) return '';
+    hit = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+    S.photoUrlCache[p.photo_path] = hit;
+  }
+  return hit.url;
+}
+async function generateCatalogPdf(){
+  const ids = Array.from(document.querySelectorAll('.cat-check:checked')).map(c => c.value);
+  if(!ids.length){ toast('Marque pelo menos um produto para o catálogo.', true); return; }
+  const prods = ids.map(id => prodById(id)).filter(Boolean);
+  const btn = $('cat-gen-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Gerando...'; }
+  try {
+    const items = [];
+    for(const p of prods) items.push({ name: p.name, price: p.sale_price_cents, url: await catalogPhotoUrl(p) });
+    const win = window.open('', '_blank');
+    if(!win){ toast('O navegador bloqueou a janela do catálogo. Permita pop-ups neste site e tente de novo.', true); return; }
+    const today = new Date().toLocaleDateString('pt-BR');
+    const cards = items.map(it => `
+      <div class="card">
+        ${it.url ? `<img src="${esc(it.url)}" alt="">` : `<div class="nophoto">${esc((it.name || '?').slice(0, 1).toUpperCase())}</div>`}
+        <div class="name">${esc(it.name)}</div>
+        <div class="price">${BRL(it.price)}</div>
+      </div>`).join('');
+    win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Catálogo de Produtos · J2L Impressão 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ffffff; color: #232038; font-family: 'Nunito', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .head { background: #17142B; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+  .head img { height: 56px; width: auto; display: block; }
+  .head .t1 { font-family: 'Bungee', sans-serif; color: #ffffff; font-size: 22px; line-height: 1.15; }
+  .head .t2 { color: rgba(255,255,255,.75); font-size: 12px; font-weight: 700; margin-top: 3px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+  .card { border: 1px solid #e3e1ee; border-radius: 12px; padding: 10px; text-align: center; break-inside: avoid; }
+  .card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px; display: block; }
+  .nophoto { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; background: #f1eff9; color: #8a86a3; display: flex; align-items: center; justify-content: center; font-size: 44px; font-weight: 800; }
+  .name { font-weight: 800; font-size: 15px; color: #17142B; margin-top: 9px; line-height: 1.25; }
+  .price { font-family: 'Bungee', sans-serif; font-size: 19px; color: #17142B; margin-top: 4px; }
+  .footer { text-align: center; color: #6b6880; font-size: 11px; font-weight: 700; margin-top: 20px; }
+  @media print { .footer { position: fixed; bottom: 0; left: 0; right: 0; } }
+</style>
+</head>
+<body>
+  <div class="head">
+    <img src="https://j2l.pages.dev/logo-j2l-transparente.png" alt="J2L">
+    <div>
+      <div class="t1">Catálogo de Produtos</div>
+      <div class="t2">J2L Impressão 3D · Atualizado em ${today}</div>
+    </div>
+  </div>
+  <div class="grid">${cards}</div>
+  <div class="footer">J2L Impressão 3D · WhatsApp (11) 99469-5635 · Instagram @j2l.3d</div>
+</body>
+</html>`);
+    win.document.close();
+    let printed = false;
+    const doPrint = () => { if(printed) return; printed = true; try { win.focus(); win.print(); } catch(e){} };
+    win.onload = () => setTimeout(doPrint, 700);
+    setTimeout(doPrint, 3500);
+    closeBox();
+  } catch(e){
+    toast('Não consegui gerar o catálogo agora. Tente de novo.', true);
+  } finally {
+    if(btn){ btn.disabled = false; catalogCount(); }
   }
 }
 function stockOf(id){
