@@ -135,6 +135,8 @@
   .pickopt.on{background:#262052;}
   .pickopt.ssel-pin{color:var(--cyan); font-weight:700;}
   .thumb{width:52px; height:52px; object-fit:cover; border-radius:10px; border:1px solid var(--line); background:#141126;}
+  .pickopt .thumb{width:40px; height:40px; border-radius:10px; flex:none;}
+  .picksel .thumb{width:28px; height:28px; border-radius:8px; vertical-align:-8px;}
   .linebox{border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; background:#1a1730;}
   .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
   .loginlogo{display:block; max-width:220px; width:70%; margin:0 auto 16px;}
@@ -1679,6 +1681,7 @@ function sselToggle(key){
   sselCloseAll();
   if(wasHidden){
     p.classList.remove('hidden');
+    hydrateProductPhotos(p);
     if(SSEL[key]) SSEL[key].open = true;
     const inp = p.querySelector('input');
     if(inp) inp.focus();
@@ -1689,7 +1692,7 @@ function sselFilter(key, v){
   if(!c) return;
   c.filter = v;
   const box = $('ssel-o-' + key);
-  if(box) box.innerHTML = sselOptionsHtml(key);
+  if(box){ box.innerHTML = sselOptionsHtml(key); hydrateProductPhotos(box); }
 }
 function sselPick(key, ix){
   const c = SSEL[key];
@@ -1698,7 +1701,7 @@ function sselPick(key, ix){
   c.value = v;
   sselCloseAll();
   const f = $('ssel-f-' + key);
-  if(f) f.innerHTML = sselFieldHtml(key);
+  if(f){ f.innerHTML = sselFieldHtml(key); hydrateProductPhotos(f); }
   c.onpick(v);
 }
 function sselPickPinned(key){
@@ -4399,7 +4402,12 @@ function renderOrderLines(){
     }
     const p = l.productId ? prodById(l.productId) : null;
     const prodOpts = [{ v: '', t: 'Escolher produto...' }].concat(
-      S.products.filter(x => !x.archived).map(x => ({ v: String(x.id), t: x.name + ' (estoque: ' + homeAvail(x.id) + ')' }))
+      S.products.filter(x => !x.archived).map(x => ({
+        v: String(x.id),
+        t: x.name + ' (estoque: ' + homeAvail(x.id) + ')',
+        ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(x)}<span>${esc(x.name)} <span class="mut">(estoque: ${homeAvail(x.id)})</span></span></span>`,
+        fhtml: `${photoHtml(x)} ${esc(x.name)}`
+      }))
     );
     return `<div class="linebox">
       <label>Produto</label>
@@ -4412,6 +4420,7 @@ function renderOrderLines(){
     </div>`;
   }).join('');
   refreshOrderSummary();
+  hydrateProductPhotos(box);
 }
 function orderLineField(i, field, v){ S.orderLines[i][field] = v; refreshOrderSummary(); }
 function orderLineProduct(i, v){
