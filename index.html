@@ -1124,6 +1124,7 @@ async function fetchAll(){
     const ki = await sb.from('kit_items').select('*');
     S.kitItems = ki.error ? [] : (ki.data || []);
   } catch(e){ S.kitItems = []; }
+  _shortageMap = null;
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -4881,38 +4882,58 @@ function clearPedSearch(){
   renderOrders();
   if(inp) inp.focus();
 }
-/* Faltam do item no card do pedido: mesma conta do aviso do saveOrder (qty - avail).
-   O avail aqui é o que o produto consegue atender para ESTE pedido: o homeAvail já
-   desconta este pedido no estoque geral, então somamos de volta as quantidades
-   deste pedido para o produto, sobrando produzido - expositores - baixas - OUTROS
-   pedidos não cancelados. Só vale para pedido aberto e item com produto. */
+/* Faltam do item no card do pedido: quanto falta PARA AQUELE PEDIDO, e nao a
+   falta geral do produto. O estoque fisico (produzido - expositores - baixas -
+   pedidos ja entregues) atende os pedidos abertos numa fila, do mais antigo
+   pro mais novo: cada pedido consome o que sobrou dos anteriores, e a falta
+   dele e o que a fila nao alcancou. Item de kit consome os componentes. */
+let _shortageMap = null;
+function computeShortages(){
+  const map = {};
+  const open = (S.orders || [])
+    .filter(o => o.status === 'pendente' || o.status === 'em_producao')
+    .slice()
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || (Number(a.id) - Number(b.id)));
+  const pool = {};
+  const poolOf = pid => {
+    if(pool[pid] == null){
+      let demand = 0;
+      open.forEach(o => orderItemsOf(o.id).forEach(i => {
+        if(i.product_id == null) return;
+        expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(pid)) demand += e.qty; });
+      }));
+      pool[pid] = Math.max(0, (Number(stockOf(pid).available) || 0) + demand);
+    }
+    return pool[pid];
+  };
+  open.forEach(o => {
+    orderItemsOf(o.id).forEach(i => {
+      if(i.product_id == null){ map[i.id] = 0; return; }
+      const qty = Number(i.qty) || 0;
+      const p = prodById(i.product_id);
+      if(p && isKit(p)){
+        const comps = kitComponents(p.id);
+        if(!comps.length){ map[i.id] = 0; return; }
+        let can = Infinity;
+        comps.forEach(k => { can = Math.min(can, Math.floor(poolOf(k.component_product_id) / (Number(k.qty) || 1))); });
+        const alloc = Math.min(qty, can === Infinity ? 0 : can);
+        comps.forEach(k => { pool[k.component_product_id] = poolOf(k.component_product_id) - alloc * (Number(k.qty) || 0); });
+        map[i.id] = qty - alloc;
+      } else {
+        const avail = poolOf(i.product_id);
+        const alloc = Math.min(qty, avail);
+        pool[i.product_id] = avail - alloc;
+        map[i.id] = qty - alloc;
+      }
+    });
+  });
+  return map;
+}
 function orderShortage(o, item){
   if(!item || item.product_id == null) return 0;
   if(o.status !== 'pendente' && o.status !== 'em_producao') return 0;
-  const pItem = prodById(item.product_id);
-  if(pItem && isKit(pItem)){
-    /* Falta do kit: quantos kits deste pedido o estoque atende, contando por
-       componente (disponivel + o que este proprio pedido ja consome dele). */
-    const comps = kitComponents(pItem.id);
-    if(!comps.length) return 0;
-    let can = Infinity;
-    comps.forEach(k => {
-      let own = 0;
-      orderItemsOf(o.id).forEach(i2 => {
-        if(i2.product_id == null) return;
-        expandItemQty(i2.product_id, Number(i2.qty) || 0).forEach(e => { if(String(e.pid) === String(k.component_product_id)) own += e.qty; });
-      });
-      can = Math.min(can, Math.floor((homeAvail(k.component_product_id) + own) / (Number(k.qty) || 1)));
-    });
-    const faltaK = (Number(item.qty) || 0) - (can === Infinity ? 0 : can);
-    return faltaK > 0 ? faltaK : 0;
-  }
-  const own = orderItemsOf(o.id)
-    .filter(i => i.product_id != null && String(i.product_id) === String(item.product_id))
-    .reduce((a, i) => a + (Number(i.qty) || 0), 0);
-  const supply = homeAvail(item.product_id) + own;
-  const falta = (Number(item.qty) || 0) - supply;
-  return falta > 0 ? falta : 0;
+  if(!_shortageMap) _shortageMap = computeShortages();
+  return _shortageMap[item.id] || 0;
 }
 function orderCardHtml(o){
   const items = orderItemsOf(o.id);
