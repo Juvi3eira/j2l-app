@@ -428,6 +428,7 @@
         <h2>Produtos</h2>
         <span class="btnrow" style="margin-top:0;">
           <button class="ghost btn-sm" type="button" onclick="openCatalogModal()">Catálogo PDF</button>
+          <button class="ghost btn-sm" type="button" onclick="openKitModal(null)">+ Kit</button>
           <button class="btn-sm" onclick="showTab('calculadora')">+ Produto</button>
         </span>
       </div>
@@ -441,6 +442,7 @@
       <div id="prod-filter-panel" class="hidden">
         <label>Ordenar por</label>
         <select id="prod-sort" onchange="S.prodSort = this.value; renderProdutos();">
+          <option value="az">Nome (A a Z)</option>
           <option value="criacao">Criação</option>
           <option value="estoque">Estoque</option>
         </select>
@@ -913,9 +915,10 @@ const S = {
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
   pedSearch: '', pedTipoFilter: '', pedShowDone: false, ordersSort: 'pedido',
-  prodSearch: '', prodSort: 'criacao', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
+  prodSearch: '', prodSort: 'az', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
-  hasPrintTimes: false
+  hasPrintTimes: false,
+  kitItems: [], kitLines: [], editingKit: null, orderDiscountCents: 0
 };
 let P = null; // estado da produção em edição no modal
 
@@ -944,6 +947,7 @@ function productParams(p){
 }
 function recipeOf(pid){ return S.recipes[pid] || { fils: [], sups: [] }; }
 function unitCostCents(product){
+  if(product && product.is_kit) return kitCostCents(product.id);
   const rec = recipeOf(product.id);
   let c = 0;
   rec.fils.forEach(r => { const f = filById(r.filament_id); if(f) c += r.grams * filCostPerGram(f); });
@@ -1114,6 +1118,12 @@ async function fetchAll(){
     const so = await sb.from('stock_outs').select('*').order('created_at', { ascending: false });
     S.stockOuts = so.error ? [] : (so.data || []);
   } catch(e){ S.stockOuts = []; }
+  // Componentes dos kits: carga tolerante a falha, igual as baixas. Se a tabela
+  // ainda nao existe (SQL dos kits nao rodou), nenhum produto se comporta como kit.
+  try {
+    const ki = await sb.from('kit_items').select('*');
+    S.kitItems = ki.error ? [] : (ki.data || []);
+  } catch(e){ S.kitItems = []; }
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -2142,6 +2152,7 @@ function restoreCalcEditPopup(){
 function loadProductIntoCalc(id){
   const p = prodById(id);
   if(!p) return;
+  if(isKit(p)){ openKitModal(id); return; }
   const rec = recipeOf(id);
   S.editingProduct = id;
   $('calc-form-title').textContent = 'Editar produto';
@@ -3285,6 +3296,45 @@ async function generateCatalogPdf(){
 function stockOf(id){
   return S.stock[id] || { produced: 0, in_displays: 0, in_orders: 0, available: 0 };
 }
+/* ---------------- Kits: produto composto com preco proprio ----------------
+   Um kit e um produto (is_kit) cujos componentes ficam em kit_items. Ele nao
+   tem producao propria: o estoque dele e quantos kits da para montar com os
+   componentes em casa, o custo e a soma dos custos dos componentes, e um
+   pedido com kit baixa o estoque dos componentes (a visao general_stock
+   expande o item do kit; aqui expandimos nas contagens de tela). */
+function isKit(p){ return !!(p && p.is_kit); }
+function kitComponents(kitId){
+  return (S.kitItems || []).filter(k => String(k.kit_product_id) === String(kitId));
+}
+function kitCostCents(kitId, seen){
+  const guard = seen || {};
+  if(guard[kitId]) return 0;
+  guard[kitId] = true;
+  return kitComponents(kitId).reduce((a, k) => {
+    const c = prodById(k.component_product_id);
+    if(!c) return a;
+    const uc = isKit(c) ? kitCostCents(c.id, guard) : Math.round(unitCostCents(c));
+    return a + uc * (Number(k.qty) || 0);
+  }, 0);
+}
+function kitAvail(kitId){
+  const comps = kitComponents(kitId);
+  if(!comps.length) return 0;
+  let n = Infinity;
+  comps.forEach(k => { n = Math.min(n, Math.floor(homeAvail(k.component_product_id) / (Number(k.qty) || 1))); });
+  return Math.max(0, n === Infinity ? 0 : n);
+}
+/* Disponibilidade exibida de um produto: kit usa os kits montaveis. */
+function availOf(p){ return isKit(p) ? kitAvail(p.id) : homeAvail(p.id); }
+/* Expande um item de pedido em produtos de estoque: kit vira os componentes. */
+function expandItemQty(productId, qty){
+  const p = prodById(productId);
+  if(p && isKit(p)){
+    const comps = kitComponents(p.id);
+    if(comps.length) return comps.map(k => ({ pid: k.component_product_id, qty: qty * (Number(k.qty) || 0) }));
+  }
+  return [{ pid: productId, qty: qty }];
+}
 /* Vendidos do produto: vendas nas lojas (uma linha por unidade; correções entram negativas)
    mais as quantidades dos itens de pedidos diretos já entregues. */
 function soldOf(id){
@@ -3292,7 +3342,12 @@ function soldOf(id){
   (S.sales || []).forEach(x => { if(String(x.product_id) === String(id)) n += x.kind === 'correction' ? -1 : 1; });
   (S.orders || []).forEach(o => {
     if(o.status !== 'entregue') return;
-    orderItemsOf(o.id).forEach(i => { if(i.product_id != null && String(i.product_id) === String(id)) n += Number(i.qty) || 0; });
+    orderItemsOf(o.id).forEach(i => {
+      if(i.product_id == null) return;
+      if(String(i.product_id) === String(id)){ n += Number(i.qty) || 0; return; }
+      const p = prodById(i.product_id);
+      if(p && isKit(p)) expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(id)) n += e.qty; });
+    });
   });
   return n;
 }
@@ -3302,11 +3357,30 @@ function reservedOf(id){
   let n = 0;
   (S.orders || []).forEach(o => {
     if(o.status !== 'pendente' && o.status !== 'em_producao') return;
-    orderItemsOf(o.id).forEach(i => { if(i.product_id != null && String(i.product_id) === String(id)) n += Number(i.qty) || 0; });
+    orderItemsOf(o.id).forEach(i => {
+      if(i.product_id == null) return;
+      if(String(i.product_id) === String(id)){ n += Number(i.qty) || 0; return; }
+      const p = prodById(i.product_id);
+      if(p && isKit(p)) expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(id)) n += e.qty; });
+    });
   });
   return n;
 }
+function kitCardHtml(p){
+  const comps = kitComponents(p.id);
+  const compTxt = comps.map(k => { const c = prodById(k.component_product_id); return (Number(k.qty) || 0) + '× ' + (c ? c.name : 'item removido'); }).join(' · ');
+  return `<div class="item-card click" style="align-items:flex-start;" onclick="openKitModal(${p.id})">
+    <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)} <span class="badge link">Kit</span>
+      <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(kitCostCents(p.id)))}</div>
+      <div class="mut">Contém: ${esc(compTxt) || 'nenhum item ainda'}</div>
+      <div class="mut">Estoque: <b style="color:var(--txt);">${kitAvail(p.id)}</b> kits · Reservado: ${reservedOf(p.id)} · Vendidos: ${soldOf(p.id)}</div>
+    </span></span>
+    <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
+      <button class="btn-sm" onclick="event.stopPropagation(); openQuickSale(${p.id})">VENDER</button>
+    </div></span></div>`;
+}
 function prodCardHtml(p){
+  if(isKit(p)) return kitCardHtml(p);
   const st = stockOf(p.id);
   return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
@@ -3319,6 +3393,142 @@ function prodCardHtml(p){
     <div class="btnrow" style="justify-content:flex-end;">
       <button class="btn-sm" onclick="event.stopPropagation(); openQuickSale(${p.id})">VENDER</button>
     </div></span></div>`;
+}
+/* ---------------- Kits: criar e editar ---------------- */
+function blankKitLine(){ return { productId: null, qtyStr: '1' }; }
+function openKitModal(id){
+  const p = id ? prodById(id) : null;
+  if(id && !p) return;
+  S.editingKit = p ? p.id : null;
+  S.kitLines = p ? kitComponents(p.id).map(k => ({ productId: k.component_product_id, qtyStr: String(k.qty) })) : [blankKitLine()];
+  if(!S.kitLines.length) S.kitLines = [blankKitLine()];
+  openBox(kitFormHtml(p));
+  if(p){
+    $('kit-name').value = p.name || '';
+    $('kit-price').value = moneyStr(p.sale_price_cents || 0);
+  }
+  renderKitLines();
+  if($('kit-name')) $('kit-name').focus();
+}
+function kitFormHtml(p){
+  const editing = !!p;
+  return `
+    <h2>${editing ? 'Editar kit' : 'Novo kit'}</h2>
+    <p class="mut">Um kit junta itens que já são produtos e vale um preço próprio. O estoque do kit é quantos dá para montar com os itens em casa, e o custo é a soma dos custos dos itens.</p>
+    <label>Nome do kit</label>
+    <input id="kit-name" type="text" placeholder="Ex.: Kit Presépio Completo">
+    <label>Preço do kit (R$)</label>
+    <input id="kit-price" type="text" inputmode="decimal" placeholder="0,00" oninput="refreshKitSummary()">
+    <h3>Itens do kit</h3>
+    <div id="kit-lines"></div>
+    <button class="ghost btn-sm" onclick="addKitLine()">+ Item</button>
+    <div id="kit-summary" style="margin-top:16px;"></div>
+    <div class="btnrow">
+      <button onclick="saveKit()">${editing ? 'Salvar kit' : 'Criar kit'}</button>
+    </div>
+    ${editing ? `<div class="btnrow" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
+      <button class="danger" onclick="archiveKitFromModal()">Arquivar kit</button>
+    </div>` : ''}`;
+}
+function renderKitLines(){
+  const box = $('kit-lines');
+  if(!box) return;
+  if(!S.kitLines.length) S.kitLines = [blankKitLine()];
+  box.innerHTML = S.kitLines.map((l, i) => {
+    const opts = [{ v: '', t: 'Escolher item...' }].concat(
+      S.products.filter(x => !x.archived && !isKit(x)).map(x => ({
+        v: String(x.id),
+        t: x.name + ' (estoque: ' + homeAvail(x.id) + ')',
+        ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(x)}<span>${esc(x.name)} <span class="mut">(estoque: ${homeAvail(x.id)})</span></span></span>`,
+        fhtml: `${photoHtml(x)} ${esc(x.name)}`
+      }))
+    );
+    return `<div class="linebox">
+      <label>Item</label>
+      ${sselHtml('kit-' + i, { value: l.productId == null ? '' : String(l.productId), placeholder: 'Escolher item...', searchPh: 'Buscar item...', emptyText: 'Nenhum produto encontrado.', options: opts, onpick: v => kitLineProduct(i, v) })}
+      <label>Quantidade no kit</label>
+      <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="S.kitLines[${i}].qtyStr = this.value; refreshKitSummary();">
+      <div class="btnrow"><button class="danger btn-sm" onclick="removeKitLine(${i})">Remover</button></div>
+    </div>`;
+  }).join('');
+  refreshKitSummary();
+  hydrateProductPhotos(box);
+}
+function kitLineProduct(i, v){
+  const val = (v || '').trim();
+  const l = S.kitLines[i];
+  if(!l) return;
+  const p = val ? prodById(val) : null;
+  l.productId = (p && !p.archived && !isKit(p)) ? p.id : null;
+  renderKitLines();
+}
+function addKitLine(){ S.kitLines.push(blankKitLine()); renderKitLines(); }
+function removeKitLine(i){ S.kitLines.splice(i, 1); renderKitLines(); }
+function refreshKitSummary(){
+  const el = $('kit-summary');
+  if(!el) return;
+  let cost = 0;
+  const seen = {};
+  for(const l of S.kitLines){
+    if(!l.productId || seen[l.productId]) continue;
+    seen[l.productId] = true;
+    const qty = Math.round(parseNum(l.qtyStr) || 0);
+    if(qty <= 0) continue;
+    const c = prodById(l.productId);
+    if(c) cost += Math.round(unitCostCents(c)) * qty;
+  }
+  const priceEl = $('kit-price');
+  const price = priceEl ? Math.max(0, parseMoney(priceEl.value || '')) : 0;
+  el.innerHTML = `<div class="linebox" style="margin-bottom:0;">
+    <div class="row"><span>Custo dos itens</span><span>${BRL(cost)}</span></div>
+    <div class="row"><span>Lucro por kit</span><span class="${price - cost < 0 ? 'neg' : 'pos'}">${BRL(price - cost)}</span></div>
+  </div>`;
+}
+async function saveKit(){
+  const name = $('kit-name').value.trim();
+  if(!name){ toast('Escreva o nome do kit.', true); return; }
+  const price = Math.max(0, parseMoney($('kit-price').value || ''));
+  const merged = {};
+  for(const l of S.kitLines){
+    if(!l.productId) continue;
+    const qty = Math.round(parseNum(l.qtyStr) || 0);
+    if(qty <= 0) continue;
+    merged[l.productId] = (merged[l.productId] || 0) + qty;
+  }
+  const compIds = Object.keys(merged);
+  if(!compIds.length){ toast('Escolha pelo menos um item com quantidade para o kit.', true); return; }
+  let kitId = S.editingKit;
+  if(kitId){
+    const { error } = await sb.from('products').update({ name: name, sale_price_cents: price, is_kit: true }).eq('id', kitId);
+    if(error) return toastErr(error);
+  } else {
+    const payload = {
+      name: name, photo_path: null, sale_price_cents: price, print_time_minutes: 0,
+      archived: false, description: '', categories: [], labor_cents: 0, extra_cents: 0,
+      machine_power_watts: 0, energy_rate_cents_per_kwh: 0, machine_rate_cents_per_hour: 0,
+      is_kit: true
+    };
+    if(S.hasPrintTimes) payload.print_times = [0];
+    const { data, error } = await sb.from('products').insert(payload).select().single();
+    if(error) return toastErr(error);
+    kitId = data.id;
+  }
+  const { error: delErr } = await sb.from('kit_items').delete().eq('kit_product_id', kitId);
+  if(delErr) return toastErr(delErr);
+  const rows = compIds.map(cid => ({ kit_product_id: kitId, component_product_id: Number(cid), qty: merged[cid] }));
+  const { error: insErr } = await sb.from('kit_items').insert(rows);
+  if(insErr) return toastErr(insErr);
+  S.editingKit = null;
+  closeBox();
+  await fetchAll(); renderAll();
+  toast('Kit "' + name + '" salvo.');
+}
+async function archiveKitFromModal(){
+  const id = S.editingKit;
+  if(!id) return;
+  S.editingKit = null;
+  closeBox();
+  await archiveProduct(id, true);
 }
 function prodHistHtml(p){
   const hist = S.prods.filter(x => x.product_id === p.id);
@@ -3351,7 +3561,7 @@ function renderProdutos(){
   const clr = $('prod-search-clear');
   if(clr) clr.classList.toggle('hidden', !(S.prodSearch || '').trim());
   const sortSel = $('prod-sort');
-  if(sortSel) sortSel.value = S.prodSort || 'criacao';
+  if(sortSel) sortSel.value = S.prodSort || 'az';
   const catSel = $('prod-cat-filter');
   if(catSel){
     catSel.innerHTML = '<option value="">Todas</option>' + allCategories().map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
@@ -3360,17 +3570,19 @@ function renderProdutos(){
   const q = norm(S.prodSearch || '');
   const bySort = (a, b) => {
     if(S.prodSort === 'estoque'){
-      const d = stockOf(b.id).available - stockOf(a.id).available;
+      const d = availOf(b) - availOf(a);
       if(d) return d;
       return norm(a.name).localeCompare(norm(b.name));
     }
-    const c = String(a.created_at || '').localeCompare(String(b.created_at || ''));
-    if(c) return c;
+    if(S.prodSort === 'criacao'){
+      const c = String(a.created_at || '').localeCompare(String(b.created_at || ''));
+      if(c) return c;
+    }
     return norm(a.name).localeCompare(norm(b.name));
   };
   const active = S.products.filter(p => !p.archived && (!q || norm(p.name).indexOf(q) >= 0) && (!S.prodCat || productCats(p).some(c => norm(c) === norm(S.prodCat))));
-  const withStock = active.filter(p => stockOf(p.id).available > 0).sort(bySort);
-  const noStock = active.filter(p => stockOf(p.id).available <= 0).sort(bySort);
+  const withStock = active.filter(p => availOf(p) > 0).sort(bySort);
+  const noStock = active.filter(p => availOf(p) <= 0).sort(bySort);
   const listEl = $('prod-list');
   if(withStock.length) listEl.innerHTML = withStock.map(prodCardHtml).join('');
   else if(q && !active.length) listEl.innerHTML = '<p class="mut">Nada encontrado com essa busca.</p>';
@@ -4315,7 +4527,12 @@ async function ignoreRestock(i){
 
 /* ---------------- Pedidos ---------------- */
 function orderItemsOf(oid){ return S.orderItems.filter(i => i.order_id === oid); }
-function orderTotal(oid){ return orderItemsOf(oid).reduce((a, i) => a + i.qty * i.unit_price_cents, 0); }
+function orderTotal(oid){
+  const sum = orderItemsOf(oid).reduce((a, i) => a + i.qty * i.unit_price_cents, 0);
+  const o = orderById(oid);
+  const disc = o ? (Number(o.discount_cents) || 0) : 0;
+  return Math.max(0, sum - disc);
+}
 function orderCost(oid){ return orderItemsOf(oid).reduce((a, i) => a + i.qty * (i.unit_cost_cents || 0), 0); }
 function statusBadge(st){
   const map = { pendente: ['stp', 'Pendente'], em_producao: ['stprod', 'Em produção'], entregue: ['stent', 'Entregue'], cancelado: ['stcanc', 'Cancelado'] };
@@ -4361,19 +4578,49 @@ function orderLineInfoHtml(l){
   const p = prodById(l.productId);
   const qty = Math.round(parseNum(l.qtyStr) || 0);
   return `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:8px;">
-    <span class="mut">Preço: <b style="color:var(--txt);">${BRL(price)}</b> cada${p ? ' · Estoque: ' + homeAvail(p.id) : ''}</span>
+    <span class="mut">Preço: <b style="color:var(--txt);">${BRL(price)}</b> cada${p ? ' · Estoque: ' + availOf(p) : ''}</span>
     <span style="font-weight:800;">Subtotal: <span style="color:var(--cyan);">${BRL(qty * price)}</span></span>
   </div>`;
 }
 function orderSummaryHtml(){
   const t = orderLinesTotals();
+  const disc = Math.min(Math.max(0, S.orderDiscountCents || 0), t.total);
+  const net = t.total - disc;
   const rows = [];
+  if(disc > 0) rows.push(`<div class="row"><span>Subtotal</span><span>${BRL(t.total)}</span></div>`);
+  if(disc > 0) rows.push(`<div class="row"><span>Desconto</span><span class="neg">− ${BRL(disc)}</span></div>`);
   if(t.cost > 0){
     rows.push(`<div class="row"><span>Custo</span><span>${BRL(t.cost)}</span></div>`);
-    rows.push(`<div class="row"><span>Lucro</span><span class="${t.total - t.cost < 0 ? 'neg' : 'pos'}">${BRL(t.total - t.cost)}</span></div>`);
+    rows.push(`<div class="row"><span>Lucro</span><span class="${net - t.cost < 0 ? 'neg' : 'pos'}">${BRL(net - t.cost)}</span></div>`);
   }
-  rows.push(`<div class="row"><span><b>Total do pedido</b></span><span class="card-price">${BRL(t.total)}</span></div>`);
+  rows.push(`<div class="row"><span><b>Total do pedido</b></span><span class="card-price">${BRL(net)}</span></div>`);
   return `<div class="linebox" style="margin-bottom:0;">${rows.join('')}</div>`;
+}
+/* Desconto do pedido: os campos em R$ e em % se completam. O valor guardado
+   e S.orderDiscountCents, limitado ao subtotal na hora de salvar. */
+function orderDiscountInput(src, v){
+  const t = orderLinesTotals();
+  if(src === 'brl'){
+    S.orderDiscountCents = Math.max(0, parseMoney(v || ''));
+    const pctEl = $('ord-disc-pct');
+    if(pctEl) pctEl.value = (t.total > 0 && S.orderDiscountCents > 0) ? String(Math.round(S.orderDiscountCents / t.total * 1000) / 10).replace('.', ',') : '';
+  } else {
+    const pct = parseNum(v || '') || 0;
+    S.orderDiscountCents = Math.max(0, Math.round(t.total * pct / 100));
+    const brlEl = $('ord-disc-brl');
+    if(brlEl) brlEl.value = S.orderDiscountCents > 0 ? moneyStr(S.orderDiscountCents) : '';
+  }
+  refreshOrderSummary();
+}
+function fillDiscountInputs(){
+  const brlEl = $('ord-disc-brl');
+  const pctEl = $('ord-disc-pct');
+  const disc = Math.max(0, S.orderDiscountCents || 0);
+  if(brlEl) brlEl.value = disc > 0 ? moneyStr(disc) : '';
+  if(pctEl){
+    const t = orderLinesTotals();
+    pctEl.value = (t.total > 0 && disc > 0) ? String(Math.round(disc / t.total * 1000) / 10).replace('.', ',') : '';
+  }
 }
 function refreshOrderSummary(){
   const el = $('ord-summary');
@@ -4404,8 +4651,8 @@ function renderOrderLines(){
     const prodOpts = [{ v: '', t: 'Escolher produto...' }].concat(
       S.products.filter(x => !x.archived).map(x => ({
         v: String(x.id),
-        t: x.name + ' (estoque: ' + homeAvail(x.id) + ')',
-        ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(x)}<span>${esc(x.name)} <span class="mut">(estoque: ${homeAvail(x.id)})</span></span></span>`,
+        t: x.name + (isKit(x) ? ' · Kit' : '') + ' (estoque: ' + availOf(x) + ')',
+        ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(x)}<span>${esc(x.name)}${isKit(x) ? ' <span class="badge link">Kit</span>' : ''} <span class="mut">(estoque: ${availOf(x)})</span></span></span>`,
         fhtml: `${photoHtml(x)} ${esc(x.name)}`
       }))
     );
@@ -4473,6 +4720,10 @@ function orderFormHtml(){
     <h3>Itens do pedido</h3>
     <div id="ord-lines"></div>
     <button class="ghost btn-sm" onclick="addOrderLine()">+ Item</button>
+    <div class="cols" style="margin-top:14px;">
+      <div><label>Desconto (R$)</label><input id="ord-disc-brl" type="text" inputmode="decimal" placeholder="0,00" oninput="orderDiscountInput('brl', this.value)"></div>
+      <div><label>Desconto (%)</label><input id="ord-disc-pct" type="text" inputmode="decimal" placeholder="0" oninput="orderDiscountInput('pct', this.value)"></div>
+    </div>
     <div id="ord-summary" style="margin-top:16px;">${orderSummaryHtml()}</div>
     <div class="btnrow">
       <button onclick="saveOrder()">${editing ? 'Salvar' : 'Salvar pedido'}</button>
@@ -4485,9 +4736,11 @@ function orderFormHtml(){
 function openOrderModal(){
   S.editingOrder = null;
   S.orderLines = [blankOrderLine()];
+  S.orderDiscountCents = 0;
   openBox(orderFormHtml());
   $('ord-date').value = todayStr();
   renderOrderLines();
+  fillDiscountInputs();
   if($('ord-client')) $('ord-client').focus();
 }
 function closeOrderModal(){ resetOrderForm(); closeBox(); }
@@ -4501,6 +4754,7 @@ function orderViaCalculator(){
 function resetOrderForm(){
   S.editingOrder = null;
   S.orderLines = [blankOrderLine()];
+  S.orderDiscountCents = 0;
   if($('ord-client')) $('ord-client').value = '';
   if($('ord-date')) $('ord-date').value = todayStr();
   if($('ord-contact')) $('ord-contact').value = '';
@@ -4517,12 +4771,14 @@ function startEditOrder(id){
     description: i.description || '', priceStr: moneyStr(i.unit_price_cents), costStr: moneyStr(i.unit_cost_cents || 0),
     note: i.note || '', noteOpen: !!(i.note || '').trim()
   })) : [blankOrderLine()];
+  S.orderDiscountCents = Number(o.discount_cents) || 0;
   openBox(orderFormHtml());
   $('ord-client').value = o.client_name || '';
   $('ord-date').value = o.order_date || String(o.created_at || '').slice(0, 10);
   $('ord-contact').value = o.customer_contact || '';
   $('ord-notes').value = o.notes || '';
   renderOrderLines();
+  fillDiscountInputs();
 }
 function cancelOrderEdit(){ closeOrderModal(); }
 function cancelOrderFromEdit(){
@@ -4581,18 +4837,20 @@ async function saveOrder(){
   const warnings = [];
   lines.forEach(l => {
     if(!l.product) return;
-    const avail = homeAvail(l.product.id);
+    const avail = availOf(l.product);
     if(l.qty > avail) warnings.push('Faltam ' + (l.qty - avail) + ' peças de "' + l.product.name + '" (pedido de ' + l.qty + ', em estoque ' + avail + ').');
   });
   if(warnings.length && !confirm(warnings.join('\n') + '\n\nSalvar o pedido mesmo assim?')) return;
+  const linesTotal = lines.reduce((a, l) => a + l.qty * l.unitPrice, 0);
+  const discCents = Math.min(Math.max(0, S.orderDiscountCents || 0), linesTotal);
   let orderId = S.editingOrder;
   if(editing){
-    const { error } = await sb.from('orders').update({ client_name: client, order_date: oDate, customer_contact: oContact, notes: oNotes }).eq('id', editing.id);
+    const { error } = await sb.from('orders').update({ client_name: client, order_date: oDate, customer_contact: oContact, notes: oNotes, discount_cents: discCents }).eq('id', editing.id);
     if(error) return toastErr(error);
     const { error: delErr } = await sb.from('order_items').delete().eq('order_id', editing.id);
     if(delErr) return toastErr(delErr);
   } else {
-    const { data: ord, error } = await sb.from('orders').insert({ client_name: client, status: 'pendente', post_to_finance: false, order_date: oDate, customer_contact: oContact, notes: oNotes }).select().single();
+    const { data: ord, error } = await sb.from('orders').insert({ client_name: client, status: 'pendente', post_to_finance: false, order_date: oDate, customer_contact: oContact, notes: oNotes, discount_cents: discCents }).select().single();
     if(error) return toastErr(error);
     orderId = ord.id;
   }
@@ -4631,6 +4889,24 @@ function clearPedSearch(){
 function orderShortage(o, item){
   if(!item || item.product_id == null) return 0;
   if(o.status !== 'pendente' && o.status !== 'em_producao') return 0;
+  const pItem = prodById(item.product_id);
+  if(pItem && isKit(pItem)){
+    /* Falta do kit: quantos kits deste pedido o estoque atende, contando por
+       componente (disponivel + o que este proprio pedido ja consome dele). */
+    const comps = kitComponents(pItem.id);
+    if(!comps.length) return 0;
+    let can = Infinity;
+    comps.forEach(k => {
+      let own = 0;
+      orderItemsOf(o.id).forEach(i2 => {
+        if(i2.product_id == null) return;
+        expandItemQty(i2.product_id, Number(i2.qty) || 0).forEach(e => { if(String(e.pid) === String(k.component_product_id)) own += e.qty; });
+      });
+      can = Math.min(can, Math.floor((homeAvail(k.component_product_id) + own) / (Number(k.qty) || 1)));
+    });
+    const faltaK = (Number(item.qty) || 0) - (can === Infinity ? 0 : can);
+    return faltaK > 0 ? faltaK : 0;
+  }
   const own = orderItemsOf(o.id)
     .filter(i => i.product_id != null && String(i.product_id) === String(item.product_id))
     .reduce((a, i) => a + (Number(i.qty) || 0), 0);
@@ -4652,6 +4928,7 @@ function orderCardHtml(o){
   return `<div class="item-card${editable ? ' click' : ''}" style="align-items:flex-start;"${editable ? ` onclick="startEditOrder(${o.id})"` : ''}>
     <span style="flex:1;">${(o.client_name || '').trim() ? `<div><b>${esc(o.client_name)}</b></div>` : ''}${statusBadge(o.status)}
       <div class="mut">Entrega: ${fmtDate(o.order_date || o.created_at)}</div>
+      ${(Number(o.discount_cents) || 0) > 0 ? `<div class="mut">Desconto: − ${BRL(Number(o.discount_cents))}</div>` : ''}
       <div>Total: <b>${BRL(orderTotal(o.id))}</b></div>
       ${itemsHtml || '<div class="mut">Sem itens.</div>'}
     </span>
@@ -4818,7 +5095,7 @@ function updateQuickSale(){
   const qty = Math.round(parseNum($('qs-qty').value) || 0);
   $('qs-unit').textContent = BRL(p.sale_price_cents);
   $('qs-total').textContent = BRL(Math.max(0, qty) * p.sale_price_cents);
-  const avail = homeAvail(p.id);
+  const avail = availOf(p);
   $('qs-stock').textContent = 'Estoque: ' + avail;
   const falta = qty - avail;
   const warn = $('qs-warn');
