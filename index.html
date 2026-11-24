@@ -607,6 +607,12 @@
           <option value="pedidos">Pedidos</option>
           <option value="reposicoes">Reposições</option>
         </select>
+        <label>Status</label>
+        <select id="ped-filter-status" onchange="S.pedStatusFilter = this.value; renderOrders();">
+          <option value="">Todos</option>
+          <option value="pendente">Pendentes</option>
+          <option value="em_producao">Prontos</option>
+        </select>
         <label>Ordenar por</label>
         <select id="ped-sort" onchange="S.ordersSort = this.value; renderOrders();">
           <option value="pedido">Data do pedido</option>
@@ -914,7 +920,7 @@ const S = {
   orderLines: [],
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
-  pedSearch: '', pedTipoFilter: '', pedShowDone: false, ordersSort: 'pedido',
+  pedSearch: '', pedTipoFilter: '', pedStatusFilter: '', pedShowDone: false, ordersSort: 'pedido',
   prodSearch: '', prodSort: 'az', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
   hasPrintTimes: false,
@@ -4536,7 +4542,7 @@ function orderTotal(oid){
 }
 function orderCost(oid){ return orderItemsOf(oid).reduce((a, i) => a + i.qty * (i.unit_cost_cents || 0), 0); }
 function statusBadge(st){
-  const map = { pendente: ['stp', 'Pendente'], em_producao: ['stprod', 'Em produção'], entregue: ['stent', 'Entregue'], cancelado: ['stcanc', 'Cancelado'] };
+  const map = { pendente: ['stp', 'Pendente'], em_producao: ['stprod', 'Prontos'], entregue: ['stent', 'Entregue'], cancelado: ['stcanc', 'Cancelado'] };
   const m = map[st] || ['stcanc', st];
   return `<span class="badge ${m[0]}">${m[1]}</span>`;
 }
@@ -4869,6 +4875,7 @@ function togglePedFilters(){
 }
 function clearPedFilters(){
   S.pedTipoFilter = '';
+  S.pedStatusFilter = '';
   S.pedSearch = '';
   S.ordersSort = 'pedido';
   const inp = $('ped-search');
@@ -4943,7 +4950,7 @@ function orderCardHtml(o){
   }).join('');
   const editable = o.status !== 'entregue' && o.status !== 'cancelado';
   const btns = [];
-  if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'em_producao')">Em produção</button>`);
+  if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'em_producao')">Prontos</button>`);
   if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
   if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
   return `<div class="item-card${editable ? ' click' : ''}" style="align-items:flex-start;"${editable ? ` onclick="startEditOrder(${o.id})"` : ''}>
@@ -4990,17 +4997,21 @@ function renderOrders(){
   if(clr) clr.classList.toggle('hidden', !(S.pedSearch || '').trim());
   const tipoSel = $('ped-filter-tipo');
   if(tipoSel) tipoSel.value = S.pedTipoFilter || '';
+  const statusSel = $('ped-filter-status');
+  if(statusSel) statusSel.value = S.pedStatusFilter || '';
   const sortSel = $('ped-sort');
   if(sortSel) sortSel.value = S.ordersSort || 'pedido';
   const clearFiltersBtn = $('ped-clear-filters');
-  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !((S.pedTipoFilter || '') || (S.pedSearch || '').trim() || (S.ordersSort && S.ordersSort !== 'pedido')));
+  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !((S.pedTipoFilter || '') || (S.pedStatusFilter || '') || (S.pedSearch || '').trim() || (S.ordersSort && S.ordersSort !== 'pedido')));
   const q = norm(S.pedSearch || '');
   const tipo = S.pedTipoFilter || '';
+  const stf = S.pedStatusFilter || '';
   const groups = restockGroups();
   const mainEntries = [];
   const doneEntries = [];
   if(tipo !== 'reposicoes'){
     S.orders.forEach(o => {
+      if(stf && o.status !== stf) return;
       const items = orderItemsOf(o.id);
       const hay = norm(o.client_name + ' ' + items.map(i => i.description).join(' ') + ' ' + (o.notes || ''));
       if(q && hay.indexOf(q) < 0) return;
@@ -5008,7 +5019,7 @@ function renderOrders(){
       if(o.status === 'entregue') doneEntries.push(entry); else mainEntries.push(entry);
     });
   }
-  if(tipo !== 'pedidos'){
+  if(tipo !== 'pedidos' && !stf){
     groups.forEach((g, i) => {
       const st = storeById(g.storeId);
       const hay = norm((st ? st.name : 'Loja') + ' ' + g.rows.map(r => { const p = prodById(r.product_id); return p ? p.name : ''; }).join(' ') + ' ' + (g.message || ''));
@@ -5031,7 +5042,7 @@ function renderOrders(){
   mainEntries.sort(S.ordersSort === 'entrega' ? byDKey : byKey);
   doneEntries.sort(byKey);
   if(!mainEntries.length){
-    $('ord-list').innerHTML = (q || tipo)
+    $('ord-list').innerHTML = (q || tipo || stf)
       ? '<p class="mut">Nada encontrado com essa busca ou filtro.</p>'
       : (S.orders.length ? '<p class="mut">Nenhum pedido em aberto.</p>' : '<p class="mut">Nenhum pedido ainda.</p>');
   } else {
