@@ -155,6 +155,7 @@
   .attach-zone label{color:var(--cyan); font-size:14px; font-weight:800;}
   .photo-box{border:1px solid var(--line); background:#171330; border-radius:16px; padding:14px; margin-bottom:10px;}
   #calc-photo-preview .thumb{width:76px; height:76px; border-radius:14px; border:2px solid rgba(76,224,255,.5);}
+  #kit-photo-preview .thumb{width:76px; height:76px; border-radius:14px; border:2px solid rgba(76,224,255,.5);}
   #calc-fils .sw, #calc-sups .sw{width:20px; height:20px; border-radius:6px; vertical-align:-4px;}
   #tab-calculadora .card.calc-result{border:1px solid rgba(76,224,255,.55); background:linear-gradient(160deg, #262052 0%, var(--card) 58%); box-shadow:0 12px 32px rgba(0,0,0,.38);}
   #calc-out .row:has(.big) + .row{background:rgba(76,224,255,.08); border:1px solid rgba(76,224,255,.35); border-radius:12px; padding:12px; margin:8px 0;}
@@ -924,7 +925,7 @@ const S = {
   prodSearch: '', prodSort: 'az', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
   hasPrintTimes: false,
-  kitItems: [], kitLines: [], editingKit: null, orderDiscountCents: 0
+  kitItems: [], kitLines: [], editingKit: null, kitPhoto: { blob: null, removed: false, previewUrl: undefined, sizes: '' }, orderDiscountCents: 0
 };
 let P = null; // estado da produção em edição no modal
 
@@ -3421,6 +3422,8 @@ function openKitModal(id){
   const p = id ? prodById(id) : null;
   if(id && !p) return;
   S.editingKit = p ? p.id : null;
+  if(S.kitPhoto && S.kitPhoto.previewUrl) URL.revokeObjectURL(S.kitPhoto.previewUrl);
+  S.kitPhoto = { blob: null, removed: false, previewUrl: undefined, sizes: '' };
   S.kitLines = p ? kitComponents(p.id).map(k => ({ productId: k.component_product_id, qtyStr: String(k.qty) })) : [blankKitLine()];
   if(!S.kitLines.length) S.kitLines = [blankKitLine()];
   openBox(kitFormHtml(p));
@@ -3428,6 +3431,7 @@ function openKitModal(id){
     $('kit-name').value = p.name || '';
     $('kit-price').value = moneyStr(p.sale_price_cents || 0);
   }
+  renderKitPhotoPreview(p ? (p.photo_path || '') : '');
   renderKitLines();
   if($('kit-name')) $('kit-name').focus();
 }
@@ -3440,6 +3444,18 @@ function kitFormHtml(p){
     <input id="kit-name" type="text" placeholder="Ex.: Kit Presépio Completo">
     <label>Preço do kit (R$)</label>
     <input id="kit-price" type="text" inputmode="decimal" placeholder="0,00" oninput="refreshKitSummary()">
+    <label>Foto do kit</label>
+    <div class="photo-box" style="display:flex; gap:12px; align-items:flex-start;">
+      <span id="kit-photo-preview"></span>
+      <span style="flex:1;">
+        <input id="kit-photo-file" type="file" accept="image/*" onchange="onKitPhotoFile(this)">
+        <div class="mut" id="kit-photo-info">A foto é comprimida no aparelho (até 1200 px, JPEG).</div>
+        <div class="btnrow hidden" id="kit-photo-actions">
+          <button type="button" class="ghost btn-sm" onclick="document.getElementById('kit-photo-file').click()">Trocar foto</button>
+          <button type="button" class="danger btn-sm" onclick="removeKitPhoto()">Remover foto</button>
+        </div>
+      </span>
+    </div>
     <h3>Itens do kit</h3>
     <div id="kit-lines"></div>
     <button class="ghost btn-sm" onclick="addKitLine()">+ Item</button>
@@ -3505,6 +3521,61 @@ function refreshKitSummary(){
     <div class="row"><span>Lucro por kit</span><span class="${price - cost < 0 ? 'neg' : 'pos'}">${BRL(price - cost)}</span></div>
   </div>`;
 }
+/* ---------------- Foto do kit (mesmo envio com compressão dos produtos) ---------------- */
+async function onKitPhotoFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const info = $('kit-photo-info');
+  if(info) info.textContent = 'Comprimindo a foto...';
+  if(S.kitPhoto.previewUrl) URL.revokeObjectURL(S.kitPhoto.previewUrl);
+  try {
+    const blob = await compressImageBlob(file);
+    S.kitPhoto = { blob: blob, removed: false, previewUrl: URL.createObjectURL(blob),
+      sizes: 'Foto: ' + fmtBytes(file.size) + ' · comprimida: ' + fmtBytes(blob.size) + '. Enviada ao salvar.' };
+  } catch(e){
+    S.kitPhoto = { blob: file, removed: false, previewUrl: URL.createObjectURL(file),
+      sizes: 'Sem compressão neste aparelho; enviada como está (' + fmtBytes(file.size) + ') ao salvar.' };
+  }
+  renderKitPhotoPreview('');
+}
+function removeKitPhoto(){
+  if(S.kitPhoto.previewUrl) URL.revokeObjectURL(S.kitPhoto.previewUrl);
+  S.kitPhoto = { blob: null, removed: true, previewUrl: undefined, sizes: '' };
+  const fi = $('kit-photo-file'); if(fi) fi.value = '';
+  renderKitPhotoPreview('');
+}
+function renderKitPhotoPreview(currentPath){
+  const box = $('kit-photo-preview');
+  if(!box) return;
+  const info = $('kit-photo-info');
+  const initial = (($('kit-name') && $('kit-name').value) || '?').slice(0, 1).toUpperCase();
+  let has = false;
+  if(S.kitPhoto.blob){
+    box.innerHTML = `<img class="thumb" src="${S.kitPhoto.previewUrl || ''}" alt="">`;
+    if(info) info.textContent = S.kitPhoto.sizes || 'Foto nova pronta para enviar ao salvar.';
+    has = true;
+  } else if(S.kitPhoto.removed){
+    box.innerHTML = photoPlaceholderHtml(initial);
+    if(info) info.textContent = 'A foto será removida ao salvar.';
+  } else {
+    const p = currentPath || (S.editingKit ? (prodById(S.editingKit) || {}).photo_path : '') || '';
+    if(p && /^https?:\/\//i.test(p)){
+      box.innerHTML = `<img class="thumb" src="${esc(p)}" alt="">`;
+      if(info) info.textContent = 'Foto atual do kit.';
+      has = true;
+    } else if(isStoragePath(p)){
+      box.innerHTML = `<img class="thumb" data-photo-path="${esc(p)}" data-initial="${esc(initial)}" alt="">`;
+      hydrateProductPhotos(box);
+      if(info) info.textContent = 'Foto atual do kit.';
+      has = true;
+    } else {
+      box.innerHTML = photoPlaceholderHtml(initial);
+      if(info) info.textContent = 'A foto é comprimida no aparelho (até 1200 px, JPEG).';
+    }
+  }
+  const act = $('kit-photo-actions');
+  if(act) act.classList.toggle('hidden', !has);
+}
 async function saveKit(){
   const name = $('kit-name').value.trim();
   if(!name){ toast('Escreva o nome do kit.', true); return; }
@@ -3519,21 +3590,36 @@ async function saveKit(){
   const compIds = Object.keys(merged);
   if(!compIds.length){ toast('Escolha pelo menos um item com quantidade para o kit.', true); return; }
   let kitId = S.editingKit;
+  const oldKit = kitId ? prodById(kitId) : null;
+  const oldPhoto = oldKit ? oldKit.photo_path : null;
+  let finalPhoto = oldPhoto;
+  let uploadedPath = null;
+  if(S.kitPhoto.removed) finalPhoto = null;
+  else if(S.kitPhoto.blob){
+    const ext = S.kitPhoto.blob.type === 'image/png' ? 'png' : (S.kitPhoto.blob.type === 'image/webp' ? 'webp' : 'jpg');
+    uploadedPath = 'produtos/' + newUuid() + '.' + ext;
+    const up = await sb.storage.from('product-photos').upload(uploadedPath, S.kitPhoto.blob, { contentType: S.kitPhoto.blob.type || 'image/jpeg', upsert: false });
+    if(up.error){ toast('Não consegui enviar a foto do kit: ' + up.error.message, true); return; }
+    finalPhoto = uploadedPath;
+  }
   if(kitId){
-    const { error } = await sb.from('products').update({ name: name, sale_price_cents: price, is_kit: true }).eq('id', kitId);
-    if(error) return toastErr(error);
+    const { error } = await sb.from('products').update({ name: name, sale_price_cents: price, is_kit: true, photo_path: finalPhoto }).eq('id', kitId);
+    if(error){ if(uploadedPath) await sb.storage.from('product-photos').remove([uploadedPath]); return toastErr(error); }
   } else {
     const payload = {
-      name: name, photo_path: null, sale_price_cents: price, print_time_minutes: 0,
+      name: name, photo_path: finalPhoto, sale_price_cents: price, print_time_minutes: 0,
       archived: false, description: '', categories: [], labor_cents: 0, extra_cents: 0,
       machine_power_watts: 0, energy_rate_cents_per_kwh: 0, machine_rate_cents_per_hour: 0,
       is_kit: true
     };
     if(S.hasPrintTimes) payload.print_times = [0];
     const { data, error } = await sb.from('products').insert(payload).select().single();
-    if(error) return toastErr(error);
+    if(error){ if(uploadedPath) await sb.storage.from('product-photos').remove([uploadedPath]); return toastErr(error); }
     kitId = data.id;
   }
+  if(isStoragePath(oldPhoto) && oldPhoto !== finalPhoto){ try { await sb.storage.from('product-photos').remove([oldPhoto]); } catch(e) {} }
+  if(S.kitPhoto.previewUrl) URL.revokeObjectURL(S.kitPhoto.previewUrl);
+  S.kitPhoto = { blob: null, removed: false, previewUrl: undefined, sizes: '' };
   const { error: delErr } = await sb.from('kit_items').delete().eq('kit_product_id', kitId);
   if(delErr) return toastErr(delErr);
   const rows = compIds.map(cid => ({ kit_product_id: kitId, component_product_id: Number(cid), qty: merged[cid] }));
