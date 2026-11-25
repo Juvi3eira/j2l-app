@@ -3540,7 +3540,7 @@ async function archiveKitFromModal(){
 function prodHistHtml(p){
   const hist = S.prods.filter(x => x.product_id === p.id);
   if(!hist.length) return '<p class="mut">Nenhuma produção registrada.</p>';
-  return hist.map(h => `<div class="sub-card"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
+  return hist.map(h => `<div class="sub-card"><span style="flex:1;">${h.qty} peças · ${fmtDateTime(h.created_at)}${h.print_minutes ? ' · Tempo da leva: ' + fmtTime(h.print_minutes) : ''}<div class="mut">${esc(consumptionSummary(h.consumption))}${h.note ? ' · Obs.: ' + esc(h.note) : ''}</div></span>
     <button class="danger btn-sm" onclick="deleteProduction(${h.id})">Excluir e devolver materiais</button></div>`).join('');
 }
 function toggleProdFilters(){
@@ -3676,8 +3676,10 @@ function openProduction(pid){
   const prod = prodById(pid);
   if(!prod){ toast('Produto não encontrado.', true); return; }
   const rec = recipeOf(pid);
+  const perPieceMin = Number(prod.print_time_minutes) || 0;
   P = {
     productId: pid, qty: 1, saveRecipe: false, note: '',
+    perPieceMin: perPieceMin, timeStr: perPieceMin > 0 ? fmtTime(perPieceMin) : '',
     fils: rec.fils.map(r => ({ filamentId: r.filament_id, perPiece: r.grams, grams: r.grams })),
     sups: rec.sups.map(r => ({ supplyId: r.supply_id, perPiece: r.qty_per_piece, qty: r.qty_per_piece }))
   };
@@ -3689,11 +3691,14 @@ function renderProdModal(){
   const prod = prodById(P.productId);
   $('modal-box').innerHTML = `
     <h2>Registrar produção</h2>
-    <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(prod.name)}</b>. Confira a prévia de consumo: pode trocar o rolo e ajustar as quantidades antes de confirmar.</p>
+    <p class="mut" style="margin-bottom:8px;">Produto: <b style="color:var(--txt);">${esc(prod.name)}</b>. Confira a prévia: pode trocar o rolo, ajustar as quantidades e o tempo desta leva antes de confirmar.</p>
     <label>Quantidade de peças desta leva</label>
     <input type="text" inputmode="numeric" value="${P.qty}" oninput="prodQtyChange(this.value)">
     <label>Observação (opcional)</label>
     <input type="text" value="${esc(P.note || '')}" placeholder="Ex.: leva para a Pure Pilates" oninput="P.note = this.value">
+    <label>Tempo de impressão desta leva (total)</label>
+    <input type="text" value="${esc(P.timeStr || '')}" placeholder="Ex.: 3h38, 1d2h, 45m" oninput="P.timeStr = this.value">
+    ${P.perPieceMin > 0 ? `<div class="mut" style="margin-bottom:6px;">Receita: ${fmtTime(P.perPieceMin)} por peça</div>` : ''}
     <h3>Filamentos (total da leva, em gramas)</h3>
     ${P.fils.length ? P.fils.map((l, i) => `<div class="linebox">
       <label>Rolo (pode trocar)</label>
@@ -3720,13 +3725,14 @@ function prodQtyChange(v){
   P.qty = Math.max(1, Math.round(parseNum(v) || 1));
   P.fils.forEach(l => { l.grams = r2(l.perPiece * P.qty); });
   P.sups.forEach(l => { l.qty = r2(l.perPiece * P.qty); });
+  if(P.perPieceMin > 0) P.timeStr = fmtTime(P.perPieceMin * P.qty);
   renderProdModal();
 }
 function prodFilSel(i, v){ P.fils[i].filamentId = parseInt(v, 10); const f = filById(P.fils[i].filamentId); const sw = $('prodfil-sw-' + i); if(sw) sw.style.background = swatch(f ? f.color : ''); }
 function prodFilGrams(i, v){ P.fils[i].grams = parseNum(v) || 0; }
 function prodSupSel(i, v){ P.sups[i].supplyId = parseInt(v, 10); }
 function prodSupQty(i, v){ P.sups[i].qty = parseNum(v) || 0; }
-async function insertProductionAndDeduct(productId, qty, fils, sups, note){
+async function insertProductionAndDeduct(productId, qty, fils, sups, note, batchMin){
   const consumption = [];
   fils.forEach(l => {
     if(l.grams > 0){
@@ -3740,7 +3746,9 @@ async function insertProductionAndDeduct(productId, qty, fils, sups, note){
       consumption.push({ kind: 'supply', id: l.supplyId, name: s ? s.name : '', qty: r2(l.qty) });
     }
   });
-  const { error } = await sb.from('productions').insert({ product_id: productId, qty: qty, consumption: consumption, note: note || '' });
+  const prodPayload = { product_id: productId, qty: qty, consumption: consumption, note: note || '' };
+  if(batchMin != null && batchMin > 0) prodPayload.print_minutes = batchMin;
+  const { error } = await sb.from('productions').insert(prodPayload);
   if(error) return { error: error };
   const ended = [];
   for(const c of consumption){
@@ -3768,7 +3776,8 @@ async function insertProductionAndDeduct(productId, qty, fils, sups, note){
 }
 async function confirmProduction(){
   if(!P) return;
-  const pres = await insertProductionAndDeduct(P.productId, P.qty, P.fils, P.sups, P.note);
+  const batchMin = parsePrintTime(P.timeStr || '');
+  const pres = await insertProductionAndDeduct(P.productId, P.qty, P.fils, P.sups, P.note, batchMin);
   if(pres.error) return toastErr(pres.error);
   const ended = pres.ended;
   if(P.saveRecipe){
@@ -3779,6 +3788,23 @@ async function confirmProduction(){
     const supRows = P.sups.filter(l => l.qty > 0).map(l => ({ product_id: pid, supply_id: l.supplyId, qty_per_piece: r2(l.qty / q) }));
     if(filRows.length){ const { error: e } = await sb.from('product_filaments').insert(filRows); if(e) return toastErr(e); }
     if(supRows.length){ const { error: e } = await sb.from('product_supplies').insert(supRows); if(e) return toastErr(e); }
+    if(batchMin > 0){
+      const prod = prodById(pid);
+      const rows = (prod && Array.isArray(prod.print_times) && prod.print_times.length) ? prod.print_times.map(x => Number(x) || 0) : [Number(prod ? prod.print_time_minutes : 0) || 0];
+      const oldTotal = rows.reduce((a, b) => a + b, 0);
+      const target = Math.max(1, Math.round(batchMin / q));
+      let newRows;
+      if(oldTotal > 0){
+        const f = target / oldTotal;
+        newRows = rows.map(x => Math.max(0, Math.round(x * f)));
+        newRows[newRows.length - 1] += target - newRows.reduce((a, b) => a + b, 0);
+        if(newRows[newRows.length - 1] < 0) newRows[newRows.length - 1] = 0;
+      } else newRows = [target];
+      const tPayload = { print_time_minutes: newRows.reduce((a, b) => a + b, 0) };
+      if(S.hasPrintTimes) tPayload.print_times = newRows;
+      const { error: et } = await sb.from('products').update(tPayload).eq('id', pid);
+      if(et) return toastErr(et);
+    }
   }
   const qtyDone = P.qty;
   closeModal();
