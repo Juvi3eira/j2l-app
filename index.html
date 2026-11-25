@@ -3358,17 +3358,24 @@ function soldOf(id){
   });
   return n;
 }
-/* Reservado do produto: unidades em pedidos ainda abertos (pendente ou em produção).
-   É só exibição: a disponibilidade em si já desconta esses pedidos no estoque geral. */
+/* Reservado do produto: a parte da demanda dos pedidos abertos que o estoque
+   fisico existente cobre de verdade, alocada na fila do pedido mais antigo pro
+   mais novo (a mesma conta do selo "Faltam": reservado + falta = demanda).
+   Definicao da Juliana (2026-11-25): nao da pra reservar o que nao existe. */
 function reservedOf(id){
+  if(!_shortageMap) _shortageMap = computeShortages();
   let n = 0;
   (S.orders || []).forEach(o => {
     if(o.status !== 'pendente' && o.status !== 'em_producao') return;
     orderItemsOf(o.id).forEach(i => {
       if(i.product_id == null) return;
-      if(String(i.product_id) === String(id)){ n += Number(i.qty) || 0; return; }
+      const qty = Number(i.qty) || 0;
+      const alloc = Math.max(0, qty - (_shortageMap[i.id] || 0));
+      if(String(i.product_id) === String(id)){ n += alloc; return; }
       const p = prodById(i.product_id);
-      if(p && isKit(p)) expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(id)) n += e.qty; });
+      if(p && isKit(p)){
+        kitComponents(p.id).forEach(k => { if(String(k.component_product_id) === String(id)) n += alloc * (Number(k.qty) || 0); });
+      }
     });
   });
   return n;
