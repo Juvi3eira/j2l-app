@@ -3273,10 +3273,17 @@ async function generateCatalogPdf(){
   .name { font-weight: 800; font-size: 15px; color: #17142B; margin-top: 9px; line-height: 1.25; }
   .price { font-family: 'Bungee', sans-serif; font-size: 19px; color: #17142B; margin-top: 4px; }
   .footer { text-align: center; color: #6b6880; font-size: 11px; font-weight: 700; margin-top: 20px; }
-  @media print { .footer { position: fixed; bottom: 0; left: 0; right: 0; } }
+  .printbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .printbar button { background: #17142B; color: #ffffff; font-family: 'Bungee', sans-serif; font-size: 16px; border: 0; border-radius: 12px; padding: 14px 18px; cursor: pointer; }
+  .printbar .hint { color: #6b6880; font-size: 12px; font-weight: 700; text-align: center; }
+  @media print { .footer { position: fixed; bottom: 0; left: 0; right: 0; } .printbar { display: none; } }
 </style>
 </head>
 <body>
+  <div class="printbar">
+    <button onclick="window.print()">Imprimir / Salvar PDF</button>
+    <div class="hint">Toque no botão para imprimir ou salvar o PDF. Este aviso não sai na impressão.</div>
+  </div>
   <div class="head">
     <img src="https://j2l.pages.dev/logo-j2l-transparente.png" alt="J2L">
     <div>
