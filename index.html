@@ -5071,9 +5071,12 @@ function orderShortage(o, item){
 }
 function orderCardHtml(o){
   const items = orderItemsOf(o.id);
-  const itemsHtml = items.map(i => {
-    const falta = orderShortage(o, i);
-    return `<div class="mut">${esc(i.description)}: ${i.qty} peças${falta > 0 ? ` · <span class="badge falta">Faltam ${falta}</span>` : ''}</div>${(i.note || '').trim() ? `<div class="mut" style="margin-left:10px;">Obs.: ${esc(i.note)}</div>` : ''}`;
+  const openOrder = o.status === 'pendente' || o.status === 'em_producao';
+  const decorated = items.map(i => ({ i: i, falta: orderShortage(o, i) }));
+  if(openOrder) decorated.sort((a, b) => (a.falta > 0 ? 0 : 1) - (b.falta > 0 ? 0 : 1));
+  const itemsHtml = decorated.map(({ i, falta }) => {
+    const done = i.product_id != null && falta === 0 && o.status !== 'cancelado';
+    return `<div class="mut">${done ? '<span class="pos" style="font-weight:800;">✓</span> ' : ''}${esc(i.description)}: ${i.qty} peças${falta > 0 ? ` · <span class="badge falta">Faltam ${falta}</span>` : ''}</div>${(i.note || '').trim() ? `<div class="mut" style="margin-left:10px;">Obs.: ${esc(i.note)}</div>` : ''}`;
   }).join('');
   const editable = o.status !== 'entregue' && o.status !== 'cancelado';
   const btns = [];
