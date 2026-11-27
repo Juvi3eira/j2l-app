@@ -5323,7 +5323,7 @@ function orderCardHtml(o){
   const btns = [];
   if(o.status !== 'em_producao' && o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'em_producao')">Prontos</button>`);
   if(o.status !== 'entregue' && o.status !== 'cancelado') btns.push(`<button class="pinkbtn btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'entregue')">Entregue</button>`);
-  if(o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
+  if(o.status === 'em_producao' || o.status === 'entregue' || o.status === 'cancelado') btns.push(`<button class="ghost btn-sm" onclick="event.stopPropagation(); setOrderStatus(${o.id}, 'pendente')">Reabrir</button>`);
   return `<div class="item-card${editable ? ' click' : ''}" style="align-items:flex-start;"${editable ? ` onclick="startEditOrder(${o.id})"` : ''}>
     <span style="flex:1;">${(o.client_name || '').trim() ? `<div><b>${esc(o.client_name)}</b></div>` : ''}${statusBadge(o.status)}
       <div class="mut">Entrega: ${fmtDate(o.order_date || o.created_at)}</div>
