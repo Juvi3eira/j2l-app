@@ -926,7 +926,8 @@ const S = {
   prodSearch: '', prodSort: 'az', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
   hasPrintTimes: false,
-  kitItems: [], kitLines: [], editingKit: null, kitPhoto: { blob: null, removed: false, previewUrl: undefined, sizes: '' }, orderDiscountCents: 0
+  kitItems: [], kitLines: [], kitGroups: [], editingKit: null, kitPhoto: { blob: null, removed: false, previewUrl: undefined, sizes: '' }, orderDiscountCents: 0,
+  hasChoices: false, hasKitGroups: false
 };
 let P = null; // estado da produção em edição no modal
 
@@ -1115,6 +1116,7 @@ async function fetchAll(){
   // A coluna print_times só entra no payload de salvar depois que o SQL dela
   // rodou; enquanto as linhas não trazem a chave, o app se comporta como antes.
   if((p.data || []).length) S.hasPrintTimes = Object.prototype.hasOwnProperty.call(p.data[0], 'print_times');
+  if((oi.data || []).length) S.hasChoices = Object.prototype.hasOwnProperty.call(oi.data[0], 'choices');
   S.pf = pf.data || []; S.ps = ps.data || []; S.prods = pd.data || [];
   S.txs = tx.data || [];
   S.stores = st.data || []; S.storeStock = ss.data || []; S.sales = sl.data || [];
@@ -1131,8 +1133,10 @@ async function fetchAll(){
   try {
     const ki = await sb.from('kit_items').select('*');
     S.kitItems = ki.error ? [] : (ki.data || []);
+    if((ki.data || []).length) S.hasKitGroups = Object.prototype.hasOwnProperty.call(ki.data[0], 'group_id');
   } catch(e){ S.kitItems = []; }
   _shortageMap = null;
+  _shortageDetail = {};
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -3317,37 +3321,80 @@ function stockOf(id){
    tem producao propria: o estoque dele e quantos kits da para montar com os
    componentes em casa, o custo e a soma dos custos dos componentes, e um
    pedido com kit baixa o estoque dos componentes (a visao general_stock
-   expande o item do kit; aqui expandimos nas contagens de tela). */
+   expande o item do kit; aqui expandimos nas contagens de tela).
+   Alem dos componentes fixos (sempre vao no kit), um kit pode ter GRUPOS DE
+   ESCOLHA (kit_items com group_id): no pedido, a pessoa escolhe os itens de
+   cada grupo (ex.: 3 amigurumis quaisquer + 1 bandeja qualquer) e as escolhas
+   ficam gravadas no item do pedido (order_items.choices, por unidade de kit:
+   [{pid, qty}]). Sem choices gravadas, valem os componentes fixos. */
 function isKit(p){ return !!(p && p.is_kit); }
 function kitComponents(kitId){
-  return (S.kitItems || []).filter(k => String(k.kit_product_id) === String(kitId));
+  return (S.kitItems || []).filter(k => String(k.kit_product_id) === String(kitId) && !k.group_id);
+}
+function kitGroups(kitId){
+  const rows = (S.kitItems || []).filter(k => String(k.kit_product_id) === String(kitId) && k.group_id);
+  const groups = [];
+  rows.forEach(k => {
+    let g = groups.find(x => String(x.id) === String(k.group_id));
+    if(!g){ g = { id: k.group_id, label: k.group_label || 'Escolha', pick: Math.max(1, Number(k.group_pick) || 1), optionIds: [] }; groups.push(g); }
+    g.optionIds.push(k.component_product_id);
+  });
+  return groups;
+}
+function kitHasChoices(kitId){ return kitGroups(kitId).length > 0; }
+function compUnitCost(pid, guard){
+  const c = prodById(pid);
+  if(!c) return 0;
+  return isKit(c) ? kitCostCents(c.id, guard) : Math.round(unitCostCents(c));
 }
 function kitCostCents(kitId, seen){
   const guard = seen || {};
   if(guard[kitId]) return 0;
   guard[kitId] = true;
-  return kitComponents(kitId).reduce((a, k) => {
-    const c = prodById(k.component_product_id);
-    if(!c) return a;
-    const uc = isKit(c) ? kitCostCents(c.id, guard) : Math.round(unitCostCents(c));
-    return a + uc * (Number(k.qty) || 0);
-  }, 0);
+  let total = kitComponents(kitId).reduce((a, k) => a + compUnitCost(k.component_product_id, guard) * (Number(k.qty) || 0), 0);
+  kitGroups(kitId).forEach(g => {
+    if(!g.optionIds.length) return;
+    const avg = g.optionIds.reduce((a, pid) => a + compUnitCost(pid, guard), 0) / g.optionIds.length;
+    total += Math.round(avg) * g.pick;
+  });
+  return total;
 }
 function kitAvail(kitId){
   const comps = kitComponents(kitId);
-  if(!comps.length) return 0;
+  const groups = kitGroups(kitId);
+  if(!comps.length && !groups.length) return 0;
   let n = Infinity;
   comps.forEach(k => { n = Math.min(n, Math.floor(homeAvail(k.component_product_id) / (Number(k.qty) || 1))); });
+  groups.forEach(g => {
+    const sum = g.optionIds.reduce((a, pid) => a + Math.max(0, homeAvail(pid)), 0);
+    n = Math.min(n, Math.floor(sum / g.pick));
+  });
   return Math.max(0, n === Infinity ? 0 : n);
 }
 /* Disponibilidade exibida de um produto: kit usa os kits montaveis. */
 function availOf(p){ return isKit(p) ? kitAvail(p.id) : homeAvail(p.id); }
+/* Componentes de UM kit daquele item de pedido: as escolhas gravadas no item
+   valem primeiro; sem escolhas, os componentes fixos do kit. */
+function itemComponents(item){
+  const p = item ? prodById(item.product_id) : null;
+  if(!p || !isKit(p)) return [];
+  if(Array.isArray(item.choices) && item.choices.length){
+    return item.choices.map(c => ({ pid: c.pid, qty: Number(c.qty) || 0 })).filter(c => c.qty > 0);
+  }
+  return kitComponents(p.id).map(k => ({ pid: k.component_product_id, qty: Number(k.qty) || 0 }));
+}
 /* Expande um item de pedido em produtos de estoque: kit vira os componentes. */
-function expandItemQty(productId, qty){
+function expandItemQty(productId, qty, item){
   const p = prodById(productId);
   if(p && isKit(p)){
+    if(item && String(item.product_id) === String(productId)){
+      const comps = itemComponents(item);
+      if(comps.length) return comps.map(c => ({ pid: c.pid, qty: qty * c.qty }));
+      return [];
+    }
     const comps = kitComponents(p.id);
     if(comps.length) return comps.map(k => ({ pid: k.component_product_id, qty: qty * (Number(k.qty) || 0) }));
+    return [];
   }
   return [{ pid: productId, qty: qty }];
 }
@@ -3362,7 +3409,7 @@ function soldOf(id){
       if(i.product_id == null) return;
       if(String(i.product_id) === String(id)){ n += Number(i.qty) || 0; return; }
       const p = prodById(i.product_id);
-      if(p && isKit(p)) expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(id)) n += e.qty; });
+      if(p && isKit(p)) expandItemQty(i.product_id, Number(i.qty) || 0, i).forEach(e => { if(String(e.pid) === String(id)) n += e.qty; });
     });
   });
   return n;
@@ -3383,7 +3430,7 @@ function reservedOf(id){
       if(String(i.product_id) === String(id)){ n += alloc; return; }
       const p = prodById(i.product_id);
       if(p && isKit(p)){
-        kitComponents(p.id).forEach(k => { if(String(k.component_product_id) === String(id)) n += alloc * (Number(k.qty) || 0); });
+        itemComponents(i).forEach(c => { if(String(c.pid) === String(id)) n += alloc * c.qty; });
       }
     });
   });
@@ -3391,7 +3438,9 @@ function reservedOf(id){
 }
 function kitCardHtml(p){
   const comps = kitComponents(p.id);
-  const compTxt = comps.map(k => { const c = prodById(k.component_product_id); return (Number(k.qty) || 0) + '× ' + (c ? c.name : 'item removido'); }).join(' · ');
+  const parts = comps.map(k => { const c = prodById(k.component_product_id); return (Number(k.qty) || 0) + '× ' + (c ? c.name : 'item removido'); });
+  kitGroups(p.id).forEach(g => parts.push(g.pick + '× ' + g.label + ' à escolha'));
+  const compTxt = parts.join(' · ');
   return `<div class="item-card click" style="align-items:flex-start;" onclick="openKitModal(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)} <span class="badge link">Kit</span>
       <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(kitCostCents(p.id)))}</div>
@@ -3427,6 +3476,7 @@ function openKitModal(id){
   S.kitPhoto = { blob: null, removed: false, previewUrl: undefined, sizes: '' };
   S.kitLines = p ? kitComponents(p.id).map(k => ({ productId: k.component_product_id, qtyStr: String(k.qty) })) : [blankKitLine()];
   if(!S.kitLines.length) S.kitLines = [blankKitLine()];
+  S.kitGroups = p ? kitGroups(p.id).map(g => ({ id: g.id, label: g.label, pickStr: String(g.pick), options: g.optionIds.map(pid => ({ productId: pid })) })) : [];
   openBox(kitFormHtml(p));
   if(p){
     $('kit-name').value = p.name || '';
@@ -3434,13 +3484,14 @@ function openKitModal(id){
   }
   renderKitPhotoPreview(p ? (p.photo_path || '') : '');
   renderKitLines();
+  renderKitGroups();
   if($('kit-name')) $('kit-name').focus();
 }
 function kitFormHtml(p){
   const editing = !!p;
   return `
     <h2>${editing ? 'Editar kit' : 'Novo kit'}</h2>
-    <p class="mut">Um kit junta itens que já são produtos e vale um preço próprio. O estoque do kit é quantos dá para montar com os itens em casa, e o custo é a soma dos custos dos itens.</p>
+    <p class="mut">Um kit junta itens que já são produtos e vale um preço próprio. O estoque do kit é quantos dá para montar com os itens em casa, e o custo é a soma dos custos dos itens. Itens fixos vão em todo kit; nos grupos de escolha, quem compra escolhe os itens na hora do pedido.</p>
     <label>Nome do kit</label>
     <input id="kit-name" type="text" placeholder="Ex.: Kit Presépio Completo">
     <label>Preço do kit (R$)</label>
@@ -3457,9 +3508,13 @@ function kitFormHtml(p){
         </div>
       </span>
     </div>
-    <h3>Itens do kit</h3>
+    <h3>Itens fixos do kit</h3>
     <div id="kit-lines"></div>
     <button class="ghost btn-sm" onclick="addKitLine()">+ Item</button>
+    <h3>Grupos de escolha</h3>
+    <p class="mut">Ex.: grupo "Amigurumi", escolher 3, com todos os amigurumis como opções. No pedido, você marca o que a pessoa escolheu e o estoque baixa os itens certos.</p>
+    <div id="kit-groups"></div>
+    <button class="ghost btn-sm" onclick="addKitGroup()">+ Grupo de escolha</button>
     <div id="kit-summary" style="margin-top:16px;"></div>
     <div class="btnrow">
       <button onclick="saveKit()">${editing ? 'Salvar kit' : 'Criar kit'}</button>
@@ -3502,6 +3557,52 @@ function kitLineProduct(i, v){
 }
 function addKitLine(){ S.kitLines.push(blankKitLine()); renderKitLines(); }
 function removeKitLine(i){ S.kitLines.splice(i, 1); renderKitLines(); }
+/* Grupos de escolha do kit: { id (uuid, null se novo), label, pickStr,
+   options: [{ productId }] }. Ao salvar, cada opção vira uma linha de
+   kit_items com o mesmo group_id, group_label e group_pick. */
+function blankKitGroup(){ return { id: null, label: '', pickStr: '1', options: [{ productId: null }] }; }
+function renderKitGroups(){
+  const box = $('kit-groups');
+  if(!box) return;
+  box.innerHTML = (S.kitGroups || []).map((g, gi) => {
+    const optsHtml = g.options.map((o, oi) => {
+      const opts = [{ v: '', t: 'Escolher opção...' }].concat(
+        S.products.filter(x => !x.archived && !isKit(x)).map(x => ({
+          v: String(x.id),
+          t: x.name + ' (estoque: ' + homeAvail(x.id) + ')',
+          ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(x)}<span>${esc(x.name)} <span class="mut">(estoque: ${homeAvail(x.id)})</span></span></span>`,
+          fhtml: `${photoHtml(x)} ${esc(x.name)}`
+        }))
+      );
+      return `<div style="margin-top:6px; display:flex; gap:8px; align-items:flex-start;">
+        <span style="flex:1;">${sselHtml('kitg-' + gi + '-' + oi, { value: o.productId == null ? '' : String(o.productId), placeholder: 'Escolher opção...', searchPh: 'Buscar item...', emptyText: 'Nenhum produto encontrado.', options: opts, onpick: v => kitGroupOptionProduct(gi, oi, v) })}</span>
+        <button class="danger btn-sm" type="button" onclick="removeKitGroupOption(${gi}, ${oi})">Remover</button>
+      </div>`;
+    }).join('');
+    return `<div class="linebox">
+      <label>Nome do grupo</label>
+      <input type="text" value="${esc(g.label)}" placeholder="Ex.: Amigurumi" oninput="S.kitGroups[${gi}].label = this.value;">
+      <label>Quantos escolher</label>
+      <input type="text" inputmode="numeric" value="${esc(g.pickStr)}" oninput="S.kitGroups[${gi}].pickStr = this.value; refreshKitSummary();">
+      <label>Opções do grupo</label>
+      ${optsHtml}
+      <div class="btnrow"><button class="ghost btn-sm" type="button" onclick="addKitGroupOption(${gi})">+ Opção</button><button class="danger btn-sm" type="button" onclick="removeKitGroup(${gi})">Remover grupo</button></div>
+    </div>`;
+  }).join('');
+  refreshKitSummary();
+  hydrateProductPhotos(box);
+}
+function addKitGroup(){ S.kitGroups.push(blankKitGroup()); renderKitGroups(); }
+function removeKitGroup(gi){ S.kitGroups.splice(gi, 1); renderKitGroups(); }
+function addKitGroupOption(gi){ S.kitGroups[gi].options.push({ productId: null }); renderKitGroups(); }
+function removeKitGroupOption(gi, oi){ S.kitGroups[gi].options.splice(oi, 1); renderKitGroups(); }
+function kitGroupOptionProduct(gi, oi, v){
+  const g = S.kitGroups[gi];
+  if(!g) return;
+  const p = v ? prodById(v) : null;
+  g.options[oi].productId = (p && !p.archived && !isKit(p)) ? p.id : null;
+  renderKitGroups();
+}
 function refreshKitSummary(){
   const el = $('kit-summary');
   if(!el) return;
@@ -3514,6 +3615,13 @@ function refreshKitSummary(){
     if(qty <= 0) continue;
     const c = prodById(l.productId);
     if(c) cost += Math.round(unitCostCents(c)) * qty;
+  }
+  for(const g of (S.kitGroups || [])){
+    const pick = Math.round(parseNum(g.pickStr) || 0);
+    const ids = (g.options || []).map(o => o.productId).filter(pid => pid != null);
+    if(pick <= 0 || !ids.length) continue;
+    const avg = ids.reduce((a, pid) => { const c = prodById(pid); return a + (c ? Math.round(unitCostCents(c)) : 0); }, 0) / ids.length;
+    cost += Math.round(avg) * pick;
   }
   const priceEl = $('kit-price');
   const price = priceEl ? Math.max(0, parseMoney(priceEl.value || '')) : 0;
@@ -3589,7 +3697,21 @@ async function saveKit(){
     merged[l.productId] = (merged[l.productId] || 0) + qty;
   }
   const compIds = Object.keys(merged);
-  if(!compIds.length){ toast('Escolha pelo menos um item com quantidade para o kit.', true); return; }
+  const groupRows = [];
+  for(const g of (S.kitGroups || [])){
+    const label = (g.label || '').trim();
+    const pick = Math.round(parseNum(g.pickStr) || 0);
+    const ids = (g.options || []).map(o => o.productId).filter(pid => pid != null);
+    if(!label && !ids.length && pick <= 0) continue;
+    if(!label){ toast('Dê um nome para cada grupo de escolha do kit.', true); return; }
+    if(pick < 1){ toast('No grupo "' + label + '", diga quantos itens a pessoa escolhe (1 ou mais).', true); return; }
+    if(!ids.length){ toast('O grupo "' + label + '" precisa de pelo menos uma opção.', true); return; }
+    if(new Set(ids.map(String)).size !== ids.length){ toast('O grupo "' + label + '" tem a mesma opção repetida. Deixe cada item uma vez só.', true); return; }
+    const gid = g.id || newUuid();
+    ids.forEach(pid => groupRows.push({ kit_product_id: null, component_product_id: pid, qty: 1, group_id: gid, group_label: label, group_pick: pick }));
+  }
+  if(groupRows.length && !S.hasKitGroups){ toast('Os grupos de escolha ainda não estão ativos. Tente de novo em instantes.', true); return; }
+  if(!compIds.length && !groupRows.length){ toast('Escolha pelo menos um item fixo ou um grupo de escolha para o kit.', true); return; }
   let kitId = S.editingKit;
   const oldKit = kitId ? prodById(kitId) : null;
   const oldPhoto = oldKit ? oldKit.photo_path : null;
@@ -3623,7 +3745,8 @@ async function saveKit(){
   S.kitPhoto = { blob: null, removed: false, previewUrl: undefined, sizes: '' };
   const { error: delErr } = await sb.from('kit_items').delete().eq('kit_product_id', kitId);
   if(delErr) return toastErr(delErr);
-  const rows = compIds.map(cid => ({ kit_product_id: kitId, component_product_id: Number(cid), qty: merged[cid] }));
+  const rows = compIds.map(cid => ({ kit_product_id: kitId, component_product_id: Number(cid), qty: merged[cid] }))
+    .concat(groupRows.map(r => Object.assign({}, r, { kit_product_id: kitId })));
   const { error: insErr } = await sb.from('kit_items').insert(rows);
   if(insErr) return toastErr(insErr);
   S.editingKit = null;
@@ -4677,7 +4800,7 @@ function renderPedidos(){
   renderOrderLines();
   renderOrders();
 }
-function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false, note: '', noteOpen: false }; }
+function blankOrderLine(){ return { productId: null, qtyStr: '1', description: '', priceStr: '', costStr: '', frozen: false, note: '', noteOpen: false, kitPicks: null }; }
 function orderLinesTotals(){
   let total = 0, cost = 0;
   for(const l of S.orderLines){
@@ -4692,6 +4815,7 @@ function orderLinesTotals(){
       if(!p) continue;
       price = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
       cst = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
+      if(l.kitPicks) cst = kitPicksCost(l);
     } else continue;
     total += qty * price;
     cost += qty * cst;
@@ -4756,6 +4880,62 @@ function fillDiscountInputs(){
     pctEl.value = (t.total > 0 && disc > 0) ? String(Math.round(disc / t.total * 1000) / 10).replace('.', ',') : '';
   }
 }
+/* Escolhas de um kit no pedido: kitPicks = { [groupId]: [pid ou null, ...] },
+   um slot por item a escolher do grupo. As escolhas viram order_items.choices
+   ao salvar ([{pid, qty}] por unidade de kit). */
+function initKitPicks(p){
+  const picks = {};
+  kitGroups(p.id).forEach(g => { picks[g.id] = Array.from({ length: g.pick }, () => null); });
+  return picks;
+}
+function kitPicksChoices(l){
+  if(!l.kitPicks) return null;
+  const agg = {};
+  Object.values(l.kitPicks).forEach(slots => (slots || []).forEach(pid => { if(pid != null) agg[pid] = (agg[pid] || 0) + 1; }));
+  const out = Object.keys(agg).map(pid => ({ pid: Number(pid), qty: agg[pid] }));
+  return out.length ? out : null;
+}
+function kitPicksComplete(l, p){
+  if(!l.kitPicks) return true;
+  return kitGroups(p.id).every(g => {
+    const slots = l.kitPicks[g.id] || [];
+    return slots.length >= g.pick && slots.slice(0, g.pick).every(pid => pid != null);
+  });
+}
+function kitPicksCost(l){
+  const p = l.productId ? prodById(l.productId) : null;
+  if(!p) return 0;
+  let total = kitComponents(p.id).reduce((a, k) => a + compUnitCost(k.component_product_id) * (Number(k.qty) || 0), 0);
+  if(l.kitPicks) Object.values(l.kitPicks).forEach(slots => (slots || []).forEach(pid => { if(pid != null) total += compUnitCost(pid); }));
+  return total;
+}
+function orderKitPicksHtml(l, i, p){
+  const groups = kitGroups(p.id);
+  if(!groups.length || !l.kitPicks) return '';
+  return groups.map(g => {
+    const slots = l.kitPicks[g.id] || [];
+    const opts = [{ v: '', t: 'Escolher...' }].concat(g.optionIds.map(pid => {
+      const op = prodById(pid);
+      if(!op) return null;
+      return { v: String(pid), t: op.name + ' (estoque: ' + homeAvail(pid) + ')',
+        ohtml: `<span style="display:flex; align-items:center; gap:10px;">${photoHtml(op)}<span>${esc(op.name)} <span class="mut">(estoque: ${homeAvail(pid)})</span></span></span>`,
+        fhtml: `${photoHtml(op)} ${esc(op.name)}` };
+    }).filter(Boolean));
+    let sels = '';
+    for(let s = 0; s < g.pick; s++){
+      sels += `<div style="margin-top:6px;">${sselHtml('ordkit-' + i + '-' + g.id + '-' + s, { value: slots[s] == null ? '' : String(slots[s]), placeholder: 'Escolher...', searchPh: 'Buscar item...', emptyText: 'Nenhum item encontrado.', options: opts, onpick: v => orderLineKitPick(i, g.id, s, v) })}</div>`;
+    }
+    return `<div style="margin-top:10px;"><label>${esc(g.label)}: escolher ${g.pick}</label>${sels}</div>`;
+  }).join('');
+}
+function orderLineKitPick(i, gid, slot, v){
+  const l = S.orderLines[i];
+  if(!l || !l.kitPicks) return;
+  if(!l.kitPicks[gid]) l.kitPicks[gid] = [];
+  const p = v ? prodById(v) : null;
+  l.kitPicks[gid][slot] = p ? p.id : null;
+  renderOrderLines();
+}
 function refreshOrderSummary(){
   const el = $('ord-summary');
   if(el) el.innerHTML = orderSummaryHtml();
@@ -4794,6 +4974,7 @@ function renderOrderLines(){
       <label>Produto</label>
       ${sselHtml('ord-' + i, { value: l.productId == null ? '' : String(l.productId), placeholder: 'Escolher produto...', searchPh: 'Buscar produto...', emptyText: 'Nenhum produto encontrado.', options: prodOpts, pinned: { v: '__new__', t: '+ Criar produto novo' }, onpick: v => orderLineProduct(i, v) })}
       <div id="ord-line-info-${i}">${orderLineInfoHtml(l)}</div>
+      ${p && isKit(p) ? orderKitPicksHtml(l, i, p) : ''}
       <label>Quantidade</label>
       <input type="text" inputmode="numeric" value="${esc(l.qtyStr)}" oninput="orderLineField(${i}, 'qtyStr', this.value)">
       <div class="btnrow"><button class="ghost btn-sm" id="ord-note-btn-${i}" onclick="toggleOrderLineNote(${i})">${(l.note || '').trim() ? 'Observação ✓' : '+ Observação'}</button><button class="danger btn-sm" onclick="removeOrderLine(${i})">Remover</button></div>
@@ -4814,17 +4995,22 @@ function orderLineProduct(i, v){
   }
   const l = S.orderLines[i];
   if(!l) return;
+  const prevId = l.productId;
   const p = val ? prodById(val) : null;
   if(p && !p.archived){
     l.productId = p.id;
     l.description = p.name;
     l.priceStr = moneyStr(p.sale_price_cents);
     l.costStr = moneyStr(Math.round(unitCostCents(p)));
+    if(isKit(p) && kitHasChoices(p.id)){
+      if(String(prevId) !== String(p.id) || !l.kitPicks) l.kitPicks = initKitPicks(p);
+    } else l.kitPicks = null;
   } else {
     l.productId = null;
     l.description = '';
     l.priceStr = '';
     l.costStr = '';
+    l.kitPicks = null;
   }
   l.search = '';
   renderOrderLines();
@@ -4903,7 +5089,26 @@ function startEditOrder(id){
   S.orderLines = items.length ? items.map(i => ({
     productId: i.product_id || null, qtyStr: String(i.qty), frozen: !i.product_id,
     description: i.description || '', priceStr: moneyStr(i.unit_price_cents), costStr: moneyStr(i.unit_cost_cents || 0),
-    note: i.note || '', noteOpen: !!(i.note || '').trim()
+    note: i.note || '', noteOpen: !!(i.note || '').trim(),
+    kitPicks: (() => {
+      const p = i.product_id ? prodById(i.product_id) : null;
+      if(!p || !isKit(p) || !kitHasChoices(p.id)) return null;
+      const picks = initKitPicks(p);
+      if(Array.isArray(i.choices) && i.choices.length){
+        const left = {};
+        i.choices.forEach(c => { left[c.pid] = (left[c.pid] || 0) + (Number(c.qty) || 0); });
+        kitGroups(p.id).forEach(g => {
+          const slots = picks[g.id];
+          for(let s = 0; s < slots.length; s++){
+            const pid = g.optionIds.find(opid => (left[opid] || 0) > 0);
+            if(pid == null) break;
+            slots[s] = pid;
+            left[pid]--;
+          }
+        });
+      }
+      return picks;
+    })()
   })) : [blankOrderLine()];
   S.orderDiscountCents = Number(o.discount_cents) || 0;
   openBox(orderFormHtml());
@@ -4964,8 +5169,14 @@ async function saveOrder(){
     const p = prodById(l.productId);
     if(!p) continue;
     const unitPrice = l.priceStr !== '' ? Math.max(0, parseMoney(l.priceStr)) : p.sale_price_cents;
-    const unitCost = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
-    lines.push({ product: p, description: p.name, qty: qty, unitPrice: unitPrice, unitCost: unitCost, note: (l.note || '').trim() });
+    let unitCost = l.costStr !== '' ? Math.max(0, parseMoney(l.costStr)) : Math.round(unitCostCents(p));
+    let choices = null;
+    if(isKit(p) && kitHasChoices(p.id)){
+      if(!kitPicksComplete(l, p)){ toast('Escolha todos os itens do kit "' + p.name + '" antes de salvar.', true); return; }
+      choices = kitPicksChoices(l);
+      if(choices) unitCost = kitPicksCost(l);
+    }
+    lines.push({ product: p, description: p.name, qty: qty, unitPrice: unitPrice, unitCost: unitCost, note: (l.note || '').trim(), choices: choices });
   }
   if(!lines.length){ toast('Adicione pelo menos um item com quantidade ao pedido.', true); return; }
   const warnings = [];
@@ -4988,7 +5199,11 @@ async function saveOrder(){
     if(error) return toastErr(error);
     orderId = ord.id;
   }
-  const rows = lines.map(l => ({ order_id: orderId, product_id: l.product ? l.product.id : null, description: l.description, qty: l.qty, unit_price_cents: l.unitPrice, unit_cost_cents: l.unitCost, note: l.note || '' }));
+  const rows = lines.map(l => {
+    const row = { order_id: orderId, product_id: l.product ? l.product.id : null, description: l.description, qty: l.qty, unit_price_cents: l.unitPrice, unit_cost_cents: l.unitCost, note: l.note || '' };
+    if(S.hasChoices) row.choices = l.choices || null;
+    return row;
+  });
   const { error: e2 } = await sb.from('order_items').insert(rows);
   if(e2) return toastErr(e2);
   closeBox();
@@ -5022,8 +5237,10 @@ function clearPedSearch(){
    pro mais novo: cada pedido consome o que sobrou dos anteriores, e a falta
    dele e o que a fila nao alcancou. Item de kit consome os componentes. */
 let _shortageMap = null;
+let _shortageDetail = {};
 function computeShortages(){
   const map = {};
+  const detailMap = {};
   const open = (S.orders || [])
     .filter(o => o.status === 'pendente' || o.status === 'em_producao')
     .slice()
@@ -5034,7 +5251,7 @@ function computeShortages(){
       let demand = 0;
       open.forEach(o => orderItemsOf(o.id).forEach(i => {
         if(i.product_id == null) return;
-        expandItemQty(i.product_id, Number(i.qty) || 0).forEach(e => { if(String(e.pid) === String(pid)) demand += e.qty; });
+        expandItemQty(i.product_id, Number(i.qty) || 0, i).forEach(e => { if(String(e.pid) === String(pid)) demand += e.qty; });
       }));
       pool[pid] = Math.max(0, (Number(stockOf(pid).available) || 0) + demand);
     }
@@ -5046,12 +5263,20 @@ function computeShortages(){
       const qty = Number(i.qty) || 0;
       const p = prodById(i.product_id);
       if(p && isKit(p)){
-        const comps = kitComponents(p.id);
+        const comps = itemComponents(i);
         if(!comps.length){ map[i.id] = 0; return; }
         let can = Infinity;
-        comps.forEach(k => { can = Math.min(can, Math.floor(poolOf(k.component_product_id) / (Number(k.qty) || 1))); });
+        comps.forEach(c => { can = Math.min(can, Math.floor(poolOf(c.pid) / (c.qty || 1))); });
         const alloc = Math.min(qty, can === Infinity ? 0 : can);
-        comps.forEach(k => { pool[k.component_product_id] = poolOf(k.component_product_id) - alloc * (Number(k.qty) || 0); });
+        if(qty - alloc > 0){
+          const det = [];
+          comps.forEach(c => {
+            const missing = Math.max(0, qty * c.qty - poolOf(c.pid));
+            if(missing > 0){ const cp = prodById(c.pid); det.push({ name: cp ? cp.name : 'Item', missing: missing }); }
+          });
+          if(det.length) detailMap[i.id] = det;
+        }
+        comps.forEach(c => { pool[c.pid] = poolOf(c.pid) - alloc * c.qty; });
         map[i.id] = qty - alloc;
       } else {
         const avail = poolOf(i.product_id);
@@ -5061,6 +5286,7 @@ function computeShortages(){
       }
     });
   });
+  _shortageDetail = detailMap;
   return map;
 }
 function orderShortage(o, item){
@@ -5069,6 +5295,12 @@ function orderShortage(o, item){
   if(!_shortageMap) _shortageMap = computeShortages();
   return _shortageMap[item.id] || 0;
 }
+function orderShortageDetail(o, item){
+  if(!item || item.product_id == null) return [];
+  if(o.status !== 'pendente' && o.status !== 'em_producao') return [];
+  if(!_shortageMap) _shortageMap = computeShortages();
+  return _shortageDetail[item.id] || [];
+}
 function orderCardHtml(o){
   const items = orderItemsOf(o.id);
   const openOrder = o.status === 'pendente' || o.status === 'em_producao';
@@ -5076,7 +5308,16 @@ function orderCardHtml(o){
   if(openOrder) decorated.sort((a, b) => (a.falta > 0 ? 0 : 1) - (b.falta > 0 ? 0 : 1));
   const itemsHtml = decorated.map(({ i, falta }) => {
     const done = i.product_id != null && falta === 0 && o.status !== 'cancelado';
-    return `<div class="mut">${done ? '<span class="pos" style="font-weight:800;">✓</span> ' : ''}${esc(i.description)}: ${i.qty} peças${falta > 0 ? ` · <span class="badge falta">Faltam ${falta}</span>` : ''}</div>${(i.note || '').trim() ? `<div class="mut" style="margin-left:10px;">Obs.: ${esc(i.note)}</div>` : ''}`;
+    let extra = '';
+    if(Array.isArray(i.choices) && i.choices.length){
+      const picks = i.choices.map(c => { const cp = prodById(c.pid); return (cp ? cp.name : 'Item') + ' ×' + ((Number(c.qty) || 0) * (Number(i.qty) || 0)); }).join(' · ');
+      if(picks) extra += `<div class="mut" style="margin-left:10px;">${esc(picks)}</div>`;
+    }
+    if(falta > 0){
+      const det = orderShortageDetail(o, i);
+      if(det.length) extra += `<div class="mut" style="margin-left:10px;">Falta produzir: ${det.map(d => esc(d.name) + ' ×' + d.missing).join(' · ')}</div>`;
+    }
+    return `<div class="mut">${done ? '<span class="pos" style="font-weight:800;">✓</span> ' : ''}${esc(i.description)}: ${i.qty} peças${falta > 0 ? ` · <span class="badge falta">Faltam ${falta}</span>` : ''}</div>${extra}${(i.note || '').trim() ? `<div class="mut" style="margin-left:10px;">Obs.: ${esc(i.note)}</div>` : ''}`;
   }).join('');
   const editable = o.status !== 'entregue' && o.status !== 'cancelado';
   const btns = [];
@@ -5247,6 +5488,7 @@ async function doSetOrderStatus(id, st, post){
 function openQuickSale(id){
   const p = prodById(id);
   if(!p) return;
+  if(isKit(p) && kitHasChoices(p.id)){ toast('Este kit tem itens de escolha. Para vender, lança um pedido (+ Pedido) e marca lá o que a pessoa escolheu.', true); return; }
   S.quickSale = { productId: id };
   $('qs-head').innerHTML = photoHtml(p) + '<span style="flex:1;"><b>' + esc(p.name) + '</b></span>';
   hydrateProductPhotos($('qs-head'));
