@@ -1137,6 +1137,8 @@ async function fetchAll(){
   } catch(e){ S.kitItems = []; }
   _shortageMap = null;
   _shortageDetail = {};
+  _reservedMap = null;
+  _homeMap = null;
   if(S.currentStore && !S.stores.some(x => x.id === S.currentStore)) S.currentStore = null;
   S.stock = {};
   (gs.data || []).forEach(r => { S.stock[r.product_id] = r; });
@@ -2277,7 +2279,7 @@ function renderCalcEditExtras(){
     <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
       ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
       <div class="mut">Lucro por peça: ${BRL(Math.round(profit))} · Margem: ${price > 0 ? fmtN(profit / price * 100) : '0'}%</div>
-      <div class="mut">Estoque: ${st.available} · Reservado: ${reservedOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
+      <div class="mut">Estoque: ${st.available} · Reservado: ${reservedOf(p.id)}/${homeTotalOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
       <div class="mut">Produzidas: ${st.produced} · Em pedidos: ${st.in_orders}</div>
       <div class="btnrow">
         <button class="ghost btn-sm" type="button" onclick="toggleCalcHist()">${S.calcHistOpen ? 'Fechar histórico' : 'Histórico de produção'}</button>
@@ -3414,27 +3416,69 @@ function soldOf(id){
   });
   return n;
 }
-/* Reservado do produto: a parte da demanda dos pedidos abertos que o estoque
-   fisico existente cobre de verdade, alocada na fila do pedido mais antigo pro
-   mais novo (a mesma conta do selo "Faltam": reservado + falta = demanda).
-   Definicao da Juliana (2026-11-25): nao da pra reservar o que nao existe. */
-function reservedOf(id){
-  if(!_shortageMap) _shortageMap = computeShortages();
-  let n = 0;
-  (S.orders || []).forEach(o => {
-    if(o.status !== 'pendente' && o.status !== 'em_producao') return;
+/* Reservado do produto: quanto do estoque fisico que esta em casa ja esta
+   comprometido com pedidos abertos, contado ITEM A ITEM na fila do pedido
+   mais antigo pro mais novo. Num kit, cada componente conta por si: se a
+   arvore existe e um pedido aberto precisa dela, ela esta reservada, mesmo
+   que outro item do mesmo kit ainda falte (a falta continua aparecendo no
+   selo "Faltam" e na linha "Falta produzir" do pedido). Correcao da Juliana
+   (2026-11-27): com a conta antiga, que so contava kits completos, a arvore
+   mostrava Reservado 2 tendo 4 em casa todas vendidas.
+   Excecao: no cartao do proprio kit, Reservado continua sendo quantos kits
+   inteiros da pra montar pros pedidos abertos (conta do selo "Faltam"). */
+let _reservedMap = null;
+let _homeMap = null;
+function computeReservedMap(){
+  const open = (S.orders || [])
+    .filter(o => o.status === 'pendente' || o.status === 'em_producao')
+    .slice()
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || (Number(a.id) - Number(b.id)));
+  const demand = {};
+  open.forEach(o => orderItemsOf(o.id).forEach(i => {
+    if(i.product_id == null) return;
+    expandItemQty(i.product_id, Number(i.qty) || 0, i).forEach(e => { demand[e.pid] = (demand[e.pid] || 0) + e.qty; });
+  }));
+  const pool = {}, home = {}, res = {};
+  Object.keys(demand).forEach(pid => {
+    home[pid] = Math.max(0, (Number(stockOf(pid).available) || 0) + demand[pid]);
+    pool[pid] = home[pid];
+  });
+  open.forEach(o => {
     orderItemsOf(o.id).forEach(i => {
       if(i.product_id == null) return;
-      const qty = Number(i.qty) || 0;
-      const alloc = Math.max(0, qty - (_shortageMap[i.id] || 0));
-      if(String(i.product_id) === String(id)){ n += alloc; return; }
-      const p = prodById(i.product_id);
-      if(p && isKit(p)){
-        itemComponents(i).forEach(c => { if(String(c.pid) === String(id)) n += alloc * c.qty; });
-      }
+      expandItemQty(i.product_id, Number(i.qty) || 0, i).forEach(e => {
+        const take = Math.min(pool[e.pid] || 0, e.qty);
+        pool[e.pid] = (pool[e.pid] || 0) - take;
+        res[e.pid] = (res[e.pid] || 0) + take;
+      });
     });
   });
-  return n;
+  _homeMap = home;
+  return res;
+}
+function reservedOf(id){
+  const p = prodById(id);
+  if(p && isKit(p)){
+    if(!_shortageMap) _shortageMap = computeShortages();
+    let n = 0;
+    (S.orders || []).forEach(o => {
+      if(o.status !== 'pendente' && o.status !== 'em_producao') return;
+      orderItemsOf(o.id).forEach(i => {
+        if(i.product_id == null || String(i.product_id) !== String(id)) return;
+        const qty = Number(i.qty) || 0;
+        n += Math.max(0, qty - (_shortageMap[i.id] || 0));
+      });
+    });
+    return n;
+  }
+  if(!_reservedMap) _reservedMap = computeReservedMap();
+  return _reservedMap[id] || 0;
+}
+/* Total fisico em casa do produto (o denominador do "Reservado: R/T"). */
+function homeTotalOf(id){
+  if(!_reservedMap) _reservedMap = computeReservedMap();
+  if(_homeMap && _homeMap[id] != null) return _homeMap[id];
+  return Math.max(0, Number(stockOf(id).available) || 0);
 }
 function kitCardHtml(p){
   const comps = kitComponents(p.id);
@@ -3457,7 +3501,7 @@ function prodCardHtml(p){
   return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
       <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
-      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Reservado: ${reservedOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
+      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Reservado: ${reservedOf(p.id)}/${homeTotalOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
       <button class="pinkbtn btn-sm" onclick="event.stopPropagation(); openProduction(${p.id})">Produzir</button>
