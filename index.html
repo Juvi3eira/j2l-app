@@ -623,6 +623,7 @@
           <button class="ghost btn-sm hidden" id="ped-clear-filters" type="button" onclick="clearPedFilters()">Limpar filtros</button>
         </div>
       </div>
+      <div id="ped-forecast"></div>
       <div id="ord-list"></div>
       <div id="ord-done"></div>
     </div>
@@ -5118,7 +5119,17 @@ function pedDoneSectionHtml(doneEntries){
   const cards = open ? `<div style="margin-top:10px;">${doneEntries.map(e => e.html).join('')}</div>` : '';
   return `<div style="margin-top:20px;"><button class="ghost btn-sm" onclick="togglePedDone()">Entregues (${doneEntries.length}) ${open ? '▾' : '▸'}</button>${cards}</div>`;
 }
+function renderPedForecast(){
+  const el = $('ped-forecast');
+  if(!el) return;
+  const open = (S.orders || []).filter(o => o.status === 'pendente' || o.status === 'em_producao');
+  if(!open.length){ el.innerHTML = ''; return; }
+  let rec = 0, profit = 0;
+  open.forEach(o => { const t = orderTotal(o.id); rec += t; profit += t - orderCost(o.id); });
+  el.innerHTML = `<div class="mut" style="font-size:12.5px; margin:0 0 12px;">Ganhos estimados · ${open.length} ${open.length === 1 ? 'pedido a entregar' : 'pedidos a entregar'} · Bruto <b style="color:var(--txt);">${BRL(rec)}</b> · Líquido <b style="color:var(--txt);">${BRL(profit)}</b></div>`;
+}
 function renderOrders(){
+  renderPedForecast();
   const clr = $('ped-search-clear');
   if(clr) clr.classList.toggle('hidden', !(S.pedSearch || '').trim());
   const tipoSel = $('ped-filter-tipo');
