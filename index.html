@@ -2279,7 +2279,7 @@ function renderCalcEditExtras(){
     <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
       ${p.description ? `<div class="mut">${esc(p.description)}</div>` : ''}
       <div class="mut">Lucro por peça: ${BRL(Math.round(profit))} · Margem: ${price > 0 ? fmtN(profit / price * 100) : '0'}%</div>
-      <div class="mut">Estoque: ${st.available} · Reservado: ${reservedOf(p.id)}/${homeTotalOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
+      <div class="mut">Reservado: ${reservedOf(p.id)} de ${Math.max(0, homeTotalOf(p.id) - reservedOf(p.id))}${st.in_displays > 0 ? ` · Em expositores: ${st.in_displays}` : ''}${soldOf(p.id) > 0 ? ` · Vendidos: ${soldOf(p.id)}` : ''}</div>
       <div class="mut">Produzidas: ${st.produced} · Em pedidos: ${st.in_orders}</div>
       <div class="btnrow">
         <button class="ghost btn-sm" type="button" onclick="toggleCalcHist()">${S.calcHistOpen ? 'Fechar histórico' : 'Histórico de produção'}</button>
@@ -3474,7 +3474,10 @@ function reservedOf(id){
   if(!_reservedMap) _reservedMap = computeReservedMap();
   return _reservedMap[id] || 0;
 }
-/* Total fisico em casa do produto (o denominador do "Reservado: R/T"). */
+/* Total fisico em casa do produto. A linha do cartao mostra
+   "Reservado: R de L", com L = total em casa menos o reservado (os livres);
+   formato da Juliana (2026-11-27): sem o "Estoque:" separado, e "Em
+   expositores"/"Vendidos" so aparecem quando maiores que zero. */
 function homeTotalOf(id){
   if(!_reservedMap) _reservedMap = computeReservedMap();
   if(_homeMap && _homeMap[id] != null) return _homeMap[id];
@@ -3489,7 +3492,7 @@ function kitCardHtml(p){
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)} <span class="badge link">Kit</span>
       <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(kitCostCents(p.id)))}</div>
       <div class="mut">Contém: ${esc(compTxt) || 'nenhum item ainda'}</div>
-      <div class="mut">Estoque: <b style="color:var(--txt);">${kitAvail(p.id)}</b> kits · Reservado: ${reservedOf(p.id)} · Vendidos: ${soldOf(p.id)}</div>
+      <div class="mut">Estoque: <b style="color:var(--txt);">${kitAvail(p.id)}</b> kits · Reservado: ${reservedOf(p.id)}${soldOf(p.id) > 0 ? ` · Vendidos: ${soldOf(p.id)}` : ''}</div>
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
       <button class="btn-sm" onclick="event.stopPropagation(); openQuickSale(${p.id})">VENDER</button>
@@ -3501,7 +3504,7 @@ function prodCardHtml(p){
   return `<div class="item-card click" style="align-items:flex-start;" onclick="loadProductIntoCalc(${p.id})">
     <span style="display:flex; gap:12px; flex:1;">${photoHtml(p)}<span>${esc(p.name)}
       <div class="mut">Preço: <span class="card-price">${BRL(p.sale_price_cents)}</span> · Custo: ${BRL(Math.round(unitCostCents(p)))} · Tempo: ${fmtTime(p.print_time_minutes)}</div>
-      <div class="mut">Estoque: <b style="color:var(--txt);">${st.available}</b> · Reservado: ${reservedOf(p.id)}/${homeTotalOf(p.id)} · Em expositores: ${st.in_displays} · Vendidos: ${soldOf(p.id)}</div>
+      <div class="mut">Reservado: ${reservedOf(p.id)} de ${Math.max(0, homeTotalOf(p.id) - reservedOf(p.id))}${st.in_displays > 0 ? ` · Em expositores: ${st.in_displays}` : ''}${soldOf(p.id) > 0 ? ` · Vendidos: ${soldOf(p.id)}` : ''}</div>
     </span></span>
     <span><div class="btnrow" style="justify-content:flex-end; margin-top:0;">
       <button class="pinkbtn btn-sm" onclick="event.stopPropagation(); openProduction(${p.id})">Produzir</button>
