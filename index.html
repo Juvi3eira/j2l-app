@@ -597,6 +597,11 @@
         <h2 style="margin:0;">Pedidos</h2>
         <button class="ghost btn-sm" type="button" onclick="togglePedFilters()">Filtrar</button>
       </div>
+      <div class="seg" id="ped-tabs">
+        <button type="button" id="ped-tab-pedidos" onclick="setPedTab('pedidos')">Pedidos</button>
+        <button type="button" id="ped-tab-prontos" onclick="setPedTab('prontos')">Prontos</button>
+        <button type="button" id="ped-tab-entregues" onclick="setPedTab('entregues')">Entregues</button>
+      </div>
       <div class="stores-search">
         <input id="ped-search" type="text" placeholder="Buscar pedido ou reposição…" aria-label="Buscar pedido ou reposição" oninput="S.pedSearch = this.value; renderOrders();">
         <button class="ghost hidden" id="ped-search-clear" onclick="clearPedSearch()">Limpar</button>
@@ -607,12 +612,6 @@
           <option value="">Todos</option>
           <option value="pedidos">Pedidos</option>
           <option value="reposicoes">Reposições</option>
-        </select>
-        <label>Status</label>
-        <select id="ped-filter-status" onchange="S.pedStatusFilter = this.value; renderOrders();">
-          <option value="">Todos</option>
-          <option value="pendente">Pendentes</option>
-          <option value="em_producao">Prontos</option>
         </select>
         <label>Ordenar por</label>
         <select id="ped-sort" onchange="S.ordersSort = this.value; renderOrders();">
@@ -625,7 +624,6 @@
       </div>
       <div id="ped-forecast"></div>
       <div id="ord-list"></div>
-      <div id="ord-done"></div>
     </div>
   </section>
 
@@ -922,7 +920,7 @@ const S = {
   orderLines: [],
   profiles: [], setPassMode: false,
   accRoleFilter: '', accStoreFilter: '',
-  pedSearch: '', pedTipoFilter: '', pedStatusFilter: '', pedShowDone: false, ordersSort: 'pedido',
+  pedSearch: '', pedTipoFilter: '', pedTab: 'pedidos', ordersSort: 'pedido',
   prodSearch: '', prodSort: 'az', prodCat: '', prodShowEmpty: false, calcHistOpen: false,
   stockOuts: [], stockOutOpen: false, stockOutDraft: { qty: '', note: '' },
   hasPrintTimes: false,
@@ -5264,7 +5262,6 @@ function togglePedFilters(){
 }
 function clearPedFilters(){
   S.pedTipoFilter = '';
-  S.pedStatusFilter = '';
   S.pedSearch = '';
   S.ordersSort = 'pedido';
   const inp = $('ped-search');
@@ -5400,15 +5397,29 @@ function restockCardHtml(g, i){
     </span>
   </div>`;
 }
-function togglePedDone(){
-  S.pedShowDone = !S.pedShowDone;
+/* Abas de Pedidos (pedido dela 2026-11-28): Pedidos (pendentes e cancelados,
+   mais as reposições pendentes), Prontos (em_producao) e Entregues, lado a
+   lado no topo; clicar troca a view. Substituem o filtro de Status e a antiga
+   seção fechada de Entregues. */
+function setPedTab(t){
+  S.pedTab = t;
   renderOrders();
 }
-function pedDoneSectionHtml(doneEntries){
-  if(!doneEntries.length) return '';
-  const open = !!S.pedShowDone;
-  const cards = open ? `<div style="margin-top:10px;">${doneEntries.map(e => e.html).join('')}</div>` : '';
-  return `<div style="margin-top:20px;"><button class="ghost btn-sm" onclick="togglePedDone()">Entregues (${doneEntries.length}) ${open ? '▾' : '▸'}</button>${cards}</div>`;
+function pedTabOf(o){
+  if(o.status === 'em_producao') return 'prontos';
+  if(o.status === 'entregue') return 'entregues';
+  return 'pedidos';
+}
+function syncPedTabs(){
+  const counts = { pedidos: 0, prontos: 0, entregues: 0 };
+  (S.orders || []).forEach(o => { counts[pedTabOf(o)]++; });
+  const labels = { pedidos: 'Pedidos', prontos: 'Prontos', entregues: 'Entregues' };
+  ['pedidos', 'prontos', 'entregues'].forEach(t => {
+    const b = $('ped-tab-' + t);
+    if(!b) return;
+    b.classList.toggle('on', (S.pedTab || 'pedidos') === t);
+    b.textContent = labels[t] + ' (' + counts[t] + ')';
+  });
 }
 function renderPedForecast(){
   const el = $('ped-forecast');
@@ -5421,33 +5432,30 @@ function renderPedForecast(){
 }
 function renderOrders(){
   renderPedForecast();
+  syncPedTabs();
   const clr = $('ped-search-clear');
   if(clr) clr.classList.toggle('hidden', !(S.pedSearch || '').trim());
   const tipoSel = $('ped-filter-tipo');
   if(tipoSel) tipoSel.value = S.pedTipoFilter || '';
-  const statusSel = $('ped-filter-status');
-  if(statusSel) statusSel.value = S.pedStatusFilter || '';
   const sortSel = $('ped-sort');
   if(sortSel) sortSel.value = S.ordersSort || 'pedido';
   const clearFiltersBtn = $('ped-clear-filters');
-  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !((S.pedTipoFilter || '') || (S.pedStatusFilter || '') || (S.pedSearch || '').trim() || (S.ordersSort && S.ordersSort !== 'pedido')));
+  if(clearFiltersBtn) clearFiltersBtn.classList.toggle('hidden', !((S.pedTipoFilter || '') || (S.pedSearch || '').trim() || (S.ordersSort && S.ordersSort !== 'pedido')));
   const q = norm(S.pedSearch || '');
   const tipo = S.pedTipoFilter || '';
-  const stf = S.pedStatusFilter || '';
+  const tab = S.pedTab || 'pedidos';
   const groups = restockGroups();
   const mainEntries = [];
-  const doneEntries = [];
   if(tipo !== 'reposicoes'){
     S.orders.forEach(o => {
-      if(stf && o.status !== stf) return;
+      if(pedTabOf(o) !== tab) return;
       const items = orderItemsOf(o.id);
       const hay = norm(o.client_name + ' ' + items.map(i => i.description).join(' ') + ' ' + (o.notes || ''));
       if(q && hay.indexOf(q) < 0) return;
-      const entry = { key: String(o.order_date || o.created_at || ''), dkey: String(o.order_date || ''), html: orderCardHtml(o) };
-      if(o.status === 'entregue') doneEntries.push(entry); else mainEntries.push(entry);
+      mainEntries.push({ key: String(o.order_date || o.created_at || ''), dkey: String(o.order_date || ''), html: orderCardHtml(o) });
     });
   }
-  if(tipo !== 'pedidos' && !stf){
+  if(tipo !== 'pedidos' && tab === 'pedidos'){
     groups.forEach((g, i) => {
       const st = storeById(g.storeId);
       const hay = norm((st ? st.name : 'Loja') + ' ' + g.rows.map(r => { const p = prodById(r.product_id); return p ? p.name : ''; }).join(' ') + ' ' + (g.message || ''));
@@ -5468,15 +5476,16 @@ function renderOrders(){
     return a.dkey.localeCompare(b.dkey);
   };
   mainEntries.sort(S.ordersSort === 'entrega' ? byDKey : byKey);
-  doneEntries.sort(byKey);
   if(!mainEntries.length){
-    $('ord-list').innerHTML = (q || tipo || stf)
-      ? '<p class="mut">Nada encontrado com essa busca ou filtro.</p>'
-      : (S.orders.length ? '<p class="mut">Nenhum pedido em aberto.</p>' : '<p class="mut">Nenhum pedido ainda.</p>');
+    let msg;
+    if(q || tipo) msg = 'Nada encontrado com essa busca ou filtro.';
+    else if(tab === 'prontos') msg = 'Nenhum pedido pronto no momento.';
+    else if(tab === 'entregues') msg = 'Nenhum pedido entregue ainda.';
+    else msg = S.orders.length ? 'Nenhum pedido em aberto.' : 'Nenhum pedido ainda.';
+    $('ord-list').innerHTML = '<p class="mut">' + msg + '</p>';
   } else {
     $('ord-list').innerHTML = mainEntries.map(e => e.html).join('');
   }
-  $('ord-done').innerHTML = pedDoneSectionHtml(doneEntries);
 }
 function setOrderStatus(id, st){
   const o = orderById(id);
@@ -5597,7 +5606,7 @@ async function saveQuickSale(){
     if(e4) return toastErr(e4);
   }
   closeQuickSale();
-  S.pedShowDone = true;
+  S.pedTab = 'entregues';
   await fetchAll(); renderAll();
   showTab('pedidos');
   toast('Venda registrada: ' + qty + ' × ' + p.name + ' para ' + client + '.');
